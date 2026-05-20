@@ -9,10 +9,12 @@ export async function fetchPolymarket(): Promise<Market[]> {
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'application/json',
         },
-        next: { revalidate: 300 }
+        cache: 'no-store',
       }
     )
+
     if (!response.ok) throw new Error(`Polymarket error: ${response.status}`)
+
     const data = await response.json()
     const markets = data.data || data.markets || []
 
@@ -21,7 +23,9 @@ export async function fetchPolymarket(): Promise<Market[]> {
       .map((m: any) => {
         const tokens = m.tokens || []
         const yesToken = tokens.find((t: any) => t.outcome === 'Yes')
-        const probability = yesToken?.price ? parseFloat(yesToken.price) : null
+        const probability = yesToken?.price
+          ? parseFloat(yesToken.price)
+          : null
         const vol = parseFloat(m.volume || 0)
 
         return {
@@ -37,7 +41,10 @@ export async function fetchPolymarket(): Promise<Market[]> {
             : null,
           end_date: m.end_date_iso || null,
           end_date_label: m.end_date_iso
-            ? new Date(m.end_date_iso).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+            ? new Date(m.end_date_iso).toLocaleDateString('en-US', {
+                month: 'short',
+                year: 'numeric',
+              })
             : null,
           traders: null,
           category: m.category || null,
@@ -48,8 +55,8 @@ export async function fetchPolymarket(): Promise<Market[]> {
           fetched_at: new Date().toISOString(),
         }
       })
-  } catch (error) {
-    console.error('Polymarket fetch error:', error)
+  } catch (error: any) {
+    console.error('Polymarket fetch error:', error.message)
     return []
   }
 }
