@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    // Get count per platform
+    // Get all markets to count per platform
     const { data: platformData } = await supabaseAdmin
       .from('markets')
       .select('platform')
@@ -31,10 +31,12 @@ export async function GET() {
       ? Math.round((Date.now() - new Date(lastFetch).getTime()) / 60_000)
       : null
 
-    // Check which platforms are present
+    // Only 4 platforms now — crypto and financial focus
     const expectedPlatforms = [
-      'polymarket', 'manifold', 'metaculus',
-      'predictit', 'kalshi', 'gjopen'
+      'polymarket',
+      'manifold',
+      'predictit',
+      'kalshi',
     ]
 
     const platformStatus = expectedPlatforms.map((p) => ({

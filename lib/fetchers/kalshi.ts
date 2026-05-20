@@ -1,19 +1,32 @@
 import { Market } from '../types'
-import { createSign } from 'crypto'
+import crypto from 'crypto'
 
-function getKalshiHeaders(method: string, path: string): HeadersInit {
+function getKalshiHeaders(method: string, endpointPath: string): HeadersInit {
   const keyId = process.env.KALSHI_API_KEY_ID
-  const privateKey = process.env.KALSHI_PRIVATE_KEY?.replace(/\\n/g, '\n')
+  const privateKeyRaw = process.env.KALSHI_PRIVATE_KEY
 
-  if (!keyId || !privateKey || keyId === 'placeholder') {
+  if (!keyId || !privateKeyRaw || keyId === 'placeholder') {
+    console.log('Kalshi: missing API credentials')
     return {}
   }
 
+  // Fix newlines that may be escaped in env vars
+  const privateKey = privateKeyRaw
+    .replace(/\\n/g, '\n')
+    .replace(/\\r/g, '')
+    .trim()
+
   const timestamp = Date.now().toString()
-  const message = `${timestamp}${method}/trade-api/v2${path}`
+
+  // IMPORTANT: path for signing must NOT include query params
+  const pathForSigning = endpointPath.split('?')[0]
+  const message = `${timestamp}${method}${pathForSigning}`
+
+  console.log('Kalshi signing message:', message.substring(0, 50))
 
   try {
-    const sign = createSign('SHA256')
+    // Use RSA-SHA256 not just SHA256
+    const sign = crypto.createSign('RSA-SHA256')
     sign.update(message)
     sign.end()
     const signature = sign.sign(privateKey, 'base64')
@@ -23,9 +36,10 @@ function getKalshiHeaders(method: string, path: string): HeadersInit {
       'KALSHI-ACCESS-TIMESTAMP': timestamp,
       'KALSHI-ACCESS-SIGNATURE': signature,
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
     }
-  } catch (error) {
-    console.error('Kalshi signature error:', error)
+  } catch (error: any) {
+    console.error('Kalshi signing error:', error.message)
     return {}
   }
 }
@@ -33,24 +47,33 @@ function getKalshiHeaders(method: string, path: string): HeadersInit {
 export async function fetchKalshi(): Promise<Market[]> {
   const keyId = process.env.KALSHI_API_KEY_ID
   if (!keyId || keyId === 'placeholder') {
-    console.log('Kalshi API key not set — skipping')
+    console.log('Kalshi: no API key — skipping')
     return []
   }
 
   try {
-    const path = '/markets?limit=50&status=open'
-    const headers = getKalshiHeaders('GET', path)
+    const endpointPath = '/trade-api/v2/markets?limit=50&status=open'
+    const headers = getKalshiHeaders('GET', endpointPath)
 
-    if (Object.keys(headers).length === 0) return []
+    if (Object.keys(headers).length === 0) {
+      console.log('Kalshi: could not generate headers')
+      return []
+    }
 
     const response = await fetch(
-      `https://trading-api.kalshi.com/trade-api/v2${path}`,
-      { headers, next: { revalidate: 300 } }
+      `https://trading-api.kalshi.com${endpointPath}`,
+      { headers, cache: 'no-store' }
     )
 
-    if (!response.ok) throw new Error(`Kalshi error: ${response.status}`)
+    if (!response.ok) {
+      const text = await response.text()
+      console.error(`Kalshi HTTP error: ${response.status} — ${text.substring(0, 200)}`)
+      return []
+    }
+
     const data = await response.json()
     const markets = data.markets || []
+    console.log(`Kalshi: got ${markets.length} markets`)
 
     return markets.map((m: any) => {
       const yesCents = m.yes_ask ?? m.last_price ?? null
@@ -84,8 +107,8 @@ export async function fetchKalshi(): Promise<Market[]> {
         fetched_at: new Date().toISOString(),
       }
     })
-  } catch (error) {
-    console.error('Kalshi fetch error:', error)
+  } catch (error: any) {
+    console.error('Kalshi fetch error:', error.message)
     return []
   }
 }
