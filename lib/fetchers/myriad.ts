@@ -53,7 +53,7 @@ export async function fetchMyriad(): Promise<Market[]> {
 
         return {
           id: `myriad-${m.id}`,
-          platform: 'myriad' as any,
+          platform: 'myriad' as const,
           question: m.title || m.question || '',
           probability,
           volume: vol ? parseFloat(vol) : null,

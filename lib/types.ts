@@ -1,5 +1,5 @@
 export type MarketStatus = 'active' | 'closed' | 'resolved'
-export type Platform = 'polymarket' | 'manifold' | 'metaculus' | 'predictit' | 'kalshi'
+export type Platform = 'polymarket' | 'manifold' | 'metaculus' | 'predictit' | 'kalshi' | 'myriad'
 
 export interface Market {
   id: string
