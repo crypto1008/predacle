@@ -3,23 +3,19 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    // Get all markets to count per platform
     const { data: platformData } = await supabaseAdmin
       .from('markets')
       .select('platform')
 
-    // Count per platform
     const platformCounts: Record<string, number> = {}
     platformData?.forEach((row) => {
       platformCounts[row.platform] = (platformCounts[row.platform] || 0) + 1
     })
 
-    // Get total count
     const { count: totalCount } = await supabaseAdmin
       .from('markets')
       .select('*', { count: 'exact', head: true })
 
-    // Get last fetch time
     const { data: lastFetchData } = await supabaseAdmin
       .from('markets')
       .select('fetched_at')
@@ -31,12 +27,11 @@ export async function GET() {
       ? Math.round((Date.now() - new Date(lastFetch).getTime()) / 60_000)
       : null
 
-    // Only 4 platforms now — crypto and financial focus
     const expectedPlatforms = [
       'polymarket',
       'manifold',
-      'predictit',
       'kalshi',
+      'myriad',
     ]
 
     const platformStatus = expectedPlatforms.map((p) => ({

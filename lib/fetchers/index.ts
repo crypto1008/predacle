@@ -1,7 +1,7 @@
 import { fetchPolymarket } from './polymarket'
 import { fetchManifold } from './manifold'
-import { fetchPredictIt } from './predictit'
 import { fetchKalshi } from './kalshi'
+import { fetchMyriad } from './myriad'
 import { Market } from '../types'
 
 export async function fetchAllMarkets(): Promise<{
@@ -11,13 +11,13 @@ export async function fetchAllMarkets(): Promise<{
   const results = await Promise.allSettled([
     fetchPolymarket(),
     fetchManifold(),
-    fetchPredictIt(),
     fetchKalshi(),
+    fetchMyriad(),
   ])
 
   const markets: Market[] = []
   const errors: Record<string, string> = {}
-  const platforms = ['polymarket', 'manifold', 'predictit', 'kalshi']
+  const platforms = ['polymarket', 'manifold', 'kalshi', 'myriad']
 
   results.forEach((result, i) => {
     if (result.status === 'fulfilled') {
