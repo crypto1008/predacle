@@ -2,19 +2,39 @@ import { Market } from '../types'
 
 export async function fetchMetaculus(): Promise<Market[]> {
   try {
-    const response = await fetch(
-      'https://www.metaculus.com/api2/questions/?format=json&limit=50&status=open',
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'application/json',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-        next: { revalidate: 300 }
-      }
-    )
-    if (!response.ok) throw new Error(`Metaculus error: ${response.status}`)
-    const data = await response.json()
+    // Try new Metaculus API domain first
+    const urls = [
+      'https://api.metaculus.com/api2/questions/?status=open&limit=50&order_by=-activity',
+      'https://www.metaculus.com/api2/questions/?status=open&limit=50&order_by=-activity',
+    ]
+
+    let data: any = null
+
+    for (const url of urls) {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Referer': 'https://www.metaculus.com/',
+            'Origin': 'https://www.metaculus.com',
+          },
+        })
+        if (response.ok) {
+          data = await response.json()
+          break
+        }
+      } catch {}
+    }
+
+    if (!data) {
+      console.error('Metaculus: all endpoints failed')
+      return []
+    }
+
     const questions = data.results || data.objects || []
 
     return questions

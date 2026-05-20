@@ -3,24 +3,25 @@ import { fetchManifold } from './manifold'
 import { fetchMetaculus } from './metaculus'
 import { fetchPredictIt } from './predictit'
 import { fetchKalshi } from './kalshi'
+import { fetchGJOpen } from './gjopen'
 import { Market } from '../types'
 
 export async function fetchAllMarkets(): Promise<{
   markets: Market[]
   errors: Record<string, string>
 }> {
-  // All 5 platforms run simultaneously — never one by one
   const results = await Promise.allSettled([
     fetchPolymarket(),
     fetchManifold(),
     fetchMetaculus(),
     fetchPredictIt(),
     fetchKalshi(),
+    fetchGJOpen(),
   ])
 
   const markets: Market[] = []
   const errors: Record<string, string> = {}
-  const platforms = ['polymarket', 'manifold', 'metaculus', 'predictit', 'kalshi']
+  const platforms = ['polymarket', 'manifold', 'metaculus', 'predictit', 'kalshi', 'gjopen']
 
   results.forEach((result, i) => {
     if (result.status === 'fulfilled') {
