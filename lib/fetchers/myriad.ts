@@ -72,7 +72,7 @@ export async function fetchMyriad(): Promise<Market[]> {
                   year: 'numeric',
                 })
               : null,
-          traders: m.liquidity || null,
+          traders: m.liquidity ? Math.round(parseFloat(String(m.liquidity))) : null,
           category: m.category || m.topic || 'crypto',
           url: m.slug
             ? `https://myriad.markets/markets/${m.slug}`
