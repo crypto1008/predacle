@@ -36,10 +36,27 @@ export async function GET(request: NextRequest) {
     })
   }
 
+  // Sanitize all numeric fields before saving to database
+  const sanitized = markets.map((m: any) => ({
+    ...m,
+    probability:
+      m.probability !== null && m.probability !== undefined
+        ? Math.min(0.9999, Math.max(0, parseFloat(String(m.probability)) || 0))
+        : null,
+    volume:
+      m.volume !== null && m.volume !== undefined
+        ? Math.min(999999999999, Math.max(0, parseFloat(String(m.volume)) || 0))
+        : null,
+    traders:
+      m.traders !== null && m.traders !== undefined
+        ? Math.round(Math.abs(parseInt(String(m.traders)) || 0))
+        : null,
+  }))
+
   try {
     const { error: upsertError } = await supabaseAdmin
       .from('markets')
-      .upsert(markets, { onConflict: 'id' })
+      .upsert(sanitized, { onConflict: 'id' })
 
     if (upsertError) {
       console.error('Upsert error:', upsertError)

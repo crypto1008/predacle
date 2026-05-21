@@ -22,25 +22,32 @@ export async function fetchLimitless(): Promise<Market[]> {
 
     return markets
       .filter((m: any) => !!m.title)
-      .map((m: any) => ({
-        id: `limitless-${m.id}`,
-        platform: 'limitless',
-        question: String(m.title),
-        // prices = [yesProb, noProb] e.g. [0.565, 0.435]
-        probability:
-          Array.isArray(m.prices) && typeof m.prices[0] === 'number'
-            ? m.prices[0]
-            : null,
-        volume: null,
-        volume_label: null,
-        end_date: null,
-        end_date_label: null,
-        traders: null,
-        category: 'crypto',
-        url: `https://limitless.exchange/markets/${m.id}`,
-        status: 'active' as const,
-        fetched_at: new Date().toISOString(),
-      }))
+      .map((m: any) => {
+        let probability: number | null = null
+        if (Array.isArray(m.prices) && typeof m.prices[0] === 'number') {
+          const raw = m.prices[0]
+          // Normalize: some markets use percentage (65) others decimal (0.565)
+          const normalized = raw > 1 ? raw / 100 : raw
+          // Clamp to valid DECIMAL(5,4) range
+          probability = Math.min(0.9999, Math.max(0, normalized))
+        }
+
+        return {
+          id: `limitless-${m.id}`,
+          platform: 'limitless',
+          question: String(m.title),
+          probability,
+          volume: null,
+          volume_label: null,
+          end_date: null,
+          end_date_label: null,
+          traders: null,
+          category: 'crypto',
+          url: `https://limitless.exchange/markets/${m.id}`,
+          status: 'active' as const,
+          fetched_at: new Date().toISOString(),
+        }
+      })
   } catch (error: any) {
     console.error('Limitless error:', error.message)
     return []
