@@ -5,7 +5,7 @@ export async function fetchLimitless(): Promise<Market[]> {
     console.log('Limitless: fetching...')
 
     const response = await fetch(
-      'https://api.limitless.exchange/markets/active?limit=50',
+      'https://api.limitless.exchange/markets/active',
       {
         headers: { 'Accept': 'application/json' },
         cache: 'no-store',
