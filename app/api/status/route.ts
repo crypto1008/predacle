@@ -32,6 +32,7 @@ export async function GET() {
       'manifold',
       'kalshi',
       'myriad',
+      'limitless'
     ]
 
     const platformStatus = expectedPlatforms.map((p) => ({
