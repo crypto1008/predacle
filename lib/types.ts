@@ -1,9 +1,17 @@
 export type MarketStatus = 'active' | 'closed' | 'resolved'
-export type Platform = 'polymarket' | 'manifold' | 'metaculus' | 'predictit' | 'kalshi' | 'myriad'
+
+export type Platform =
+  | 'polymarket'
+  | 'manifold'
+  | 'kalshi'
+  | 'myriad'
+  | 'limitless'
+  | 'metaculus'
+  | 'predictit'
 
 export interface Market {
   id: string
-  platform: Platform
+  platform: string
   question: string
   probability: number | null
   volume: number | null
@@ -16,14 +24,6 @@ export interface Market {
   status: MarketStatus
   fetched_at: string
   created_at?: string
-}
-
-export interface MarketGroup {
-  fingerprint: string
-  question: string
-  markets: Market[]
-  avgProbability: number
-  platforms: Platform[]
 }
 
 export interface FetchResult {
