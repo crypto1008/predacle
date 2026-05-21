@@ -1,5 +1,5 @@
 import { Market } from '../types'
-import crypto from 'crypto'
+import { createSign } from 'crypto'
 
 function getKalshiHeaders(method: string, endpointPath: string): HeadersInit {
   const keyId = process.env.KALSHI_API_KEY_ID
@@ -22,7 +22,7 @@ function getKalshiHeaders(method: string, endpointPath: string): HeadersInit {
   console.log('Kalshi signing message:', message.substring(0, 50))
 
   try {
-    const sign = crypto.createSign('RSA-SHA256')
+    const sign = createSign('RSA-SHA256')
     sign.update(message)
     sign.end()
     const signature = sign.sign(privateKey, 'base64')
