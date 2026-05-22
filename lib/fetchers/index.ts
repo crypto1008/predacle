@@ -3,6 +3,7 @@ import { fetchManifold } from './manifold'
 import { fetchKalshi } from './kalshi'
 import { fetchMyriad } from './myriad'
 import { fetchLimitless } from './limitless'
+import { fetchAzuro } from './azuro'
 import { Market } from '../types'
 
 export async function fetchAllMarkets(): Promise<{
@@ -15,11 +16,15 @@ export async function fetchAllMarkets(): Promise<{
     fetchKalshi(),
     fetchMyriad(),
     fetchLimitless(),
+    fetchAzuro(),
   ])
 
   const markets: Market[] = []
   const errors: Record<string, string> = {}
-  const platforms = ['polymarket', 'manifold', 'kalshi', 'myriad', 'limitless']
+  const platforms = [
+    'polymarket', 'manifold', 'kalshi',
+    'myriad', 'limitless', 'azuro'
+  ]
 
   results.forEach((result, i) => {
     if (result.status === 'fulfilled') {
