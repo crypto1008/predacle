@@ -49,7 +49,7 @@ export async function fetchKalshi(): Promise<Market[]> {
   }
 
   try {
-    const endpointPath = '/trade-api/v2/markets?limit=50&status=open'
+    const endpointPath = '/trade-api/v2/markets?limit=200&status=open'
     const headers = getKalshiHeaders('GET', endpointPath)
 
     if (Object.keys(headers).length === 0) {

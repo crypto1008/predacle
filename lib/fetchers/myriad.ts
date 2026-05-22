@@ -3,7 +3,7 @@ import { Market } from '../types'
 export async function fetchMyriad(): Promise<Market[]> {
   try {
     const response = await fetch(
-      'https://api-v2.myriadprotocol.com/markets?state=open&sort=volume_24h&limit=50',
+      'https://api-v2.myriadprotocol.com/markets?state=open&sort=volume_24h&limit=100',
       {
         headers: {
           'User-Agent': 'Predacle/1.0 (https://predacle.com)',

@@ -7,7 +7,7 @@ const QUERY = `
   query ActiveGames {
     games(
       where: { status: Created }
-      first: 50
+      first: 100
       orderBy: startsAt
       orderDirection: asc
     ) {

@@ -4,7 +4,7 @@ import { Market } from '../types'
 export async function fetchManifold(): Promise<Market[]> {
   try {
     const response = await fetch(
-      'https://api.manifold.markets/v0/markets?limit=50',
+      'https://api.manifold.markets/v0/markets?limit=100',
       {
         headers: {
           'User-Agent': 'Predacle/1.0 (https://predacle.com)',
