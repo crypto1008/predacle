@@ -9,14 +9,55 @@ function getFingerprint(question: string): string {
   const stopwords = new Set([
     'will','the','a','an','in','on','to','be','by','at','of','for',
     'is','are','was','were','has','have','had','do','does','did',
-    'this','that','with','from','and','or','not','it','its','above',
-    'below','reach','hit','over','under','than','before','after',
-    'end','year','month','week','day','time','still','ever','first',
-    'last','more','than','most','least','between','during','until',
+    'this','that','with','from','and','or','not','it','its',
+    'above','below','hit','over','under','than','before','after',
+    'end','year','month','week','day','time','still','ever',
+    'going','able','likely','expected','predicted','market',
   ])
+
   return question
     .toLowerCase()
+    // Normalize crypto symbols to full names
+    .replace(/\bbtc\b/g, 'bitcoin')
+    .replace(/\beth\b/g, 'ethereum')
+    .replace(/\bsol\b/g, 'solana')
+    .replace(/\bdoge\b/g, 'dogecoin')
+    .replace(/\bxrp\b/g, 'ripple')
+    .replace(/\bada\b/g, 'cardano')
+    .replace(/\bbnb\b/g, 'binance')
+    .replace(/\bmatic\b/g, 'polygon')
+    .replace(/\bavax\b/g, 'avalanche')
+    // Normalize number formats — $100k → 100000
+    .replace(/\$(\d+(\.\d+)?)k\b/g, (_, n) => String(Math.round(parseFloat(n) * 1000)))
+    .replace(/\$(\d+(\.\d+)?)m\b/g, (_, n) => String(Math.round(parseFloat(n) * 1000000)))
+    .replace(/\$(\d+(\.\d+)?)b\b/g, (_, n) => String(Math.round(parseFloat(n) * 1000000000)))
+    .replace(/,(\d{3})/g, '$1') // remove thousand separators
+    .replace(/\$/g, '') // remove dollar signs
+    // Normalize Fed/interest rate language
+    .replace(/\bfederal reserve\b/g, 'fed')
+    .replace(/\bfomc\b/g, 'fed')
+    .replace(/\brate hike\b/g, 'rate increase')
+    .replace(/\brate cut\b/g, 'rate decrease')
+    .replace(/\braise rates?\b/g, 'rate increase')
+    .replace(/\bcut rates?\b/g, 'rate decrease')
+    .replace(/\blower rates?\b/g, 'rate decrease')
+    // Normalize political language
+    .replace(/\bpresidential election\b/g, 'president election')
+    .replace(/\bus president\b/g, 'president')
+    .replace(/\bpotus\b/g, 'president')
+    .replace(/\bwhite house\b/g, 'president')
+    .replace(/\brepublican\b/g, 'gop')
+    .replace(/\bdemocrat\b/g, 'dem')
+    // Normalize sports language
+    .replace(/\bsuperbowl\b/g, 'super bowl')
+    .replace(/\bnfl championship\b/g, 'super bowl')
+    // Normalize win/winner/wins
+    .replace(/\bwinner\b/g, 'win')
+    .replace(/\bwins\b/g, 'win')
+    .replace(/\bwinning\b/g, 'win')
+    // Remove punctuation
     .replace(/[^a-z0-9\s]/g, ' ')
+    // Split, filter stopwords, sort, join
     .split(/\s+/)
     .filter(w => w.length > 2 && !stopwords.has(w))
     .sort()
