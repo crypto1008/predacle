@@ -1,3 +1,4 @@
+import { inferCategory } from '../utils/category'
 import { Market } from '../types'
 
 export async function fetchPolymarket(): Promise<Market[]> {
@@ -47,7 +48,7 @@ export async function fetchPolymarket(): Promise<Market[]> {
               })
             : null,
           traders: null,
-          category: m.category || null,
+          category: m.category || m.tags?.[0] || inferCategory(m.question || ''),
           url: m.market_slug
             ? `https://polymarket.com/event/${m.market_slug}`
             : 'https://polymarket.com',

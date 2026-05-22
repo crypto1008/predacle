@@ -1,3 +1,4 @@
+import { inferCategory } from '../utils/category'
 import { Market } from '../types'
 
 export async function fetchManifold(): Promise<Market[]> {
@@ -33,7 +34,7 @@ export async function fetchManifold(): Promise<Market[]> {
             ? closeTime.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
             : null,
           traders: m.uniqueBettorCount || null,
-          category: m.groupSlugs?.[0]?.replace(/-/g, ' ') || null,
+          category: m.groupSlugs?.[0]?.replace(/-/g, ' ') || inferCategory(m.question || ''),
           url: m.url || 'https://manifold.markets',
           status: isExpired ? 'closed' : 'active' as const,
           fetched_at: new Date().toISOString(),

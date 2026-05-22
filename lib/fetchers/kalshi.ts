@@ -1,3 +1,4 @@
+import { inferCategory } from '../utils/category'
 import { Market } from '../types'
 import { createSign } from 'crypto'
 
@@ -99,7 +100,7 @@ export async function fetchKalshi(): Promise<Market[]> {
             })
           : null,
         traders: null,
-        category: m.category || null,
+        category: m.category || m.event_ticker?.split('-')[0]?.toLowerCase() || inferCategory(m.title || ''),
         url: `https://kalshi.com/markets/${m.ticker}`,
         status: 'active' as const,
         fetched_at: new Date().toISOString(),
