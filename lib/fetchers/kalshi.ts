@@ -100,7 +100,7 @@ export async function fetchKalshi(): Promise<Market[]> {
             })
           : null,
         traders: null,
-        category: m.category || m.event_ticker?.split('-')[0]?.toLowerCase() || inferCategory(m.title || ''),
+        category: inferCategory(m.title || m.question || ''),
         url: `https://kalshi.com/markets/${m.ticker}`,
         status: 'active' as const,
         fetched_at: new Date().toISOString(),
