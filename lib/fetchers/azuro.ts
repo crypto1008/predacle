@@ -1,7 +1,7 @@
 import { Market } from '../types'
 
 const AZURO_GRAPHQL =
-  'https://thegraph.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-api-gnosis-v3'
+  'https://thegraph.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-api-polygon-v3'
 
 const QUERY = `
   query ActiveGames {
