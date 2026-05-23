@@ -4,7 +4,7 @@ import { Market } from '../types'
 export async function fetchPolymarket(): Promise<Market[]> {
   try {
     const response = await fetch(
-      'https://clob.polymarket.com/markets?next_cursor=MA==&limit=50',
+      'https://clob.polymarket.com/markets?next_cursor=MA==&limit=200',
       {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -19,8 +19,19 @@ export async function fetchPolymarket(): Promise<Market[]> {
     const data = await response.json()
     const markets = data.data || data.markets || []
 
+    // Only keep markets with end dates in the future or within last 7 days
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
     return markets
-      .filter((m: any) => m.question && m.active)
+      .filter((m: any) => {
+        if (!m.question || !m.active) return false
+        const endDate = m.end_date_iso || m.endDate
+        if (endDate) {
+          const end = new Date(endDate)
+          if (end < sevenDaysAgo) return false
+        }
+        return true
+      })
       .map((m: any) => {
         const tokens = m.tokens || []
         const yesToken = tokens.find((t: any) => t.outcome === 'Yes')
@@ -48,9 +59,9 @@ export async function fetchPolymarket(): Promise<Market[]> {
               })
             : null,
           traders: null,
-          category: (m.category && m.category !== 'All' && m.category !== 'all' && m.category !== 'ALL')
-              ? m.category
-              : inferCategory(m.question || ''),
+          category: (m.category && m.category !== 'All' && m.category !== 'all')
+            ? m.category
+            : inferCategory(m.question || ''),
           url: m.market_slug
             ? `https://polymarket.com/event/${m.market_slug}`
             : 'https://polymarket.com',
