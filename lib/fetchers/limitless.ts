@@ -1,3 +1,4 @@
+import { inferCategory } from '../utils/category'
 import { Market } from '../types'
 
 export async function fetchLimitless(): Promise<Market[]> {
@@ -42,7 +43,7 @@ export async function fetchLimitless(): Promise<Market[]> {
           end_date: null,
           end_date_label: null,
           traders: null,
-          category: 'crypto',
+          category: inferCategory(String(m.title || '')),
           url: `https://limitless.exchange/markets/${m.id}`,
           status: 'active' as const,
           fetched_at: new Date().toISOString(),

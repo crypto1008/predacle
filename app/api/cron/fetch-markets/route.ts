@@ -131,6 +131,15 @@ export async function GET(request: NextRequest) {
     return acc
   }, {})
 
+  // Mark expired markets as closed
+  const today = new Date().toISOString().split('T')[0]
+    await supabaseAdmin
+    .from('markets')
+    .update({ status: 'closed' })
+    .lt('end_date', today)
+    .not('end_date', 'is', null)
+    .eq('status', 'active')
+
   return NextResponse.json({
     success: true,
     marketsCount: markets.length,

@@ -1,3 +1,4 @@
+import { inferCategory } from '../utils/category'
 import { Market } from '../types'
 
 export async function fetchMyriad(): Promise<Market[]> {
@@ -73,7 +74,7 @@ export async function fetchMyriad(): Promise<Market[]> {
                 })
               : null,
           traders: m.liquidity ? Math.round(parseFloat(String(m.liquidity))) : null,
-          category: m.category || m.topic || 'crypto',
+          category: m.category || m.topic || inferCategory(m.title || m.question || ''),
           url: m.slug
             ? `https://myriad.markets/markets/${m.slug}`
             : m.id
