@@ -82,17 +82,8 @@ export async function fetchAzuro(): Promise<Market[]> {
           probability,
           volume: null,
           volume_label: null,
-          end_date: g.startsAt
-            ? new Date(parseInt(g.startsAt) * 1000)
-                .toISOString()
-                .split('T')[0]
-            : null,
-          end_date_label: g.startsAt
-            ? new Date(parseInt(g.startsAt) * 1000).toLocaleDateString(
-                'en-US',
-                { month: 'short', year: 'numeric' }
-              )
-            : null,
+          end_date: null,
+          end_date_label: null,
           traders: null,
           category: sport,
           url: g.gameId

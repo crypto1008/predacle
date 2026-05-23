@@ -14,7 +14,6 @@ function getFingerprint(question: string): string {
     'end','year','month','week','day','time','still','ever',
     'going','able','likely','expected','predicted','market',
   ])
-
   return question
     .toLowerCase()
     .replace(/\bbtc\b/g, 'bitcoin')
@@ -122,13 +121,22 @@ export async function GET(request: NextRequest) {
     return acc
   }, {})
 
-  // Mark expired markets as closed (end_date in past)
+  // Mark expired markets as closed — exclude Azuro (uses fetched_at logic instead)
   const today = new Date().toISOString().split('T')[0]
   await supabaseAdmin
     .from('markets')
     .update({ status: 'closed' })
     .lt('end_date', today)
     .not('end_date', 'is', null)
+    .eq('status', 'active')
+    .neq('platform', 'azuro')
+
+  // Close Azuro markets older than 2 days (sports games resolve within 24-48h)
+  await supabaseAdmin
+    .from('markets')
+    .update({ status: 'closed' })
+    .eq('platform', 'azuro')
+    .lt('fetched_at', new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString())
     .eq('status', 'active')
 
   // Close expired Limitless short-term markets (5 min, hourly expire quickly)
