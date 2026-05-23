@@ -7,7 +7,7 @@ export function inferCategory(question: string): string {
   if (/trump|biden|harris|election|president|congress|senate|democrat|republican|vote|ballot|parliament|minister|government|legislation/.test(q))
     return 'politics'
 
-  if (/\bnba\b|\bnfl\b|\bnhl\b|\bmlb\b|soccer|football|basketball|baseball|tennis|golf|olympic|championship|league|cup|tournament|player|team/.test(q))
+  if (/\bnba\b|\bnfl\b|\bnhl\b|\bmlb\b|soccer|football|basketball|baseball|tennis|golf|olympic|championship|league|cup|tournament|team|\bsport\b|sports|athlete|match|esport|fifa|wimbledon|premier|bundesliga|serie|laliga|\bvs\b|versus|playoffs|semifinal|quarterfinal|grand prix|formula/.test(q))
     return 'sports'
 
   if (/gdp|inflation|recession|\bfed\b|federal reserve|interest rate|unemployment|\bstock\b|nasdaq|dow|s&p|economy|economic|tariff|trade/.test(q))

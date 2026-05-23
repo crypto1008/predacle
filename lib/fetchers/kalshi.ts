@@ -100,7 +100,17 @@ export async function fetchKalshi(): Promise<Market[]> {
             })
           : null,
         traders: null,
-        category: inferCategory(m.title || m.question || ''),
+        category: (() => {
+          const ticker = (m.ticker || m.event_ticker || m.market_ticker || m.series_ticker || '').toUpperCase()
+        if (
+          ticker.includes('SPORT') || ticker.includes('ESPORT') ||
+          ticker.includes('SOCCER') || ticker.includes('TENNIS') ||
+          ticker.includes('BASKETBALL') || ticker.includes('FOOTBALL') ||
+          ticker.includes('BASEBALL') || ticker.includes('HOCKEY') ||
+          ticker.includes('GOLF') || ticker.includes('CROSS')
+        ) return 'sports'
+        return inferCategory(m.title || m.question || '')
+      })(),
         url: `https://kalshi.com/markets/${m.ticker}`,
         status: 'active' as const,
         fetched_at: new Date().toISOString(),
