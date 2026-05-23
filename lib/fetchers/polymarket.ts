@@ -4,70 +4,58 @@ import { Market } from '../types'
 export async function fetchPolymarket(): Promise<Market[]> {
   try {
     const response = await fetch(
-      'https://clob.polymarket.com/markets?next_cursor=MA==&limit=200',
+      'https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=100&order=volume24hr&ascending=false',
       {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
           'Accept': 'application/json',
         },
         cache: 'no-store',
       }
     )
 
+    console.log(`Polymarket Gamma status: ${response.status}`)
     if (!response.ok) throw new Error(`Polymarket error: ${response.status}`)
 
-    const data = await response.json()
-    const markets = data.data || data.markets || []
+    const markets = await response.json()
+    const list = Array.isArray(markets) ? markets : markets.data || []
 
-    // Only keep markets with end dates in the future or within last 7 days
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    console.log(`Polymarket Gamma: ${list.length} markets`)
 
-    return markets
-      .filter((m: any) => {
-        if (!m.question || !m.active) return false
-        // Filter out markets with old date patterns in question like (02/07/2023) or (2023-03-11)
-        const hasOldDate = /\(\d{1,2}\/\d{1,2}\/20(1\d|2[0-4])\)|\(20(1\d|2[0-4])-\d{2}-\d{2}\)/.test(m.question)
-        if (hasOldDate) return false
-        // Filter out markets with end dates more than 7 days in past
-        const endDate = m.end_date_iso || m.endDate
-        if (endDate) {
-          const end = new Date(endDate)
-          if (end < sevenDaysAgo) return false
-        }
-        return true
-      })
+    return list
+      .filter((m: any) => m.question && m.active && !m.closed)
       .map((m: any) => {
-        const tokens = m.tokens || []
-        const yesToken = tokens.find((t: any) => t.outcome === 'Yes')
-        const probability = yesToken?.price
-          ? parseFloat(yesToken.price)
+        const probability = m.outcomePrices
+          ? parseFloat(JSON.parse(m.outcomePrices)[0])
+          : m.bestBid
+          ? parseFloat(m.bestBid)
           : null
-        const vol = parseFloat(m.volume || 0)
+
+        const vol = parseFloat(m.volume || m.volume24hr || 0)
 
         return {
-          id: `polymarket-${m.condition_id || m.id}`,
+          id: `polymarket-${m.conditionId || m.id}`,
           platform: 'polymarket' as const,
           question: m.question,
-          probability,
+          probability: probability && probability > 0 && probability < 1 ? probability : null,
           volume: vol || null,
           volume_label: vol > 0
             ? vol >= 1_000_000
               ? `$${(vol / 1_000_000).toFixed(1)}M`
               : `$${Math.round(vol).toLocaleString()}`
             : null,
-          end_date: m.end_date_iso || null,
-          end_date_label: m.end_date_iso
-            ? new Date(m.end_date_iso).toLocaleDateString('en-US', {
-                month: 'short',
-                year: 'numeric',
+          end_date: m.endDate || null,
+          end_date_label: m.endDate
+            ? new Date(m.endDate).toLocaleDateString('en-US', {
+                month: 'short', year: 'numeric',
               })
             : null,
-          traders: null,
+          traders: m.uniqueBettors ? parseInt(m.uniqueBettors) : null,
           category: (m.category && m.category !== 'All' && m.category !== 'all')
             ? m.category
             : inferCategory(m.question || ''),
-          url: m.market_slug
-            ? `https://polymarket.com/event/${m.market_slug}`
+          url: m.slug
+            ? `https://polymarket.com/event/${m.slug}`
             : 'https://polymarket.com',
           status: 'active' as const,
           fetched_at: new Date().toISOString(),
