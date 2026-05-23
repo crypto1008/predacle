@@ -25,6 +25,10 @@ export async function fetchPolymarket(): Promise<Market[]> {
     return markets
       .filter((m: any) => {
         if (!m.question || !m.active) return false
+        // Filter out markets with old date patterns in question like (02/07/2023) or (2023-03-11)
+        const hasOldDate = /\(\d{1,2}\/\d{1,2}\/20(1\d|2[0-4])\)|\(20(1\d|2[0-4])-\d{2}-\d{2}\)/.test(m.question)
+        if (hasOldDate) return false
+        // Filter out markets with end dates more than 7 days in past
         const endDate = m.end_date_iso || m.endDate
         if (endDate) {
           const end = new Date(endDate)
