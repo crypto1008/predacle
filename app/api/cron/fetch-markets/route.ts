@@ -17,7 +17,6 @@ function getFingerprint(question: string): string {
 
   return question
     .toLowerCase()
-    // Normalize crypto symbols to full names
     .replace(/\bbtc\b/g, 'bitcoin')
     .replace(/\beth\b/g, 'ethereum')
     .replace(/\bsol\b/g, 'solana')
@@ -27,13 +26,11 @@ function getFingerprint(question: string): string {
     .replace(/\bbnb\b/g, 'binance')
     .replace(/\bmatic\b/g, 'polygon')
     .replace(/\bavax\b/g, 'avalanche')
-    // Normalize number formats — $100k → 100000
     .replace(/\$(\d+(\.\d+)?)k\b/g, (_, n) => String(Math.round(parseFloat(n) * 1000)))
     .replace(/\$(\d+(\.\d+)?)m\b/g, (_, n) => String(Math.round(parseFloat(n) * 1000000)))
     .replace(/\$(\d+(\.\d+)?)b\b/g, (_, n) => String(Math.round(parseFloat(n) * 1000000000)))
-    .replace(/,(\d{3})/g, '$1') // remove thousand separators
-    .replace(/\$/g, '') // remove dollar signs
-    // Normalize Fed/interest rate language
+    .replace(/,(\d{3})/g, '$1')
+    .replace(/\$/g, '')
     .replace(/\bfederal reserve\b/g, 'fed')
     .replace(/\bfomc\b/g, 'fed')
     .replace(/\brate hike\b/g, 'rate increase')
@@ -41,23 +38,18 @@ function getFingerprint(question: string): string {
     .replace(/\braise rates?\b/g, 'rate increase')
     .replace(/\bcut rates?\b/g, 'rate decrease')
     .replace(/\blower rates?\b/g, 'rate decrease')
-    // Normalize political language
     .replace(/\bpresidential election\b/g, 'president election')
     .replace(/\bus president\b/g, 'president')
     .replace(/\bpotus\b/g, 'president')
     .replace(/\bwhite house\b/g, 'president')
     .replace(/\brepublican\b/g, 'gop')
     .replace(/\bdemocrat\b/g, 'dem')
-    // Normalize sports language
     .replace(/\bsuperbowl\b/g, 'super bowl')
     .replace(/\bnfl championship\b/g, 'super bowl')
-    // Normalize win/winner/wins
     .replace(/\bwinner\b/g, 'win')
     .replace(/\bwins\b/g, 'win')
     .replace(/\bwinning\b/g, 'win')
-    // Remove punctuation
     .replace(/[^a-z0-9\s]/g, ' ')
-    // Split, filter stopwords, sort, join
     .split(/\s+/)
     .filter(w => w.length > 2 && !stopwords.has(w))
     .sort()
@@ -90,7 +82,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, message: 'No markets fetched', errors })
   }
 
-  // Sanitize and add fingerprints
   const sanitized = markets.map((m: any) => ({
     ...m,
     probability: m.probability !== null && m.probability !== undefined
@@ -131,13 +122,21 @@ export async function GET(request: NextRequest) {
     return acc
   }, {})
 
-  // Mark expired markets as closed
+  // Mark expired markets as closed (end_date in past)
   const today = new Date().toISOString().split('T')[0]
-    await supabaseAdmin
+  await supabaseAdmin
     .from('markets')
     .update({ status: 'closed' })
     .lt('end_date', today)
     .not('end_date', 'is', null)
+    .eq('status', 'active')
+
+  // Close expired Limitless short-term markets (5 min, hourly expire quickly)
+  await supabaseAdmin
+    .from('markets')
+    .update({ status: 'closed' })
+    .eq('platform', 'limitless')
+    .lt('fetched_at', new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString())
     .eq('status', 'active')
 
   return NextResponse.json({
