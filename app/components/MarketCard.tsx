@@ -43,32 +43,30 @@ export default function MarketCard({ market, onClick }: { market: Market; onClic
     e.preventDefault()
     if (!market.url) return
     setTrading(true)
-
-    // Fire tracking in background — do not await
     fetch('/api/track-click', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        market_id: market.id,
-        platform: market.platform,
-        url: market.url,
-      }),
+      body: JSON.stringify({ market_id: market.id, platform: market.platform, url: market.url }),
     }).catch(() => {})
-
-    // Open URL immediately — direct user gesture, no popup blocking
     window.open(market.url, '_blank', 'noopener,noreferrer')
     setTimeout(() => setTrading(false), 1000)
   }
 
-  const pColor = getProbColor(market.probability)
-  const pBg    = getProbBg(market.probability)
-  const pLabel = PLATFORM_LABELS[market.platform] || market.platform
-  const cLabel = market.category ? (CATEGORY_LABELS[market.category] || market.category) : null
-  const pct    = market.probability !== null ? Math.round(market.probability * 100) : null
-  const barW   = pct !== null ? `${pct}%` : '0%'
+  const pColor  = getProbColor(market.probability)
+  const pBg     = getProbBg(market.probability)
+  const pLabel  = PLATFORM_LABELS[market.platform] || market.platform
+  const cLabel  = market.category ? (CATEGORY_LABELS[market.category] || market.category) : null
+  const pct     = market.probability !== null ? Math.round(market.probability * 100) : null
+  const barW    = pct !== null ? `${pct}%` : '0%'
   const isAzuro  = market.platform === 'azuro'
   const isKalshi = market.platform === 'kalshi'
   const hasProb  = market.probability !== null
+
+  // Detect Kalshi combo markets (auto-generated "yes X, no Y, yes Z" format)
+  const isKalshiCombo = isKalshi && /^(yes|no) /i.test(market.question)
+  const comboParts    = isKalshiCombo ? market.question.split(',').map((s: string) => s.trim()) : []
+  const comboSummary  = comboParts.slice(0, 2).join(' · ')
+  const comboExtra    = comboParts.length > 2 ? ` +${comboParts.length - 2} more` : ''
 
   return (
     <article
@@ -101,34 +99,37 @@ export default function MarketCard({ market, onClick }: { market: Market; onClic
             {pLabel}
           </span>
           {cLabel && (
-            <span style={{
-              fontSize: 10, color: '#94a3b8', background: '#f8fafc',
-              border: '1px solid #e2e8f0', padding: '2px 7px', borderRadius: 5, fontWeight: 500,
-            }}>
+            <span style={{ fontSize: 10, color: '#94a3b8', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '2px 7px', borderRadius: 5, fontWeight: 500 }}>
               {cLabel}
+            </span>
+          )}
+          {isKalshiCombo && (
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.4px', textTransform: 'uppercase', color: '#059669', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 4, padding: '1px 6px' }}>
+              Combo
             </span>
           )}
         </div>
 
         {/* Question */}
-        <h3 className="line-clamp-3" style={{
-          fontSize: 13, fontWeight: 500, lineHeight: 1.5,
-          color: '#1e293b', marginBottom: 'auto', paddingBottom: 12,
-        }}>
-          {market.question}
-        </h3>
+        {isKalshiCombo ? (
+          <div style={{ marginBottom: 'auto', paddingBottom: 12 }}>
+            <h3 className="line-clamp-2" style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.5, color: '#1e293b', margin: 0 }}>
+              {comboSummary}{comboExtra}
+            </h3>
+          </div>
+        ) : (
+          <h3 className="line-clamp-3" style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.5, color: '#1e293b', marginBottom: 'auto', paddingBottom: 12 }}>
+            {market.question}
+          </h3>
+        )}
 
         {/* Probability */}
         <div style={{ marginTop: 12 }}>
           {hasProb ? (
             <>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 5 }}>
-                <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px', color: pColor }}>
-                  {pct}%
-                </span>
-                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: pBg, color: pColor }}>
-                  YES chance
-                </span>
+                <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px', color: pColor }}>{pct}%</span>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: pBg, color: pColor }}>YES chance</span>
               </div>
               <div style={{ height: 3, background: '#f1f5f9', borderRadius: 2, overflow: 'hidden' }}>
                 <div style={{ height: 3, borderRadius: 2, background: pColor, width: barW, transition: 'width 0.6s' }} />
@@ -147,10 +148,7 @@ export default function MarketCard({ market, onClick }: { market: Market; onClic
       </div>
 
       {/* Footer */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '9px 14px', background: '#fafbfc', borderTop: '1px solid #f1f5f9',
-      }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', background: '#fafbfc', borderTop: '1px solid #f1f5f9' }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           {market.volume_label && <span style={{ fontSize: 11, color: '#94a3b8' }}>{market.volume_label}</span>}
           {market.end_date_label && <span style={{ fontSize: 11, color: '#94a3b8' }}>{market.end_date_label}</span>}
@@ -158,9 +156,7 @@ export default function MarketCard({ market, onClick }: { market: Market; onClic
             <span style={{ fontSize: 11, color: '#94a3b8' }}>{market.traders.toLocaleString()} traders</span>
           )}
           {!market.volume_label && !market.end_date_label && !market.traders && (
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>
-              {isAzuro ? 'Sports betting' : 'Active'}
-            </span>
+            <span style={{ fontSize: 11, color: '#94a3b8' }}>{isAzuro ? 'Sports betting' : 'Active'}</span>
           )}
         </div>
         <button

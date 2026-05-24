@@ -64,9 +64,7 @@ export async function fetchKalshi(): Promise<Market[]> {
 
     if (!response.ok) {
       const text = await response.text()
-      console.error(
-        `Kalshi HTTP error: ${response.status} — ${text.substring(0, 200)}`
-      )
+      console.error(`Kalshi HTTP error: ${response.status} — ${text.substring(0, 200)}`)
       return []
     }
 
@@ -75,12 +73,25 @@ export async function fetchKalshi(): Promise<Market[]> {
     console.log(`Kalshi: got ${markets.length} markets`)
 
     return markets.map((m: any) => {
-      const yesCents = m.yes_ask ?? m.last_price ?? null
+      const yesCents   = m.yes_ask ?? m.last_price ?? null
       const probability = yesCents !== null ? yesCents / 100 : null
-      const vol = m.volume ? m.volume * 0.01 : null
+      const vol         = m.volume ? m.volume * 0.01 : null
+
+      // Build clean URL using series ticker only
+      const ticker  = (m.ticker || '').toString()
+      const series  = ticker.split('-')[0]
+      const url = (() => {
+        if (!series) return 'https://kalshi.com'
+        if (
+          series.startsWith('KXMVESPORTS') ||
+          series.startsWith('KXMVECROSS')  ||
+          series.startsWith('KXMVE')
+        ) return 'https://kalshi.com/sports'
+        return `https://kalshi.com/markets/${series}`
+      })()
 
       return {
-        id: `kalshi-${m.ticker}`,
+        id: `kalshi-${ticker}`,
         platform: 'kalshi' as const,
         question: m.title,
         probability,
@@ -94,24 +105,21 @@ export async function fetchKalshi(): Promise<Market[]> {
           ? new Date(m.close_time).toISOString().split('T')[0]
           : null,
         end_date_label: m.close_time
-          ? new Date(m.close_time).toLocaleDateString('en-US', {
-              month: 'short',
-              year: 'numeric',
-            })
+          ? new Date(m.close_time).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
           : null,
         traders: null,
         category: (() => {
-          const ticker = (m.ticker || m.event_ticker || m.market_ticker || m.series_ticker || '').toUpperCase()
-        if (
-          ticker.includes('SPORT') || ticker.includes('ESPORT') ||
-          ticker.includes('SOCCER') || ticker.includes('TENNIS') ||
-          ticker.includes('BASKETBALL') || ticker.includes('FOOTBALL') ||
-          ticker.includes('BASEBALL') || ticker.includes('HOCKEY') ||
-          ticker.includes('GOLF') || ticker.includes('CROSS')
-        ) return 'sports'
-        return inferCategory(m.title || m.question || '')
-      })(),
-        url: `https://kalshi.com/markets/${m.ticker}`,
+          const t = ticker.toUpperCase()
+          if (
+            t.includes('SPORT') || t.includes('ESPORT') ||
+            t.includes('SOCCER') || t.includes('TENNIS') ||
+            t.includes('BASKETBALL') || t.includes('FOOTBALL') ||
+            t.includes('BASEBALL') || t.includes('HOCKEY') ||
+            t.includes('GOLF') || t.includes('CROSS')
+          ) return 'sports'
+          return inferCategory(m.title || m.question || '')
+        })(),
+        url,
         status: 'active' as const,
         fetched_at: new Date().toISOString(),
       }
