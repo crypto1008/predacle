@@ -33,6 +33,18 @@ export async function fetchPolymarket(): Promise<Market[]> {
 
         const vol = parseFloat(m.volume || m.volume24hr || 0)
 
+        // Use event slug for URL (more reliable than market slug)
+        const eventSlug = m.events?.[0]?.slug
+          || m.event_slug
+          || m.eventSlug
+          || m.groupSlug
+          || m.slug
+          || m.conditionId
+
+        const url = m.url
+          || m.link
+          || (eventSlug ? `https://polymarket.com/event/${eventSlug}` : 'https://polymarket.com')
+
         return {
           id: `polymarket-${m.conditionId || m.id}`,
           platform: 'polymarket' as const,
@@ -46,17 +58,13 @@ export async function fetchPolymarket(): Promise<Market[]> {
             : null,
           end_date: m.endDate || null,
           end_date_label: m.endDate
-            ? new Date(m.endDate).toLocaleDateString('en-US', {
-                month: 'short', year: 'numeric',
-              })
+            ? new Date(m.endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
             : null,
           traders: m.uniqueBettors ? parseInt(m.uniqueBettors) : null,
           category: (m.category && m.category !== 'All' && m.category !== 'all')
             ? m.category
             : inferCategory(m.question || ''),
-          url: m.slug
-            ? `https://polymarket.com/event/${m.slug}`
-            : 'https://polymarket.com',
+          url,
           status: 'active' as const,
           fetched_at: new Date().toISOString(),
         }
