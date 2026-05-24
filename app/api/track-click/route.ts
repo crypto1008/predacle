@@ -1,34 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
-function buildAffiliateUrl(url: string, platform: string): string {
-  try {
-    const u = new URL(url)
-    switch (platform) {
-      case 'polymarket':
-        u.searchParams.set('ref', 'predacle')
-        break
-      case 'kalshi':
-        u.searchParams.set('ref', 'predacle')
-        break
-      case 'myriad':
-        u.searchParams.set('ref', 'predacle')
-        break
-      case 'manifold':
-        u.searchParams.set('ref', 'predacle')
-        break
-      case 'limitless':
-        u.searchParams.set('ref', 'predacle')
-        break
-      case 'azuro':
-        break
-    }
-    return u.toString()
-  } catch {
-    return url
-  }
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { market_id, platform, url } = await request.json()
@@ -37,20 +9,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
     }
 
-    const userAgent = request.headers.get('user-agent') || ''
+    // Log click — fire and forget, don't block on errors
+    supabaseAdmin.from('referral_clicks').insert({
+      market_id,
+      platform,
+      url,
+      user_agent: request.headers.get('user-agent') || '',
+      clicked_at: new Date().toISOString(),
+    }).then(() => {}).catch(() => {})
 
-    await supabaseAdmin
-      .from('referral_clicks')
-      .insert({
-        market_id,
-        platform,
-        url,
-        user_agent: userAgent,
-        clicked_at: new Date().toISOString(),
-      })
+    // Return original URL — no ref params until official affiliate codes confirmed
+    return NextResponse.json({ url })
 
-    const affiliateUrl = buildAffiliateUrl(url, platform)
-    return NextResponse.json({ url: affiliateUrl })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

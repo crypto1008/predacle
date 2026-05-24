@@ -86,9 +86,7 @@ export async function fetchAzuro(): Promise<Market[]> {
           end_date_label: null,
           traders: null,
           category: sport,
-          url: g.gameId
-            ? `https://bookmaker.azuro.org/events/${g.gameId}`
-            : 'https://azuro.org',
+          url: 'https://azuro.org',
           status: 'active' as const,
           fetched_at: new Date().toISOString(),
         }
