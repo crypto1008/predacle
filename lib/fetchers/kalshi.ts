@@ -32,52 +32,24 @@ function getKalshiHeaders(method: string, path: string): HeadersInit {
   }
 }
 
-async function fetchCategory(category: string): Promise<any[]> {
-  try {
-    const path    = `/trade-api/v2/events?limit=20&status=open&category=${category}&with_nested_markets=true`
-    const headers = getKalshiHeaders('GET', path)
-    if (Object.keys(headers).length === 0) return []
-
-    const res = await fetch(`${BASE}${path}`, { headers, cache: 'no-store' })
-    if (!res.ok) {
-      console.log(`Kalshi ${category}: status ${res.status}`)
-      return []
-    }
-    const data = await res.json()
-    const events = data.events || []
-    console.log(`Kalshi ${category}: ${events.length} events`)
-
-    // Extract all nested markets from events
-    const markets: any[] = []
-    for (const event of events) {
-      for (const market of (event.markets || [])) {
-        markets.push({
-          ...market,
-          series_ticker:    market.series_ticker || event.series_ticker,
-          event_category:   category,
-        })
-      }
-    }
-
-    // If events had no nested markets, try direct markets endpoint for this category
-    if (markets.length === 0) {
-      const mPath    = `/trade-api/v2/markets?limit=20&status=open&category=${category}`
-      const mHeaders = getKalshiHeaders('GET', mPath)
-      if (Object.keys(mHeaders).length === 0) return []
-      const mRes = await fetch(`${BASE}${mPath}`, { headers: mHeaders, cache: 'no-store' })
-      if (!mRes.ok) return []
-      const mData = await mRes.json()
-      return (mData.markets || []).map((m: any) => ({ ...m, event_category: category }))
-    }
-
-    return markets
-  } catch (e: any) {
-    console.error(`Kalshi ${category} error:`, e.message)
-    return []
+function kalshiCategoryToOurs(apiCategory: string): string {
+  const map: Record<string, string> = {
+    elections:   'politics',
+    politics:    'politics',
+    crypto:      'crypto',
+    economics:   'economics',
+    financials:  'economics',
+    commodities: 'economics',
+    climate:     'science',
+    science:     'tech',
+    culture:     'other',
+    mentions:    'other',
+    sports:      'sports',
   }
+  return map[apiCategory?.toLowerCase()] || inferCategory(apiCategory || '')
 }
 
-function mapToMarket(m: any): Market {
+function mapToMarket(m: any, apiCategory: string): Market {
   const ticker = m.ticker || ''
 
   const priceCents =
@@ -93,18 +65,6 @@ function mapToMarket(m: any): Market {
 
   const series = (m.series_ticker || ticker.split('-')[0] || '').toLowerCase()
   const url    = series ? `https://kalshi.com/markets/${series}` : 'https://kalshi.com'
-
-  const cat = m.event_category || ''
-  const t   = ticker.toUpperCase()
-  const category = (() => {
-    if (cat === 'crypto'    || t.includes('BTC') || t.includes('ETH') || t.includes('CRYPTO')) return 'crypto'
-    if (cat === 'elections' || cat === 'politics' || t.includes('ELECT') || t.includes('SENATE') || t.includes('PRES')) return 'politics'
-    if (cat === 'economics' || cat === 'financials' || cat === 'commodities' ||
-        t.includes('CPI') || t.includes('INFL') || t.includes('FED') || t.includes('GDP')) return 'economics'
-    if (cat === 'science'   || t.includes('TECH') || t.includes('AI')) return 'tech'
-    if (cat === 'sports'    || t.includes('NBA') || t.includes('NFL') || t.includes('MLB')) return 'sports'
-    return inferCategory(m.title || '')
-  })()
 
   return {
     id:       `kalshi-${ticker}`,
@@ -126,10 +86,58 @@ function mapToMarket(m: any): Market {
         })
       : null,
     traders:    null,
-    category,
+    category:   kalshiCategoryToOurs(apiCategory),
     url,
     status:     'active' as const,
     fetched_at: new Date().toISOString(),
+  }
+}
+
+async function fetchCategoryMarkets(
+  category: string,
+  maxCloseTs: number
+): Promise<any[]> {
+  try {
+    // Try events endpoint first
+    const ePath    = `/trade-api/v2/events?limit=25&status=open&category=${category}&with_nested_markets=true&max_close_ts=${maxCloseTs}`
+    const eHeaders = getKalshiHeaders('GET', ePath)
+    if (Object.keys(eHeaders).length === 0) return []
+
+    const eRes = await fetch(`${BASE}${ePath}`, { headers: eHeaders, cache: 'no-store' })
+
+    if (eRes.ok) {
+      const eData  = await eRes.json()
+      const events = eData.events || []
+
+      const markets: any[] = []
+      for (const event of events) {
+        for (const mkt of (event.markets || [])) {
+          markets.push({ ...mkt, series_ticker: mkt.series_ticker || event.series_ticker })
+        }
+      }
+
+      if (markets.length > 0) {
+        console.log(`Kalshi ${category}: ${markets.length} markets from events`)
+        return markets
+      }
+    }
+
+    // Fallback: direct markets endpoint with category filter
+    const mPath    = `/trade-api/v2/markets?limit=25&status=open&category=${category}&max_close_ts=${maxCloseTs}`
+    const mHeaders = getKalshiHeaders('GET', mPath)
+    if (Object.keys(mHeaders).length === 0) return []
+
+    const mRes = await fetch(`${BASE}${mPath}`, { headers: mHeaders, cache: 'no-store' })
+    if (!mRes.ok) return []
+
+    const mData = await mRes.json()
+    const mkts  = mData.markets || []
+    console.log(`Kalshi ${category} (fallback): ${mkts.length} markets`)
+    return mkts
+
+  } catch (e: any) {
+    console.error(`Kalshi ${category} error:`, e.message)
+    return []
   }
 }
 
@@ -140,7 +148,9 @@ export async function fetchKalshi(): Promise<Market[]> {
     return []
   }
 
-  // Fetch from every Kalshi category in parallel
+  // Only fetch markets closing within 12 months — actively traded
+  const twelveMonths = Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60)
+
   const CATEGORIES = [
     'elections',
     'politics',
@@ -151,46 +161,43 @@ export async function fetchKalshi(): Promise<Market[]> {
     'climate',
     'science',
     'culture',
-    'mentions',
     'sports',
   ]
 
-  const results = await Promise.allSettled(
-    CATEGORIES.map(cat => fetchCategory(cat))
+  const settled = await Promise.allSettled(
+    CATEGORIES.map(cat => fetchCategoryMarkets(cat, twelveMonths))
   )
 
-  const allMarkets: any[] = []
+  const allMarkets: { market: any; category: string }[] = []
   const seen = new Set<string>()
 
-  for (const result of results) {
+  CATEGORIES.forEach((cat, i) => {
+    const result = settled[i]
     if (result.status === 'fulfilled') {
       for (const m of result.value) {
-        if (!m.ticker || !m.title) continue
-        if (seen.has(m.ticker)) continue
+        if (!m.ticker || !m.title || seen.has(m.ticker)) continue
         seen.add(m.ticker)
-        allMarkets.push(m)
+        allMarkets.push({ market: m, category: cat })
       }
     }
-  }
+  })
 
-  console.log(`Kalshi: ${allMarkets.length} total markets across all categories`)
+  console.log(`Kalshi: ${allMarkets.length} total markets fetched`)
 
-  // Filter to only markets with real data
-  const withData = allMarkets.filter(m =>
-    m.yes_ask > 0 || m.yes_bid > 0 ||
-    m.last_price > 0 || m.volume > 0 ||
-    m.dollar_volume > 0 || m.open_interest > 0
+  // Prefer markets with actual data
+  const withData    = allMarkets.filter(({ market: m }) =>
+    (m.yes_ask > 0) || (m.yes_bid > 0) || (m.last_price > 0) ||
+    (m.volume > 0)  || (m.dollar_volume > 0)
   )
-
-  const withoutData = allMarkets.filter(m =>
-    !(m.yes_ask > 0 || m.yes_bid > 0 ||
-      m.last_price > 0 || m.volume > 0 ||
-      m.dollar_volume > 0 || m.open_interest > 0)
+  const withoutData = allMarkets.filter(({ market: m }) =>
+    !((m.yes_ask > 0) || (m.yes_bid > 0) || (m.last_price > 0) ||
+      (m.volume > 0)  || (m.dollar_volume > 0))
   )
 
   console.log(`Kalshi: ${withData.length} with data, ${withoutData.length} without`)
 
-  // Return quality markets first, then others if we have very few
-  const toReturn = withData.length >= 10 ? withData : allMarkets
-  return toReturn.map(mapToMarket)
+  // Use quality data if available, otherwise accept all
+  const toProcess = withData.length >= 5 ? withData : allMarkets
+
+  return toProcess.map(({ market, category }) => mapToMarket(market, category))
 }
