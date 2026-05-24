@@ -87,44 +87,51 @@ export async function fetchKalshi(): Promise<Market[]> {
       .map((m: any) => {
         const ticker = m.ticker || ''
 
-        // Probability — try multiple price fields
+        // Probability from order book price
         const priceCents =
-          m.yes_ask     ?? m.yes_bid    ??
-          m.last_price  ?? m.close_price ?? null
+          m.yes_ask    ?? m.yes_bid    ??
+          m.last_price ?? m.close_price ?? null
         const probability =
           priceCents !== null && priceCents > 0 && priceCents < 100
             ? priceCents / 100
             : null
 
-        // Volume — Kalshi returns volume in cents
+        // Volume in dollars
         const volCents = m.volume_24h ?? m.volume ?? null
         const vol      = volCents && volCents > 0 ? volCents * 0.01 : null
 
-        // URL — use series ticker for cleaner link
-        const series = m.series_ticker || ticker.split('-')[0] || ''
-        const url    = series
+        // URL — lowercase series ticker (Kalshi website format)
+        const series = (
+          m.series_ticker || ticker.split('-')[0] || ''
+        ).toLowerCase()
+        const url = series
           ? `https://kalshi.com/markets/${series}`
           : 'https://kalshi.com'
 
-        // Clean question for combo markets
+        // Clean combo question
         const question = cleanQuestion(m.title || ticker)
 
         // Category
         const t = ticker.toUpperCase()
         const category = (() => {
-          if (t.includes('SPORT') || t.includes('ESPORT') || t.includes('SOCCER') ||
-              t.includes('TENNIS') || t.includes('BASKETBALL') || t.includes('FOOTBALL') ||
-              t.includes('BASEBALL') || t.includes('HOCKEY') || t.includes('GOLF') ||
-              t.includes('CROSS') || t.includes('MULTIE') || t.includes('MULTIGA'))
-            return 'sports'
+          if (
+            t.includes('SPORT') || t.includes('ESPORT') || t.includes('SOCCER') ||
+            t.includes('TENNIS') || t.includes('BASKETBALL') || t.includes('FOOTBALL') ||
+            t.includes('BASEBALL') || t.includes('HOCKEY') || t.includes('GOLF') ||
+            t.includes('CROSS') || t.includes('MULTIGA') || t.includes('PGAT') ||
+            t.includes('KXMVE')
+          ) return 'sports'
           if (t.includes('BTC') || t.includes('ETH') || t.includes('CRYPTO'))
             return 'crypto'
-          if (t.includes('ELECT') || t.includes('PRES') || t.includes('VOTE') ||
-              t.includes('SENATE') || t.includes('HOUSE'))
-            return 'politics'
-          if (t.includes('CPI') || t.includes('INFL') || t.includes('FED') ||
-              t.includes('GDP') || t.includes('UNEMP') || t.includes('FOMC'))
-            return 'economics'
+          if (
+            t.includes('ELECT') || t.includes('PRES') || t.includes('VOTE') ||
+            t.includes('SENATE') || t.includes('HOUSE') || t.includes('GOV')
+          ) return 'politics'
+          if (
+            t.includes('CPI') || t.includes('INFL') || t.includes('FED') ||
+            t.includes('GDP') || t.includes('UNEMP') || t.includes('FOMC') ||
+            t.includes('RATE')
+          ) return 'economics'
           return inferCategory(m.title || '')
         })()
 

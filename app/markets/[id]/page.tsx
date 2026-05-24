@@ -58,17 +58,15 @@ function MarketDetail({ id }: { id: string }) {
   const handleTrade = () => {
     if (!market) return
     setTrading(true)
-    // Fire tracking in background
     fetch('/api/track-click', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         market_id: market.id,
-        platform: market.platform,
-        url: market.url,
+        platform:  market.platform,
+        url:       market.url,
       }),
     }).catch(() => {})
-    // Open immediately — direct user gesture
     window.open(market.url, '_blank', 'noopener,noreferrer')
     setTimeout(() => setTrading(false), 1000)
   }
@@ -88,8 +86,12 @@ function MarketDetail({ id }: { id: string }) {
   if (notFound) return (
     <div style={{ maxWidth: 720, margin: '80px auto', padding: '0 20px', textAlign: 'center' }}>
       <p style={{ fontSize: 48, marginBottom: 16 }}>🔍</p>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>Market not found</h1>
-      <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: 24 }}>This market may have expired or been removed</p>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
+        Market not found
+      </h1>
+      <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: 24 }}>
+        This market may have expired or been removed
+      </p>
       <button onClick={() => router.push('/markets')}
         style={{ padding: '10px 24px', background: '#5f5cf0', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
         Browse all markets
@@ -102,7 +104,13 @@ function MarketDetail({ id }: { id: string }) {
   const pColor   = getProbColor(market.probability)
   const pct      = market.probability !== null ? Math.round(market.probability * 100) : null
   const pLabel   = PLATFORM_LABELS[market.platform] || market.platform
-  const catLabel = market.category ? market.category.charAt(0).toUpperCase() + market.category.slice(1) : null
+  const catLabel = market.category
+    ? market.category.charAt(0).toUpperCase() + market.category.slice(1)
+    : null
+
+  const isKalshi = market.platform === 'kalshi'
+  const isAzuro  = market.platform === 'azuro'
+  const isCombo  = isKalshi && market.question.startsWith('Multi-bet:')
 
   return (
     <main id="main" style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px 64px' }}>
@@ -115,7 +123,9 @@ function MarketDetail({ id }: { id: string }) {
         {catLabel && (
           <>
             <span>›</span>
-            <a href={`/markets?category=${market.category}`} style={{ color: '#94a3b8', textDecoration: 'none' }}>{catLabel}</a>
+            <a href={`/markets?category=${market.category}`} style={{ color: '#94a3b8', textDecoration: 'none' }}>
+              {catLabel}
+            </a>
           </>
         )}
       </nav>
@@ -137,6 +147,11 @@ function MarketDetail({ id }: { id: string }) {
                 {catLabel}
               </span>
             )}
+            {isCombo && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#059669', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '2px 8px', borderRadius: 5 }}>
+                Multi-leg bet
+              </span>
+            )}
             {market.end_date_label && (
               <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 'auto' }}>
                 Ends {market.end_date_label}
@@ -150,16 +165,16 @@ function MarketDetail({ id }: { id: string }) {
 
         {/* Probability */}
         <div style={{ padding: '24px', borderBottom: '1px solid #f1f5f9' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
-            <div>
-              <p style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Current probability
-              </p>
-              <p style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-1px', color: pColor, lineHeight: 1 }}>
-                {pct !== null ? `${pct}%` : '—'}
-              </p>
-            </div>
-            {pct !== null && (
+          {pct !== null ? (
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
+              <div>
+                <p style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Current probability
+                </p>
+                <p style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-1px', color: pColor, lineHeight: 1 }}>
+                  {pct}%
+                </p>
+              </div>
               <div style={{ flex: 1, minWidth: 120 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: pColor }}>YES</span>
@@ -169,13 +184,25 @@ function MarketDetail({ id }: { id: string }) {
                   <div style={{ height: 8, background: pColor, borderRadius: 4, width: `${pct}%`, transition: 'width 0.6s' }} />
                 </div>
               </div>
-            )}
-            {pct === null && (
-              <p style={{ fontSize: 13, color: '#94a3b8' }}>
-                {market.platform === 'azuro' ? 'On-chain odds available on platform' : 'Probability data not available'}
+            </div>
+          ) : (
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '16px 18px' }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: '#15803d', marginBottom: 6 }}>
+                {isKalshi
+                  ? 'No current offers in order book'
+                  : isAzuro
+                  ? 'On-chain odds available'
+                  : 'Probability not available'}
               </p>
-            )}
-          </div>
+              <p style={{ fontSize: 13, color: '#16a34a', lineHeight: 1.5 }}>
+                {isKalshi
+                  ? 'There are no active sell orders right now. You can place your own offer in the order book on Kalshi — you will be notified when it gets filled.'
+                  : isAzuro
+                  ? 'Live betting odds are available directly on the Azuro platform.'
+                  : 'This market does not currently report probability data.'}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Stats */}
@@ -187,7 +214,9 @@ function MarketDetail({ id }: { id: string }) {
             { label: 'Category', val: catLabel || '—' },
           ].map(s => (
             <div key={s.label} style={{ flex: '1 1 120px', padding: '16px 24px', borderRight: '1px solid #f1f5f9' }}>
-              <p style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>{s.label}</p>
+              <p style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
+                {s.label}
+              </p>
               <p style={{ fontSize: 15, fontWeight: 600, color: '#0f172a' }}>{s.val}</p>
             </div>
           ))}
@@ -229,14 +258,12 @@ function MarketDetail({ id }: { id: string }) {
         This is not financial advice. Always do your own research before trading.
       </p>
 
-      {/* Back */}
       <div style={{ textAlign: 'center', marginTop: 24 }}>
         <button onClick={() => router.back()}
           style={{ fontSize: 13, color: '#5f5cf0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
           ← Back to markets
         </button>
       </div>
-
     </main>
   )
 }
