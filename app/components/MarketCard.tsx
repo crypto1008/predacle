@@ -38,41 +38,37 @@ function getProbBg(p: number | null) {
 export default function MarketCard({ market, onClick }: { market: Market; onClick?: () => void }) {
   const [trading, setTrading] = useState(false)
 
-  const handleTrade = async (e: React.MouseEvent) => {
+  const handleTrade = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
-    if (!market.url || market.url === 'https://polymarket.com') return
+    if (!market.url) return
     setTrading(true)
-    // Open window immediately before async work — prevents popup blocking
-    const win = window.open('', '_blank', 'noopener,noreferrer')
-    try {
-      const res  = await fetch('/api/track-click', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ market_id: market.id, platform: market.platform, url: market.url }),
-      })
-      const data = await res.json()
-      const finalUrl = data.url || market.url
-      if (win) win.location.href = finalUrl
-      else window.open(finalUrl, '_blank', 'noopener,noreferrer')
-    } catch {
-      if (win) win.location.href = market.url
-      else window.open(market.url, '_blank', 'noopener,noreferrer')
-    } finally {
-      setTrading(false)
-    }
+
+    // Fire tracking in background — do not await
+    fetch('/api/track-click', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        market_id: market.id,
+        platform: market.platform,
+        url: market.url,
+      }),
+    }).catch(() => {})
+
+    // Open URL immediately — direct user gesture, no popup blocking
+    window.open(market.url, '_blank', 'noopener,noreferrer')
+    setTimeout(() => setTrading(false), 1000)
   }
 
-  const pColor  = getProbColor(market.probability)
-  const pBg     = getProbBg(market.probability)
-  const pLabel  = PLATFORM_LABELS[market.platform] || market.platform
-  const cLabel  = market.category ? (CATEGORY_LABELS[market.category] || market.category) : null
-  const pct     = market.probability !== null ? Math.round(market.probability * 100) : null
-  const barW    = pct !== null ? `${pct}%` : '0%'
-
-  const isAzuro   = market.platform === 'azuro'
-  const isKalshi  = market.platform === 'kalshi'
-  const hasProb   = market.probability !== null
+  const pColor = getProbColor(market.probability)
+  const pBg    = getProbBg(market.probability)
+  const pLabel = PLATFORM_LABELS[market.platform] || market.platform
+  const cLabel = market.category ? (CATEGORY_LABELS[market.category] || market.category) : null
+  const pct    = market.probability !== null ? Math.round(market.probability * 100) : null
+  const barW   = pct !== null ? `${pct}%` : '0%'
+  const isAzuro  = market.platform === 'azuro'
+  const isKalshi = market.platform === 'kalshi'
+  const hasProb  = market.probability !== null
 
   return (
     <article
@@ -105,14 +101,20 @@ export default function MarketCard({ market, onClick }: { market: Market; onClic
             {pLabel}
           </span>
           {cLabel && (
-            <span style={{ fontSize: 10, color: '#94a3b8', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '2px 7px', borderRadius: 5, fontWeight: 500 }}>
+            <span style={{
+              fontSize: 10, color: '#94a3b8', background: '#f8fafc',
+              border: '1px solid #e2e8f0', padding: '2px 7px', borderRadius: 5, fontWeight: 500,
+            }}>
               {cLabel}
             </span>
           )}
         </div>
 
         {/* Question */}
-        <h3 className="line-clamp-3" style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.5, color: '#1e293b', marginBottom: 'auto', paddingBottom: 12 }}>
+        <h3 className="line-clamp-3" style={{
+          fontSize: 13, fontWeight: 500, lineHeight: 1.5,
+          color: '#1e293b', marginBottom: 'auto', paddingBottom: 12,
+        }}>
           {market.question}
         </h3>
 
@@ -149,7 +151,7 @@ export default function MarketCard({ market, onClick }: { market: Market; onClic
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '9px 14px', background: '#fafbfc', borderTop: '1px solid #f1f5f9',
       }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           {market.volume_label && <span style={{ fontSize: 11, color: '#94a3b8' }}>{market.volume_label}</span>}
           {market.end_date_label && <span style={{ fontSize: 11, color: '#94a3b8' }}>{market.end_date_label}</span>}
           {!market.volume_label && !market.end_date_label && market.traders && (

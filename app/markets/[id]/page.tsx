@@ -34,10 +34,10 @@ function getProbColor(p: number | null) {
 }
 
 function MarketDetail({ id }: { id: string }) {
-  const router  = useRouter()
-  const [market, setMarket]   = useState<Market | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [trading, setTrading] = useState(false)
+  const router = useRouter()
+  const [market, setMarket]     = useState<Market | null>(null)
+  const [loading, setLoading]   = useState(true)
+  const [trading, setTrading]   = useState(false)
   const [notFound, setNotFound] = useState(false)
 
   useEffect(() => {
@@ -55,25 +55,31 @@ function MarketDetail({ id }: { id: string }) {
     load()
   }, [id])
 
-  const handleTrade = async () => {
+  const handleTrade = () => {
     if (!market) return
     setTrading(true)
-    try {
-      const res  = await fetch('/api/track-click', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ market_id: market.id, platform: market.platform, url: market.url }),
-      })
-      const data = await res.json()
-      window.open(data.url || market.url, '_blank', 'noopener,noreferrer')
-    } catch {
-      if (market) window.open(market.url, '_blank', 'noopener,noreferrer')
-    } finally { setTrading(false) }
+    // Fire tracking in background
+    fetch('/api/track-click', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        market_id: market.id,
+        platform: market.platform,
+        url: market.url,
+      }),
+    }).catch(() => {})
+    // Open immediately — direct user gesture
+    window.open(market.url, '_blank', 'noopener,noreferrer')
+    setTimeout(() => setTrading(false), 1000)
   }
 
   if (loading) return (
     <div style={{ maxWidth: 720, margin: '60px auto', padding: '0 20px', textAlign: 'center' }}>
-      <div style={{ width: 40, height: 40, border: '3px solid #e8ecf0', borderTopColor: '#5f5cf0', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+      <div style={{
+        width: 40, height: 40, border: '3px solid #e8ecf0',
+        borderTopColor: '#5f5cf0', borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite', margin: '0 auto 16px',
+      }} />
       <p style={{ color: '#94a3b8', fontSize: 14 }}>Loading market...</p>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
@@ -84,7 +90,8 @@ function MarketDetail({ id }: { id: string }) {
       <p style={{ fontSize: 48, marginBottom: 16 }}>🔍</p>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>Market not found</h1>
       <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: 24 }}>This market may have expired or been removed</p>
-      <button onClick={() => router.push('/markets')} style={{ padding: '10px 24px', background: '#5f5cf0', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+      <button onClick={() => router.push('/markets')}
+        style={{ padding: '10px 24px', background: '#5f5cf0', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
         Browse all markets
       </button>
     </div>
@@ -92,9 +99,9 @@ function MarketDetail({ id }: { id: string }) {
 
   if (!market) return null
 
-  const pColor = getProbColor(market.probability)
-  const pct    = market.probability !== null ? Math.round(market.probability * 100) : null
-  const pLabel = PLATFORM_LABELS[market.platform] || market.platform
+  const pColor   = getProbColor(market.probability)
+  const pct      = market.probability !== null ? Math.round(market.probability * 100) : null
+  const pLabel   = PLATFORM_LABELS[market.platform] || market.platform
   const catLabel = market.category ? market.category.charAt(0).toUpperCase() + market.category.slice(1) : null
 
   return (
@@ -113,13 +120,16 @@ function MarketDetail({ id }: { id: string }) {
         )}
       </nav>
 
-      {/* Card */}
+      {/* Main card */}
       <article style={{ background: '#fff', border: '1px solid #e8ecf0', borderRadius: 16, overflow: 'hidden', marginBottom: 20 }}>
 
         {/* Header */}
         <div style={{ padding: '24px 24px 20px', borderBottom: '1px solid #f1f5f9' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-            <span className={`badge-${market.platform}`} style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.3px', padding: '3px 9px', borderRadius: 6, textTransform: 'uppercase' }}>
+            <span className={`badge-${market.platform}`} style={{
+              fontSize: 11, fontWeight: 700, letterSpacing: '0.3px',
+              padding: '3px 9px', borderRadius: 6, textTransform: 'uppercase',
+            }}>
               {pLabel}
             </span>
             {catLabel && (
@@ -133,8 +143,7 @@ function MarketDetail({ id }: { id: string }) {
               </span>
             )}
           </div>
-
-          <h1 style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.4, color: '#0f172a', marginBottom: 0 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.4, color: '#0f172a' }}>
             {market.question}
           </h1>
         </div>
@@ -161,6 +170,11 @@ function MarketDetail({ id }: { id: string }) {
                 </div>
               </div>
             )}
+            {pct === null && (
+              <p style={{ fontSize: 13, color: '#94a3b8' }}>
+                {market.platform === 'azuro' ? 'On-chain odds available on platform' : 'Probability data not available'}
+              </p>
+            )}
           </div>
         </div>
 
@@ -180,7 +194,11 @@ function MarketDetail({ id }: { id: string }) {
         </div>
 
         {/* Trade CTA */}
-        <div style={{ padding: '20px 24px', background: '#fafbfc', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{
+          padding: '20px 24px', background: '#fafbfc',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexWrap: 'wrap', gap: 12,
+        }}>
           <div>
             <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>
               Trade this market on {pLabel}
@@ -207,16 +225,14 @@ function MarketDetail({ id }: { id: string }) {
 
       {/* Disclaimer */}
       <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', lineHeight: 1.6 }}>
-        Predacle aggregates public data from prediction market platforms. This is not financial advice.
-        Always do your own research before trading.
+        Predacle aggregates public data from prediction market platforms.
+        This is not financial advice. Always do your own research before trading.
       </p>
 
       {/* Back */}
       <div style={{ textAlign: 'center', marginTop: 24 }}>
-        <button
-          onClick={() => router.back()}
-          style={{ fontSize: 13, color: '#5f5cf0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}
-        >
+        <button onClick={() => router.back()}
+          style={{ fontSize: 13, color: '#5f5cf0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
           ← Back to markets
         </button>
       </div>
