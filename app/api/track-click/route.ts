@@ -9,16 +9,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
     }
 
-    // Log click — fire and forget, don't block on errors
-    supabaseAdmin.from('referral_clicks').insert({
-      market_id,
-      platform,
-      url,
-      user_agent: request.headers.get('user-agent') || '',
-      clicked_at: new Date().toISOString(),
-    }).then(() => {}).catch(() => {})
+    // Log click — fire and forget
+    void Promise.resolve(
+      supabaseAdmin.from('referral_clicks').insert({
+        market_id,
+        platform,
+        url,
+        user_agent: request.headers.get('user-agent') || '',
+        clicked_at: new Date().toISOString(),
+      })
+    ).catch(() => {})
 
-    // Return original URL — no ref params until official affiliate codes confirmed
+    // Return original URL
     return NextResponse.json({ url })
 
   } catch (error: any) {
