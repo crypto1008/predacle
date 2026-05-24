@@ -3,7 +3,7 @@ import { Market } from '../types'
 import { createSign } from 'crypto'
 
 function getKalshiHeaders(method: string, endpointPath: string): HeadersInit {
-  const keyId = process.env.KALSHI_API_KEY_ID
+  const keyId         = process.env.KALSHI_API_KEY_ID
   const privateKeyRaw = process.env.KALSHI_PRIVATE_KEY
 
   if (!keyId || !privateKeyRaw || keyId === 'placeholder') {
@@ -16,9 +16,9 @@ function getKalshiHeaders(method: string, endpointPath: string): HeadersInit {
     .replace(/\\r/g, '')
     .trim()
 
-  const timestamp    = Date.now().toString()
+  const timestamp      = Date.now().toString()
   const pathForSigning = endpointPath.split('?')[0]
-  const message      = `${timestamp}${method}${pathForSigning}`
+  const message        = `${timestamp}${method}${pathForSigning}`
 
   try {
     const sign = createSign('RSA-SHA256')
@@ -38,21 +38,6 @@ function getKalshiHeaders(method: string, endpointPath: string): HeadersInit {
   }
 }
 
-function cleanKalshiQuestion(title: string): string {
-  if (!title) return title
-  // Detect auto-generated combo questions like "yes X, yes Y, no Z..."
-  if (!/^(yes|no) /i.test(title)) return title
-  const conditions = title.split(',').map(s => s.trim()).filter(Boolean)
-  const count      = conditions.length
-  const preview    = conditions
-    .slice(0, 2)
-    .map(c => c.replace(/^(yes|no) /i, '').trim())
-    .join(', ')
-  return count > 2
-    ? `Multi-bet: ${preview} +${count - 2} more`
-    : `Multi-bet: ${preview}`
-}
-
 export async function fetchKalshi(): Promise<Market[]> {
   const keyId = process.env.KALSHI_API_KEY_ID
   if (!keyId || keyId === 'placeholder') {
@@ -62,7 +47,7 @@ export async function fetchKalshi(): Promise<Market[]> {
 
   try {
     const endpointPath = '/trade-api/v2/markets?limit=200&status=open'
-    const headers = getKalshiHeaders('GET', endpointPath)
+    const headers      = getKalshiHeaders('GET', endpointPath)
 
     if (Object.keys(headers).length === 0) {
       console.log('Kalshi: could not generate headers')
@@ -84,59 +69,74 @@ export async function fetchKalshi(): Promise<Market[]> {
     const markets = data.markets || []
     console.log(`Kalshi: got ${markets.length} markets`)
 
-    return markets.map((m: any) => {
-      const yesCents    = m.yes_ask ?? m.last_price ?? null
-      const probability = yesCents !== null ? yesCents / 100 : null
-      const vol         = m.volume ? m.volume * 0.01 : null
+    return markets
+      .filter((m: any) => {
+        const ticker = (m.ticker || '').toUpperCase()
+        // Exclude multi-game combo markets — no single probability or clean question
+        if (ticker.includes('MULTIGAME')) return false
+        if (ticker.includes('CROSSCAT'))  return false
+        if (ticker.startsWith('KXMVE'))   return false
+        // Only keep markets with actual price data
+        const hasPrice = (m.yes_ask !== null && m.yes_ask !== undefined) ||
+                         (m.last_price !== null && m.last_price !== undefined)
+        return hasPrice
+      })
+      .map((m: any) => {
+        const yesCents    = m.yes_ask ?? m.yes_bid ?? m.last_price ?? null
+        const probability = (yesCents !== null && yesCents > 0)
+          ? yesCents / 100
+          : null
 
-      // Build best available URL
-      const eventTicker  = m.event_ticker  || ''
-      const seriesTicker = m.series_ticker || (m.ticker || '').split('-')[0] || ''
-      const url = eventTicker
-        ? `https://kalshi.com/markets/${eventTicker}`
-        : seriesTicker
-        ? `https://kalshi.com/markets/${seriesTicker}`
-        : 'https://kalshi.com'
+        const vol = m.volume_24h
+          ? m.volume_24h * 0.01
+          : m.volume
+          ? m.volume * 0.01
+          : null
 
-      // Clean combo question for display
-      const question = cleanKalshiQuestion(m.title || '')
+        const series = (m.series_ticker || m.ticker || '').split('-')[0]
+        const url    = series
+          ? `https://kalshi.com/markets/${series}`
+          : 'https://kalshi.com'
 
-      return {
-        id:         `kalshi-${m.ticker}`,
-        platform:   'kalshi' as const,
-        question,
-        probability,
-        volume: vol,
-        volume_label: vol
-          ? vol >= 1_000_000
-            ? `$${(vol / 1_000_000).toFixed(1)}M`
-            : `$${Math.round(vol).toLocaleString()}`
-          : null,
-        end_date: m.close_time
-          ? new Date(m.close_time).toISOString().split('T')[0]
-          : null,
-        end_date_label: m.close_time
-          ? new Date(m.close_time).toLocaleDateString('en-US', {
-              month: 'short', year: 'numeric',
-            })
-          : null,
-        traders:  null,
-        category: (() => {
-          const t = (m.ticker || '').toUpperCase()
-          if (
-            t.includes('SPORT') || t.includes('ESPORT') ||
-            t.includes('SOCCER') || t.includes('TENNIS') ||
-            t.includes('BASKETBALL') || t.includes('FOOTBALL') ||
-            t.includes('BASEBALL') || t.includes('HOCKEY') ||
-            t.includes('GOLF') || t.includes('CROSS')
-          ) return 'sports'
-          return inferCategory(m.title || m.question || '')
-        })(),
-        url,
-        status:     'active' as const,
-        fetched_at: new Date().toISOString(),
-      }
-    })
+        return {
+          id:       `kalshi-${m.ticker}`,
+          platform: 'kalshi' as const,
+          question: m.title || m.ticker,
+          probability,
+          volume: vol,
+          volume_label: vol && vol > 0
+            ? vol >= 1_000_000
+              ? `$${(vol / 1_000_000).toFixed(1)}M`
+              : `$${Math.round(vol).toLocaleString()}`
+            : null,
+          end_date: m.close_time
+            ? new Date(m.close_time).toISOString().split('T')[0]
+            : null,
+          end_date_label: m.close_time
+            ? new Date(m.close_time).toLocaleDateString('en-US', {
+                month: 'short', year: 'numeric',
+              })
+            : null,
+          traders:  null,
+          category: (() => {
+            const t = (m.ticker || '').toUpperCase()
+            if (
+              t.includes('SPORT') || t.includes('SOCCER') ||
+              t.includes('TENNIS') || t.includes('BASKETBALL') ||
+              t.includes('FOOTBALL') || t.includes('BASEBALL') ||
+              t.includes('HOCKEY') || t.includes('GOLF') ||
+              t.includes('ESPORT')
+            ) return 'sports'
+            if (t.includes('BTC') || t.includes('ETH') || t.includes('CRYPTO')) return 'crypto'
+            if (t.includes('ELECT') || t.includes('PRES') || t.includes('VOTE')) return 'politics'
+            if (t.includes('CPI') || t.includes('INFL') || t.includes('FED') || t.includes('GDP')) return 'economics'
+            return inferCategory(m.title || '')
+          })(),
+          url,
+          status:     'active' as const,
+          fetched_at: new Date().toISOString(),
+        }
+      })
   } catch (error: any) {
     console.error('Kalshi fetch error:', error.message)
     return []
