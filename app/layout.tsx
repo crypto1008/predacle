@@ -1,15 +1,12 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-})
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
+  variable: '--font-jakarta',
+  weight: ['300', '400', '500', '600', '700'],
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
@@ -18,7 +15,7 @@ export const metadata: Metadata = {
     template: '%s | Predacle',
   },
   description: 'Browse 16,000+ prediction markets across Polymarket, Kalshi, Myriad, Manifold, Limitless and Azuro. Live probabilities, real trading volumes, all in one place.',
-  keywords: ['prediction markets', 'polymarket', 'kalshi', 'prediction aggregator', 'crypto predictions', 'sports betting markets'],
+  keywords: ['prediction markets', 'polymarket', 'kalshi', 'manifold', 'prediction aggregator', 'crypto predictions', 'sports betting markets'],
   authors: [{ name: 'Predacle' }],
   creator: 'Predacle',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://predacle.com'),
@@ -28,13 +25,15 @@ export const metadata: Metadata = {
     url: process.env.NEXT_PUBLIC_APP_URL || 'https://predacle.com',
     siteName: 'Predacle',
     title: 'Predacle — Prediction Market Aggregator',
-    description: 'Browse 16,000+ prediction markets across Polymarket, Kalshi, Myriad, Manifold, Limitless and Azuro.',
+    description: 'Browse 16,000+ prediction markets across 6 platforms. Live probabilities, real trading volumes.',
+    images: [{ url: '/og-default.png', width: 1200, height: 630, alt: 'Predacle' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Predacle — Prediction Market Aggregator',
-    description: 'Browse 16,000+ prediction markets across 6 platforms. Live probabilities, real volumes.',
+    description: 'Browse 16,000+ prediction markets across Polymarket, Kalshi, Myriad and more.',
     creator: '@predacle',
+    images: ['/og-default.png'],
   },
   robots: {
     index: true,
@@ -47,16 +46,28 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  manifest: '/site.webmanifest',
+  icons: {
+    icon: [
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+const themeScript = `try{var t=localStorage.getItem('theme'),d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(!t&&d))document.documentElement.classList.add('dark')}catch(e){}`
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className={jakarta.variable}>
+        <a href="#main" className="sr-only">
+          Skip to main content
+        </a>
         {children}
       </body>
     </html>
