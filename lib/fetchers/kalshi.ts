@@ -114,7 +114,9 @@ function mapMarket(m: any, category: string): Market {
     end_date_label: m.close_time
       ? new Date(m.close_time).toLocaleDateString('en-US',
           { month: 'short', year: 'numeric' }) : null,
-    traders:    null,
+    traders: m.open_interest
+      ? Math.round(parseFloat(String(m.open_interest)))
+      : null,
     category,
     url,
     status:     'active' as const,

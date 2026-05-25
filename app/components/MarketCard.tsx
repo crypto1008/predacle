@@ -153,7 +153,9 @@ export default function MarketCard({ market, onClick }: { market: Market; onClic
           {market.volume_label && <span style={{ fontSize: 11, color: '#94a3b8' }}>{market.volume_label}</span>}
           {market.end_date_label && <span style={{ fontSize: 11, color: '#94a3b8' }}>{market.end_date_label}</span>}
           {!market.volume_label && !market.end_date_label && market.traders && (
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>{market.traders.toLocaleString()} traders</span>
+            <span style={{ fontSize: 11, color: '#94a3b8' }}>
+              {market.traders.toLocaleString()} {market.platform === 'kalshi' ? 'contracts' : 'traders'}
+            </span>
           )}
           {!market.volume_label && !market.end_date_label && !market.traders && (
             <span style={{ fontSize: 11, color: '#94a3b8' }}>{isAzuro ? 'Sports betting' : 'Active'}</span>
