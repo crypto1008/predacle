@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   try {
     const res = await fetch(
-      'https://api.limitless.exchange/markets?limit=3&sortBy=liquidity&orderBy=desc',
+      'https://api.limitless.exchange/markets/active',
       {
         headers: { 'Accept': 'application/json' },
         cache: 'no-store',
@@ -11,27 +11,34 @@ export async function GET() {
     )
     const json   = await res.json()
     const all    = json.data || json.markets || json || []
-    const sample = all[0] || {}
+    const sample = Array.isArray(all) ? all[0] : all
 
     return NextResponse.json({
       status:        res.status,
-      all_fields:    Object.keys(sample),
+      total:         Array.isArray(all) ? all.length : 1,
+      all_fields:    Object.keys(sample || {}),
       volume_fields: {
-        volume:        sample.volume,
-        volumeFormatted: sample.volumeFormatted,
-        volume24h:     sample.volume24h,
-        liquidity:     sample.liquidity,
-        totalVolume:   sample.totalVolume,
-        contractSize:  sample.contractSize,
+        volume:        sample?.volume,
+        volume24h:     sample?.volume24h,
+        liquidity:     sample?.liquidity,
+        totalVolume:   sample?.totalVolume,
+        volumeUsd:     sample?.volumeUsd,
+        collateral:    sample?.collateral,
       },
       trader_fields: {
-        traders:       sample.traders,
-        uniqueTraders: sample.uniqueTraders,
-        bettors:       sample.bettors,
-        participants:  sample.participants,
-        users:         sample.users,
-        tradesCount:   sample.tradesCount,
-        traderCount:   sample.traderCount,
+        traders:        sample?.traders,
+        uniqueTraders:  sample?.uniqueTraders,
+        bettors:        sample?.bettors,
+        users:          sample?.users,
+        tradesCount:    sample?.tradesCount,
+        traderCount:    sample?.traderCount,
+        positions:      sample?.positions,
+        positionsCount: sample?.positionsCount,
+      },
+      price_fields: {
+        prices:         sample?.prices,
+        outcomePrices:  sample?.outcomePrices,
+        odds:           sample?.odds,
       },
       full_sample: sample,
     })
