@@ -3,70 +3,79 @@ import { Market } from '../types'
 const AZURO_GRAPHQL =
   'https://thegraph.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-api-polygon-v3'
 
-const QUERY = `
-  query ActiveGames {
-    games(
-      where: { status: Created }
-      first: 100
-      orderBy: startsAt
-      orderDirection: asc
-    ) {
-      gameId
-      title
-      startsAt
-      sport { name }
-      league {
-        name
-        country { name }
-      }
-      participants { name }
-      conditions(first: 1) {
-        status
-        outcomes {
-          outcomeId
-          currentOdds
+function buildQuery(nowTs: number) {
+  return `
+    query ActiveGames {
+      games(
+        where: {
+          status: Created
+          startsAt_gt: "${nowTs}"
+        }
+        first: 100
+        orderBy: startsAt
+        orderDirection: asc
+      ) {
+        gameId
+        title
+        startsAt
+        sport { name }
+        league {
+          name
+          country { name }
+        }
+        participants { name }
+        conditions(first: 1) {
+          conditionId
+          status
+          outcomes {
+            outcomeId
+            currentOdds
+          }
         }
       }
     }
-  }
-`
+  `
+}
 
-function oddsToProbability(oddsStr: string): number | null {
+function oddsToProbability(oddsStr: string | null | undefined): number | null {
   if (!oddsStr) return null
-  const odds = parseFloat(oddsStr)
-  if (!odds || odds <= 0) return null
-
-  // Azuro odds might be in 1e18 format (BigDecimal)
-  const normalised = odds > 1e9 ? odds / 1e18 : odds
-  if (normalised <= 1) return null
-
-  const prob = 1 / normalised
+  const raw = parseFloat(oddsStr)
+  if (!raw || raw <= 0) return null
+  // Handle both decimal odds (1.92) and 1e18 format (1920000000000000000)
+  const odds = raw > 1e9 ? raw / 1e18 : raw
+  if (odds <= 1) return null
+  const prob = 1 / odds
   return Math.min(0.9999, Math.max(0.0001, prob))
 }
 
-function inferAzuroCategory(sportName: string): string {
-  const s = sportName.toLowerCase()
-  if (s.includes('soccer') || s.includes('football')) return 'sports'
-  if (s.includes('basket'))                            return 'sports'
-  if (s.includes('tennis'))                            return 'sports'
-  if (s.includes('baseball'))                          return 'sports'
-  if (s.includes('hockey'))                            return 'sports'
-  if (s.includes('cricket'))                           return 'sports'
-  if (s.includes('rugby'))                             return 'sports'
-  if (s.includes('esport') || s.includes('e-sport'))  return 'sports'
+function mapSport(sportName: string): string {
+  const s = (sportName || '').toLowerCase()
+  if (s.includes('football') || s.includes('soccer')) return 'sports'
+  if (s.includes('basket'))  return 'sports'
+  if (s.includes('tennis'))  return 'sports'
+  if (s.includes('hockey'))  return 'sports'
+  if (s.includes('baseball'))return 'sports'
+  if (s.includes('cricket')) return 'sports'
+  if (s.includes('rugby'))   return 'sports'
+  if (s.includes('esport'))  return 'sports'
+  if (s.includes('mma') || s.includes('boxing')) return 'sports'
   return 'sports'
 }
 
 export async function fetchAzuro(): Promise<Market[]> {
   try {
     console.log('Azuro: fetching...')
+
+    // Only fetch games starting in the FUTURE
+    const nowTs = Math.floor(Date.now() / 1000)
+
     const response = await fetch(AZURO_GRAPHQL, {
       method:  'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept':       'application/json',
       },
-      body:  JSON.stringify({ query: QUERY }),
+      body:  JSON.stringify({ query: buildQuery(nowTs) }),
       cache: 'no-store',
     })
 
@@ -74,17 +83,22 @@ export async function fetchAzuro(): Promise<Market[]> {
     if (!response.ok) return []
 
     const json  = await response.json()
-    const games = json?.data?.games || []
-    console.log(`Azuro: ${games.length} games received`)
 
-    // Debug first game to see odds format
+    if (json?.errors) {
+      console.error('Azuro GraphQL errors:', JSON.stringify(json.errors))
+      return []
+    }
+
+    const games = json?.data?.games || []
+    console.log(`Azuro: ${games.length} future games received`)
+
+    // Debug first game
     if (games.length > 0) {
       const g = games[0]
-      console.log('Azuro sample:', JSON.stringify({
-        gameId:     g.gameId,
-        startsAt:   g.startsAt,
+      console.log('Azuro first game:', JSON.stringify({
+        title:      g.title,
+        startsAt:   new Date(parseInt(g.startsAt) * 1000).toISOString(),
         conditions: g.conditions?.length,
-        outcomes:   g.conditions?.[0]?.outcomes?.length,
         firstOdds:  g.conditions?.[0]?.outcomes?.[0]?.currentOdds,
       }))
     }
@@ -92,28 +106,24 @@ export async function fetchAzuro(): Promise<Market[]> {
     return games
       .filter((g: any) => g.participants?.length >= 2 || g.title)
       .map((g: any) => {
+        const p0 = g.participants?.[0]?.name || 'Team A'
+        const p1 = g.participants?.[1]?.name || 'Team B'
 
         // Build clean question
-        const p0       = g.participants?.[0]?.name || 'Team A'
-        const p1       = g.participants?.[1]?.name || 'Team B'
-        const sport    = g.sport?.name || 'Sports'
         const league   = g.league?.name ? ` (${g.league.name})` : ''
-        const question = g.title || `Will ${p0} beat ${p1}?${league}`
+        const question = g.title
+          ? g.title.replace('–', 'vs')
+          : `Will ${p0} beat ${p1}?${league}`
 
-        // Extract probability from first condition's first outcome
-        let probability: number | null = null
-        const outcomes = g.conditions?.[0]?.outcomes || []
-        if (outcomes.length > 0) {
-          // Try first outcome (usually home win)
-          probability = oddsToProbability(outcomes[0]?.currentOdds)
-        }
+        // Probability from first outcome odds
+        const outcomes    = g.conditions?.[0]?.outcomes || []
+        const probability = outcomes.length > 0
+          ? oddsToProbability(outcomes[0]?.currentOdds)
+          : null
 
-        // End date from startsAt (Unix timestamp in seconds)
+        // End date from startsAt (Unix seconds → Date)
         const startsAt  = g.startsAt ? parseInt(g.startsAt) : null
         const startDate = startsAt ? new Date(startsAt * 1000) : null
-
-        // Category from sport name
-        const category = inferAzuroCategory(sport)
 
         return {
           id:       `azuro-${g.gameId}`,
@@ -127,11 +137,13 @@ export async function fetchAzuro(): Promise<Market[]> {
             : null,
           end_date_label: startDate
             ? startDate.toLocaleDateString('en-US', {
-                month: 'short', day: 'numeric', year: 'numeric',
+                month: 'short',
+                day:   'numeric',
+                year:  'numeric',
               })
             : null,
           traders:  null,
-          category,
+          category: mapSport(g.sport?.name || ''),
           url:      'https://azuro.org',
           status:   'active' as const,
           fetched_at: new Date().toISOString(),
