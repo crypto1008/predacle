@@ -1,132 +1,115 @@
 import { Market } from '../types'
 
-const AZURO_GRAPHQL =
-  'https://thegraph.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-api-polygon-v3'
+const AZURO_API = 'https://api.onchainfeed.org/api/v1/public'
 
-function buildQuery(nowTs: number) {
-  return `
-    query ActiveGames {
-      games(
-        where: {
-          status: Created
-          startsAt_gt: "${nowTs}"
-        }
-        first: 100
-        orderBy: startsAt
-        orderDirection: asc
-      ) {
-        gameId
-        title
-        startsAt
-        sport { name }
-        league {
-          name
-          country { name }
-        }
-        participants { name }
-        conditions(first: 1) {
-          conditionId
-          status
-          outcomes {
-            outcomeId
-            currentOdds
-          }
-        }
-      }
-    }
-  `
-}
-
-function oddsToProbability(oddsStr: string | null | undefined): number | null {
-  if (!oddsStr) return null
-  const raw = parseFloat(oddsStr)
-  if (!raw || raw <= 0) return null
-  // Handle both decimal odds (1.92) and 1e18 format (1920000000000000000)
-  const odds = raw > 1e9 ? raw / 1e18 : raw
-  if (odds <= 1) return null
-  const prob = 1 / odds
-  return Math.min(0.9999, Math.max(0.0001, prob))
+function oddsToProbability(odds: number | string | null | undefined): number | null {
+  if (!odds) return null
+  const v = typeof odds === 'string' ? parseFloat(odds) : odds
+  if (!v || v <= 1) return null
+  return Math.min(0.9999, Math.max(0.0001, 1 / v))
 }
 
 function mapSport(sportName: string): string {
   const s = (sportName || '').toLowerCase()
   if (s.includes('football') || s.includes('soccer')) return 'sports'
-  if (s.includes('basket'))  return 'sports'
-  if (s.includes('tennis'))  return 'sports'
-  if (s.includes('hockey'))  return 'sports'
-  if (s.includes('baseball'))return 'sports'
-  if (s.includes('cricket')) return 'sports'
-  if (s.includes('rugby'))   return 'sports'
-  if (s.includes('esport'))  return 'sports'
+  if (s.includes('basket'))   return 'sports'
+  if (s.includes('tennis'))   return 'sports'
+  if (s.includes('hockey'))   return 'sports'
+  if (s.includes('baseball')) return 'sports'
+  if (s.includes('cricket'))  return 'sports'
+  if (s.includes('rugby'))    return 'sports'
+  if (s.includes('esport'))   return 'sports'
   if (s.includes('mma') || s.includes('boxing')) return 'sports'
   return 'sports'
 }
 
 export async function fetchAzuro(): Promise<Market[]> {
   try {
-    console.log('Azuro: fetching...')
+    console.log('Azuro: fetching from REST API...')
 
-    // Only fetch games starting in the FUTURE
-    const nowTs = Math.floor(Date.now() / 1000)
-
-    const response = await fetch(AZURO_GRAPHQL, {
-      method:  'POST',
+    // Try the new Backend REST API for prematch games
+    const url = `${AZURO_API}/gateway/games?state=prematch&limit=100&withConditions=true`
+    const response = await fetch(url, {
       headers: {
-        'Content-Type': 'application/json',
-        'Accept':       'application/json',
+        'Accept':     'application/json',
+        'User-Agent': 'Predacle/1.0',
       },
-      body:  JSON.stringify({ query: buildQuery(nowTs) }),
       cache: 'no-store',
     })
 
-    console.log(`Azuro: status ${response.status}`)
-    if (!response.ok) return []
+    console.log(`Azuro REST: status ${response.status}`)
 
-    const json  = await response.json()
-
-    if (json?.errors) {
-      console.error('Azuro GraphQL errors:', JSON.stringify(json.errors))
+    if (!response.ok) {
+      // Fallback: try without withConditions
+      console.log('Azuro: trying fallback endpoint...')
+      const fallbackRes = await fetch(`${AZURO_API}/gateway/games?state=prematch&limit=100`, {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store',
+      })
+      console.log(`Azuro fallback: status ${fallbackRes.status}`)
+      if (!fallbackRes.ok) return []
+      const fallbackData = await fallbackRes.json()
+      console.log('Azuro fallback response keys:', Object.keys(fallbackData))
       return []
     }
 
-    const games = json?.data?.games || []
-    console.log(`Azuro: ${games.length} future games received`)
+    const data = await response.json()
+    console.log('Azuro REST response keys:', Object.keys(data))
 
-    // Debug first game
-    if (games.length > 0) {
-      const g = games[0]
-      console.log('Azuro first game:', JSON.stringify({
-        title:      g.title,
-        startsAt:   new Date(parseInt(g.startsAt) * 1000).toISOString(),
-        conditions: g.conditions?.length,
-        firstOdds:  g.conditions?.[0]?.outcomes?.[0]?.currentOdds,
+    // Handle various response formats
+    const games = data.games || data.data || data.items || data || []
+    const gameList = Array.isArray(games) ? games : []
+
+    console.log(`Azuro: ${gameList.length} games received`)
+
+    if (gameList.length > 0) {
+      const sample = gameList[0]
+      console.log('Azuro game sample:', JSON.stringify({
+        id:           sample.id || sample.gameId,
+        title:        sample.title,
+        startsAt:     sample.startsAt,
+        sport:        sample.sport?.name || sample.sportName,
+        participants: sample.participants?.map((p: any) => p.name),
+        conditions:   sample.conditions?.length,
       }))
     }
 
-    return games
-      .filter((g: any) => g.participants?.length >= 2 || g.title)
+    return gameList
+      .filter((g: any) => g.participants?.length >= 2 || g.title || g.name)
       .map((g: any) => {
-        const p0 = g.participants?.[0]?.name || 'Team A'
-        const p1 = g.participants?.[1]?.name || 'Team B'
+        const p0       = g.participants?.[0]?.name || 'Team A'
+        const p1       = g.participants?.[1]?.name || 'Team B'
+        const sportName = g.sport?.name || g.sportName || 'Sports'
+        const league   = g.league?.name || g.leagueName || ''
 
-        // Build clean question
-        const league   = g.league?.name ? ` (${g.league.name})` : ''
-        const question = g.title
-          ? g.title.replace('–', 'vs')
-          : `Will ${p0} beat ${p1}?${league}`
+        const question = g.title || g.name
+          ? (g.title || g.name).replace('–', 'vs')
+          : `Will ${p0} beat ${p1}?${league ? ` (${league})` : ''}`
 
-        // Probability from first outcome odds
-        const outcomes    = g.conditions?.[0]?.outcomes || []
-        const probability = outcomes.length > 0
-          ? oddsToProbability(outcomes[0]?.currentOdds)
-          : null
+        // Get probability from conditions/outcomes
+        let probability: number | null = null
+        const conditions = g.conditions || g.markets || []
+        if (conditions.length > 0) {
+          const outcomes = conditions[0]?.outcomes || conditions[0]?.selections || []
+          if (outcomes.length > 0) {
+            const firstOdds = outcomes[0]?.currentOdds || outcomes[0]?.odds || outcomes[0]?.price
+            probability = oddsToProbability(firstOdds)
+          }
+        }
 
-        // End date from startsAt (Unix seconds → Date)
-        const startsAt  = g.startsAt ? parseInt(g.startsAt) : null
-        const startDate = startsAt ? new Date(startsAt * 1000) : null
+        // Handle startsAt as Unix seconds or ISO string
+        let startDate: Date | null = null
+        if (g.startsAt) {
+          const ts = typeof g.startsAt === 'number' || /^\d+$/.test(String(g.startsAt))
+            ? new Date(parseInt(String(g.startsAt)) * (String(g.startsAt).length === 10 ? 1000 : 1))
+            : new Date(g.startsAt)
+          if (!isNaN(ts.getTime())) startDate = ts
+        }
+
+        const gameId = g.id || g.gameId || Math.random().toString(36).slice(2)
 
         return {
-          id:       `azuro-${g.gameId}`,
+          id:       `azuro-${gameId}`,
           platform: 'azuro' as const,
           question,
           probability,
@@ -137,13 +120,11 @@ export async function fetchAzuro(): Promise<Market[]> {
             : null,
           end_date_label: startDate
             ? startDate.toLocaleDateString('en-US', {
-                month: 'short',
-                day:   'numeric',
-                year:  'numeric',
+                month: 'short', day: 'numeric', year: 'numeric',
               })
             : null,
           traders:  null,
-          category: mapSport(g.sport?.name || ''),
+          category: mapSport(sportName),
           url:      'https://azuro.org',
           status:   'active' as const,
           fetched_at: new Date().toISOString(),
