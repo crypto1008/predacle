@@ -58,21 +58,22 @@ function oddsToProbability(odds: string | number | null | undefined): number | n
   return Math.min(0.9999, Math.max(0.0001, 1 / v))
 }
 
-async function fetchSport(sportSlug: string, limit: number, nowTs: number): Promise<any[]> {
-  // No nested conditions filter — activeConditionsCount_gt: 0 already guarantees
-  // active conditions exist. Nested where was stripping non-football odds.
+async function fetchSport(sportSlug: string, limit: number, sevenDaysAgo: number): Promise<any[]> {
+  // No startsAt_gt: nowTs — most non-football games already started but
+  // are still in Prematch state (oracle hasn't resolved them yet).
+  // Use 7-day lookback to include recent games while dropping ancient stale ones.
   const query = `
     query {
       games(
         where: {
           state: Prematch
           activeConditionsCount_gt: 0
-          startsAt_gt: "${nowTs}"
+          startsAt_gt: "${sevenDaysAgo}"
           sport_: { slug: "${sportSlug}" }
         }
         first: ${limit}
         orderBy: startsAt
-        orderDirection: asc
+        orderDirection: desc
       ) {
         id
         gameId
@@ -96,31 +97,29 @@ async function fetchSport(sportSlug: string, limit: number, nowTs: number): Prom
       body:    JSON.stringify({ query }),
       cache:   'no-store',
     })
-    if (!res.ok) {
-      console.error(`Azuro ${sportSlug}: HTTP ${res.status}`)
-      return []
-    }
+    if (!res.ok) return []
     const json = await res.json()
     if (json?.errors) {
-      console.error(`Azuro ${sportSlug} errors:`, JSON.stringify(json.errors))
+      console.error(`Azuro ${sportSlug} error:`, JSON.stringify(json.errors))
       return []
     }
     const games = json?.data?.games || []
-    console.log(`Azuro ${sportSlug}: ${games.length} games fetched`)
+    console.log(`Azuro ${sportSlug}: ${games.length} games`)
     return games
   } catch (e: any) {
-    console.error(`Azuro ${sportSlug} fetch error:`, e.message)
+    console.error(`Azuro ${sportSlug}:`, e.message)
     return []
   }
 }
 
 export async function fetchAzuro(): Promise<Market[]> {
-  console.log('Azuro: fetching all 15 sports from Polygon data-feed...')
+  console.log('Azuro: fetching all 15 sports (7-day lookback)...')
 
-  const nowTs   = Math.floor(Date.now() / 1000)
+  const nowTs        = Math.floor(Date.now() / 1000)
+  const sevenDaysAgo = nowTs - 7 * 24 * 60 * 60
 
   const results = await Promise.allSettled(
-    SPORTS.map(s => fetchSport(s.slug, s.limit, nowTs))
+    SPORTS.map(s => fetchSport(s.slug, s.limit, sevenDaysAgo))
   )
 
   const seen    = new Set<string>()
@@ -135,7 +134,6 @@ export async function fetchAzuro(): Promise<Market[]> {
       const gameId = String(g.gameId || g.id)
       if (seen.has(gameId)) continue
 
-      // Need valid odds — skip games where bookmaker hasn't posted yet
       const odds = parseFloat(g.conditions?.[0]?.outcomes?.[0]?.currentOdds || '0')
       if (odds <= 1) continue
 
@@ -174,14 +172,6 @@ export async function fetchAzuro(): Promise<Market[]> {
     }
   }
 
-  const sportBreakdown = markets.reduce((acc, m) => {
-    const sport = m.url.split('/')[6] || 'unknown'
-    acc[sport] = (acc[sport] || 0) + 1
-    return acc
-  }, {} as Record<string, number>)
-
   console.log(`Azuro total: ${markets.length} markets`)
-  console.log('Azuro breakdown:', JSON.stringify(sportBreakdown))
-
   return markets
 }
