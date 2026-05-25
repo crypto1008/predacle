@@ -1,37 +1,75 @@
 import { NextResponse } from 'next/server'
 
+const AZURO_FEED =
+  'https://thegraph-1.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-data-feed-polygon'
+
 export async function GET() {
-  const AZURO_API = 'https://api.onchainfeed.org/api/v1/public'
-
-  const results: any = {}
-
-  // Try multiple endpoint formats
-  const endpoints = [
-    `${AZURO_API}/gateway/games?state=prematch&limit=2&withConditions=true`,
-    `${AZURO_API}/gateway/games?state=prematch&limit=2`,
-    `${AZURO_API}/gateway/games`,
-    `${AZURO_API}/gateway/markers?state=prematch&limit=2`,
-    `${AZURO_API}/gateway/sports`,
-  ]
-
-  for (const url of endpoints) {
-    try {
-      const res = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
-        cache: 'no-store',
-      })
-      const body = await res.text()
-      let parsed: any
-      try { parsed = JSON.parse(body) } catch { parsed = body.slice(0, 200) }
-      results[url.replace(AZURO_API, '')] = {
-        status: res.status,
-        keys:   typeof parsed === 'object' ? Object.keys(parsed) : parsed,
-        sample: typeof parsed === 'object' ? JSON.stringify(parsed).slice(0, 300) : parsed,
+  try {
+    const nowTs = Math.floor(Date.now() / 1000)
+    const query = `
+      query {
+        games(
+          where: {
+            state: Prematch
+            activeConditionsCount_gt: 0
+            startsAt_gt: "${nowTs}"
+          }
+          first: 2
+          orderBy: startsAt
+          orderDirection: asc
+        ) {
+          id
+          gameId
+          title
+          startsAt
+          sport { name }
+          participants { name }
+          conditions(
+            where: { state: Active, isPrematchEnabled: true }
+            first: 1
+          ) {
+            conditionId
+            outcomes {
+              outcomeId
+              currentOdds
+            }
+          }
+        }
       }
-    } catch (e: any) {
-      results[url.replace(AZURO_API, '')] = { error: e.message }
-    }
-  }
+    `
 
-  return NextResponse.json(results)
+    const res = await fetch(AZURO_FEED, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ query }),
+      cache:   'no-store',
+    })
+
+    const data = await res.json()
+    const games = data?.data?.games || []
+
+    return NextResponse.json({
+      status:      res.status,
+      errors:      data?.errors || null,
+      games_count: games.length,
+      raw_games:   games,
+      analysis: games.map((g: any) => ({
+        title:       g.title,
+        startsAt:    new Date(parseInt(g.startsAt) * 1000).toISOString(),
+        sport:       g.sport?.name,
+        participants: g.participants?.map((p: any) => p.name),
+        conditions:  g.conditions?.length,
+        outcomes:    g.conditions?.[0]?.outcomes?.length,
+        first_odds:  g.conditions?.[0]?.outcomes?.[0]?.currentOdds,
+        probability: (() => {
+          const o = g.conditions?.[0]?.outcomes?.[0]?.currentOdds
+          if (!o) return null
+          const v = parseFloat(o)
+          return v > 1 ? Math.round((1/v) * 100) + '%' : null
+        })(),
+      })),
+    })
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 })
+  }
 }
