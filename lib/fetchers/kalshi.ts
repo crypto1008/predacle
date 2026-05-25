@@ -95,11 +95,7 @@ function mapMarket(m: any, category: string): Market {
   const vol   = volFp > 0 ? volFp : vol24 > 0 ? vol24 : null
 
   // Fix double-space in title by combining with subtitle
-  const rawTitle = (m.title || '').replace(/\s+/g, ' ').trim()
-  const subtitle = m.subtitle || m.yes_sub_title || ''
-  const question = subtitle
-    ? `${rawTitle} — ${subtitle}`
-    : rawTitle
+  const question = (m.title || '').replace(/\s+/g, ' ').trim()
 
   const series = (m.series_ticker || ticker.split('-')[0] || '').toLowerCase()
   const url    = series ? `https://kalshi.com/markets/${series}` : 'https://kalshi.com'
