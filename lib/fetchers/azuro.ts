@@ -1,24 +1,25 @@
 import { Market } from '../types'
 
-const FEEDS = [
-  { url: 'https://thegraph-1.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-data-feed-polygon', chain: 'polygon' },
-  { url: 'https://thegraph-1.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-data-feed-gnosis', chain: 'gnosis' },
-]
+// Gnosis chain is empty — all sports are on Polygon
+const FEED = 'https://thegraph-1.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-data-feed-polygon'
 
-// Sports to fetch with per-sport limits for diversity
+// All sports with confirmed slugs + per-sport game limits
 const SPORTS = [
-  { slug: 'football',          limit: 25 },
-  { slug: 'basketball',        limit: 15 },
-  { slug: 'tennis',            limit: 10 },
-  { slug: 'table-tennis',      limit: 8  },
-  { slug: 'cricket',           limit: 8  },
-  { slug: 'cs2',               limit: 8  },
-  { slug: 'league-of-legends', limit: 8  },
-  { slug: 'mma',               limit: 6  },
-  { slug: 'boxing',            limit: 5  },
-  { slug: 'ice-hockey',        limit: 5  },
-  { slug: 'baseball',          limit: 5  },
-  { slug: 'volleyball',        limit: 5  },
+  { slug: 'football',    limit: 25 },
+  { slug: 'basketball',  limit: 20 },
+  { slug: 'table-tennis',limit: 15 },
+  { slug: 'tennis',      limit: 15 },
+  { slug: 'cs2',         limit: 12 },
+  { slug: 'cricket',     limit: 12 },
+  { slug: 'mma',         limit: 10 },
+  { slug: 'baseball',    limit: 10 },
+  { slug: 'lol',         limit: 10 }, // League of Legends — slug is "lol" not "league-of-legends"
+  { slug: 'ice-hockey',  limit: 8  },
+  { slug: 'boxing',      limit: 8  },
+  { slug: 'dota-2',      limit: 5  },
+  { slug: 'volleyball',  limit: 2  },
+  { slug: 'rugby-union', limit: 6  },
+  { slug: 'rugby-league',limit: 3  },
 ]
 
 function toSlug(text: string): string {
@@ -36,28 +37,9 @@ function toSlug(text: string): string {
     .trim()
 }
 
-function getSportSlug(sportName: string, sportSlug: string): string {
-  const s = (sportSlug || sportName || '').toLowerCase()
-  if (s === 'football' || s.includes('soccer'))           return 'football'
-  if (s === 'basketball')                                  return 'basketball'
-  if (s === 'tennis' && !s.includes('table'))             return 'tennis'
-  if (s.includes('table') && s.includes('tennis'))        return 'table-tennis'
-  if (s === 'cricket')                                     return 'cricket'
-  if (s.includes('counter') || s === 'cs2' || s === 'csgo') return 'cs2'
-  if (s.includes('league-of-legends') || s === 'lol')    return 'league-of-legends'
-  if (s.includes('dota'))                                  return 'dota-2'
-  if (s === 'mma' || s.includes('mixed-martial'))         return 'mma'
-  if (s === 'boxing')                                      return 'boxing'
-  if (s.includes('hockey'))                                return 'ice-hockey'
-  if (s === 'baseball')                                    return 'baseball'
-  if (s.includes('volleyball'))                            return 'volleyball'
-  if (s.includes('rugby'))                                 return 'rugby-union'
-  if (s.includes('esport'))                                return 'esports'
-  return toSlug(sportName) || 'football'
-}
-
-function buildGameUrl(g: any, chain: string): string {
-  const sportSlug   = getSportSlug(g.sport?.name || '', g.sport?.slug || '')
+function buildGameUrl(g: any): string {
+  // Use sport slug directly from API — it's already the correct bookmaker.xyz slug
+  const sportSlug   = g.sport?.slug || 'football'
   const countrySlug = toSlug(g.league?.country?.name || '')
   const leagueSlug  = toSlug(g.league?.name || '')
   const p0Slug      = toSlug(g.participants?.[0]?.name || '')
@@ -65,9 +47,9 @@ function buildGameUrl(g: any, chain: string): string {
   const gameId      = g.gameId || g.id
 
   if (countrySlug && leagueSlug && p0Slug && p1Slug && gameId) {
-    return `https://bookmaker.xyz/${chain}/sports/${sportSlug}/${countrySlug}/${leagueSlug}/${p0Slug}-${p1Slug}-${gameId}`
+    return `https://bookmaker.xyz/polygon/sports/${sportSlug}/${countrySlug}/${leagueSlug}/${p0Slug}-${p1Slug}-${gameId}`
   }
-  return `https://bookmaker.xyz/${chain}/live/${sportSlug}`
+  return `https://bookmaker.xyz/polygon/live/${sportSlug}`
 }
 
 function oddsToProbability(odds: string | number | null | undefined): number | null {
@@ -77,8 +59,13 @@ function oddsToProbability(odds: string | number | null | undefined): number | n
   return Math.min(0.9999, Math.max(0.0001, 1 / v))
 }
 
-function buildSportQuery(sportSlug: string, limit: number, nowTs: number): string {
-  return `
+function getCategory(sportSlug: string): string {
+  const esports = ['cs2', 'lol', 'dota-2']
+  return esports.includes(sportSlug) ? 'tech' : 'sports'
+}
+
+async function fetchSport(sportSlug: string, limit: number, nowTs: number): Promise<any[]> {
+  const query = `
     query {
       games(
         where: {
@@ -102,125 +89,93 @@ function buildSportQuery(sportSlug: string, limit: number, nowTs: number): strin
           where: { state: Active, isPrematchEnabled: true }
           first: 1
         ) {
-          conditionId
           outcomes {
-            outcomeId
             currentOdds
           }
         }
       }
     }
   `
-}
-
-async function fetchSportFromFeed(
-  feedUrl: string,
-  chain: string,
-  sportSlug: string,
-  limit: number,
-  nowTs: number
-): Promise<{ game: any; chain: string }[]> {
   try {
-    const res = await fetch(feedUrl, {
+    const res = await fetch(FEED, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body:    JSON.stringify({ query: buildSportQuery(sportSlug, limit, nowTs) }),
+      body:    JSON.stringify({ query }),
       cache:   'no-store',
     })
     if (!res.ok) return []
     const json = await res.json()
-    if (json?.errors) return []
-    const games = json?.data?.games || []
-    return games.map((g: any) => ({ game: g, chain }))
+    return json?.data?.games || []
   } catch {
     return []
   }
 }
 
 export async function fetchAzuro(): Promise<Market[]> {
-  console.log('Azuro: fetching multiple sports from multiple chains...')
+  console.log('Azuro: fetching all sports from Polygon data-feed...')
 
-  const nowTs = Math.floor(Date.now() / 1000)
-  const seen  = new Set<string>()
-
-  // Fetch each sport from each chain in parallel
-  const fetchTasks = FEEDS.flatMap(feed =>
-    SPORTS.map(sport =>
-      fetchSportFromFeed(feed.url, feed.chain, sport.slug, sport.limit, nowTs)
-    )
+  const nowTs   = Math.floor(Date.now() / 1000)
+  const results = await Promise.allSettled(
+    SPORTS.map(s => fetchSport(s.slug, s.limit, nowTs))
   )
 
-  const results = await Promise.allSettled(fetchTasks)
+  const seen    = new Set<string>()
+  const markets: Market[] = []
 
-  const allEntries: { game: any; chain: string }[] = []
-  for (const result of results) {
-    if (result.status === 'fulfilled') {
-      for (const entry of result.value) {
-        const id = String(entry.game.gameId || entry.game.id)
-        if (seen.has(id)) continue
-        seen.add(id)
-        allEntries.push(entry)
-      }
+  for (let i = 0; i < results.length; i++) {
+    const result    = results[i]
+    const sportSlug = SPORTS[i].slug
+    if (result.status !== 'fulfilled') continue
+
+    let sportCount = 0
+    for (const g of result.value) {
+      const gameId = String(g.gameId || g.id)
+      if (seen.has(gameId)) continue
+
+      // Only include games with valid odds — every card will show probability
+      const odds = parseFloat(g.conditions?.[0]?.outcomes?.[0]?.currentOdds || '0')
+      if (odds <= 1) continue
+
+      seen.add(gameId)
+
+      const p0       = g.participants?.[0]?.name || 'Team A'
+      const p1       = g.participants?.[1]?.name || 'Team B'
+      const question = g.title
+        ? g.title.replace('–', 'vs').replace('—', 'vs')
+        : `${p0} vs ${p1}`
+
+      const startsAt  = g.startsAt ? parseInt(g.startsAt) : null
+      const startDate = startsAt ? new Date(startsAt * 1000) : null
+
+      markets.push({
+        id:       `azuro-${gameId}`,
+        platform: 'azuro' as const,
+        question,
+        probability:  oddsToProbability(odds),
+        volume:       null,
+        volume_label: null,
+        end_date: startDate
+          ? startDate.toISOString().split('T')[0]
+          : null,
+        end_date_label: startDate
+          ? startDate.toLocaleDateString('en-US', {
+              month: 'short', day: 'numeric', year: 'numeric',
+            })
+          : null,
+        traders:    null,
+        category:   getCategory(sportSlug),
+        url:        buildGameUrl(g),
+        status:     'active' as const,
+        fetched_at: new Date().toISOString(),
+      })
+      sportCount++
+    }
+
+    if (sportCount > 0) {
+      console.log(`Azuro ${sportSlug}: ${sportCount} games`)
     }
   }
 
-  // Only keep games with valid odds data — ensures all cards show probability
-  const withOdds = allEntries.filter(({ game }) => {
-    const outcomes = game.conditions?.[0]?.outcomes || []
-    if (outcomes.length === 0) return false
-    const odds = parseFloat(outcomes[0]?.currentOdds || '0')
-    return odds > 1
-  })
-
-  console.log(`Azuro: ${allEntries.length} total games, ${withOdds.length} with valid odds`)
-
-  // Log sport breakdown
-  const sportCounts: Record<string, number> = {}
-  for (const { game } of withOdds) {
-    const s = game.sport?.name || 'Unknown'
-    sportCounts[s] = (sportCounts[s] || 0) + 1
-  }
-  console.log('Azuro sport breakdown:', JSON.stringify(sportCounts))
-
-  return withOdds.map(({ game: g, chain }) => {
-    const p0        = g.participants?.[0]?.name || 'Team A'
-    const p1        = g.participants?.[1]?.name || 'Team B'
-    const sportName = g.sport?.name || ''
-    const sportSlug = getSportSlug(sportName, g.sport?.slug || '')
-
-    const question = g.title
-      ? g.title.replace('–', 'vs').replace('—', 'vs')
-      : `${p0} vs ${p1}`
-
-    const outcomes    = g.conditions?.[0]?.outcomes || []
-    const probability = oddsToProbability(outcomes[0]?.currentOdds)
-
-    const startsAt  = g.startsAt ? parseInt(g.startsAt) : null
-    const startDate = startsAt ? new Date(startsAt * 1000) : null
-
-    const category = ['cs2','league-of-legends','dota-2','esports']
-      .includes(sportSlug) ? 'tech' : 'sports'
-
-    return {
-      id:       `azuro-${g.gameId || g.id}`,
-      platform: 'azuro' as const,
-      question,
-      probability,
-      volume:       null,
-      volume_label: null,
-      end_date: startDate
-        ? startDate.toISOString().split('T')[0]
-        : null,
-      end_date_label: startDate
-        ? startDate.toLocaleDateString('en-US', {
-            month: 'short', day: 'numeric', year: 'numeric',
-          })
-        : null,
-      traders:  null,
-      category,
-      url:    buildGameUrl(g, chain),
-      status: 'active' as const,
-      fetched_at: new Date().toISOString(),
-    }
-  })
+  console.log(`Azuro total: ${markets.length} markets across ${SPORTS.length} sports`)
+  return markets
 }
