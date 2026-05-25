@@ -1,42 +1,7 @@
 import { Market } from '../types'
 
-// Data-feed subgraph — correct endpoint for current games with odds
 const AZURO_FEED =
   'https://thegraph-1.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-data-feed-polygon'
-
-const QUERY = `
-  query PrematchGames {
-    games(
-      where: {
-        state: Prematch
-        activeConditionsCount_gt: 0
-        startsAt_gt: "${Math.floor(Date.now() / 1000)}"
-      }
-      first: 100
-      orderBy: startsAt
-      orderDirection: asc
-    ) {
-      id
-      gameId
-      title
-      startsAt
-      sport { name slug }
-      league { name country { name } }
-      participants { name image }
-      conditions(
-        where: { state: Active, isPrematchEnabled: true }
-        first: 1
-      ) {
-        conditionId
-        title
-        outcomes {
-          outcomeId
-          currentOdds
-        }
-      }
-    }
-  }
-`
 
 function oddsToProbability(odds: string | number | null | undefined): number | null {
   if (!odds) return null
@@ -45,16 +10,27 @@ function oddsToProbability(odds: string | number | null | undefined): number | n
   return Math.min(0.9999, Math.max(0.0001, 1 / v))
 }
 
-function mapSport(sportSlug: string, sportName: string): string {
-  const s = (sportSlug || sportName || '').toLowerCase()
-  return 'sports' // Azuro is entirely sports betting
+function getSportUrl(sportSlug: string, sportName: string): string {
+  const s    = (sportSlug || sportName || '').toLowerCase()
+  const base = 'https://bookmaker.xyz/polygon/live'
+  if (s.includes('football') || s.includes('soccer')) return `${base}/football`
+  if (s.includes('basket'))   return `${base}/basketball`
+  if (s.includes('tennis'))   return `${base}/tennis`
+  if (s.includes('hockey'))   return `${base}/ice-hockey`
+  if (s.includes('baseball')) return `${base}/baseball`
+  if (s.includes('cricket'))  return `${base}/cricket`
+  if (s.includes('mma') || s.includes('boxing')) return `${base}/mma`
+  if (s.includes('esport'))   return `${base}/esports`
+  if (s.includes('rugby'))    return `${base}/rugby-union`
+  if (s.includes('volley'))   return `${base}/volleyball`
+  if (s.includes('table'))    return `${base}/table-tennis`
+  return `${base}/football`
 }
 
 export async function fetchAzuro(): Promise<Market[]> {
   try {
     console.log('Azuro: fetching from data-feed subgraph...')
 
-    // Rebuild query each time to get current timestamp
     const nowTs = Math.floor(Date.now() / 1000)
     const query = `
       query PrematchGames {
@@ -126,8 +102,10 @@ export async function fetchAzuro(): Promise<Market[]> {
     return games
       .filter((g: any) => g.participants?.length >= 2 || g.title)
       .map((g: any) => {
-        const p0 = g.participants?.[0]?.name || 'Team A'
-        const p1 = g.participants?.[1]?.name || 'Team B'
+        const p0        = g.participants?.[0]?.name || 'Team A'
+        const p1        = g.participants?.[1]?.name || 'Team B'
+        const sportName = g.sport?.name || ''
+        const sportSlug = g.sport?.slug || ''
 
         const question = g.title
           ? g.title.replace('–', 'vs').replace('—', 'vs')
@@ -142,6 +120,9 @@ export async function fetchAzuro(): Promise<Market[]> {
         // Parse startsAt (Unix seconds)
         const startsAt  = g.startsAt ? parseInt(g.startsAt) : null
         const startDate = startsAt ? new Date(startsAt * 1000) : null
+
+        // Sport-specific bookmaker.xyz URL
+        const url = getSportUrl(sportSlug, sportName)
 
         return {
           id:       `azuro-${g.gameId || g.id}`,
@@ -161,8 +142,8 @@ export async function fetchAzuro(): Promise<Market[]> {
               })
             : null,
           traders:  null,
-          category: mapSport(g.sport?.slug || '', g.sport?.name || ''),
-          url:      'https://azuro.org',
+          category: 'sports',
+          url,
           status:   'active' as const,
           fetched_at: new Date().toISOString(),
         }
