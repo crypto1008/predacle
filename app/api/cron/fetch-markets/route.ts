@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
   try {
     const result = await fetchAllMarkets()
     markets = result.markets
-    errors = result.errors
+    errors  = result.errors
     console.log(`Fetched ${markets.length} markets`)
   } catch (fetchError: any) {
     return NextResponse.json({
@@ -121,8 +121,9 @@ export async function GET(request: NextRequest) {
     return acc
   }, {})
 
-  // Mark expired markets as closed — exclude Azuro (uses fetched_at logic instead)
   const today = new Date().toISOString().split('T')[0]
+
+  // Close markets where end_date has passed (all platforms except Azuro)
   await supabaseAdmin
     .from('markets')
     .update({ status: 'closed' })
@@ -131,15 +132,16 @@ export async function GET(request: NextRequest) {
     .eq('status', 'active')
     .neq('platform', 'azuro')
 
-  // Close Azuro markets older than 2 days (sports games resolve within 24-48h)
+  // Close Azuro markets where game date has passed — end_date IS the game start time.
+  // With future-only fetcher, past games stop being re-fetched and get cleaned here.
   await supabaseAdmin
     .from('markets')
     .update({ status: 'closed' })
     .eq('platform', 'azuro')
-    .lt('fetched_at', new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString())
     .eq('status', 'active')
+    .lt('end_date', today)
 
-  // Close expired Limitless short-term markets (5 min, hourly expire quickly)
+  // Close Limitless short-term markets not refreshed in last 3 hours
   await supabaseAdmin
     .from('markets')
     .update({ status: 'closed' })
