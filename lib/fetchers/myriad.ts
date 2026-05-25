@@ -28,7 +28,7 @@ export async function fetchMyriad(): Promise<Market[]> {
       return []
     }
 
-    // Filter out short-term candle markets (expire in minutes)
+    // Filter out short-term candle markets
     const markets = all.filter((m: any) => {
       const title = (m.title || m.question || '').toLowerCase()
       if (title.includes('candle'))  return false
@@ -45,7 +45,7 @@ export async function fetchMyriad(): Promise<Market[]> {
 
       if (m.outcomes && Array.isArray(m.outcomes) && m.outcomes.length > 0) {
         if (m.outcomes.length === 2) {
-          // Binary YES/NO market — find YES outcome
+          // Binary YES/NO market
           const yesOutcome = m.outcomes.find(
             (o: any) =>
               o.title?.toLowerCase() === 'yes' ||
@@ -56,12 +56,11 @@ export async function fetchMyriad(): Promise<Market[]> {
             const raw = parseFloat(yesOutcome.price)
             probability = raw > 1 ? raw / 1e18 : raw
           } else {
-            // Use first outcome as YES
             const raw = parseFloat(m.outcomes[0]?.price || '0')
             probability = raw > 0 && raw <= 1 ? raw : null
           }
         } else {
-          // Multi-outcome — use the leading candidate's probability
+          // Multi-outcome — use leading candidate probability
           const prices = m.outcomes
             .map((o: any) => parseFloat(o.price || '0'))
             .filter((v: number) => v > 0 && v <= 1)
@@ -71,12 +70,20 @@ export async function fetchMyriad(): Promise<Market[]> {
         }
       }
 
-      // Total volume in USD (not 24h)
+      // Total volume in USD
       const volRaw = m.volume || m.volume24h || null
       const vol    = volRaw ? parseFloat(String(volRaw)) : null
 
       // Traders — Myriad uses "users" field
       const traders = m.users || m.bettors || m.traders || m.participants || null
+
+      // Clean end date — treat 2099+ as perpetual (no end date)
+      const rawDate = m.closingDate || m.expirationDate || m.expiresAt || null
+      const endDate = (() => {
+        if (!rawDate) return null
+        if (new Date(rawDate).getFullYear() >= 2099) return null
+        return rawDate
+      })()
 
       const url = m.slug
         ? `https://myriad.markets/markets/${m.slug}`
@@ -95,20 +102,22 @@ export async function fetchMyriad(): Promise<Market[]> {
             ? `$${(vol / 1_000_000).toFixed(1)}M`
             : `$${Math.round(vol).toLocaleString()}`
           : null,
-        end_date: m.closingDate || m.expirationDate || m.expiresAt || null,
-        end_date_label:
-          m.closingDate || m.expirationDate || m.expiresAt
-            ? new Date(m.closingDate || m.expirationDate || m.expiresAt)
-                .toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-            : null,
+        end_date: endDate
+          ? new Date(endDate).toISOString().split('T')[0]
+          : null,
+        end_date_label: endDate
+          ? new Date(endDate).toLocaleDateString('en-US', {
+              month: 'short', year: 'numeric',
+            })
+          : null,
         traders: traders ? Math.round(parseFloat(String(traders))) : null,
         category: (() => {
           const topics = m.topics || []
           if (topics.includes('Politics') || topics.includes('Elections')) return 'politics'
-          if (topics.includes('Crypto') || topics.includes('DeFi'))        return 'crypto'
+          if (topics.includes('Crypto')   || topics.includes('DeFi'))      return 'crypto'
           if (topics.includes('Sports'))                                    return 'sports'
-          if (topics.includes('Economics') || topics.includes('Finance'))   return 'economics'
-          if (topics.includes('Science') || topics.includes('Tech'))        return 'tech'
+          if (topics.includes('Economics')|| topics.includes('Finance'))    return 'economics'
+          if (topics.includes('Science')  || topics.includes('Tech'))       return 'tech'
           return m.category || m.topic || inferCategory(m.title || m.question || '')
         })(),
         url,
