@@ -58,17 +58,15 @@ function oddsToProbability(odds: string | number | null | undefined): number | n
   return Math.min(0.9999, Math.max(0.0001, 1 / v))
 }
 
-async function fetchSport(sportSlug: string, limit: number, sevenDaysAgo: number): Promise<any[]> {
-  // No startsAt_gt: nowTs — most non-football games already started but
-  // are still in Prematch state (oracle hasn't resolved them yet).
-  // Use 7-day lookback to include recent games while dropping ancient stale ones.
+async function fetchSport(sportSlug: string, limit: number): Promise<any[]> {
+  // No startsAt filter — sport_: { slug } filter works, but non-football games
+  // start 10-30 days before oracle resolves them (still Prematch = still bettable).
   const query = `
     query {
       games(
         where: {
           state: Prematch
           activeConditionsCount_gt: 0
-          startsAt_gt: "${sevenDaysAgo}"
           sport_: { slug: "${sportSlug}" }
         }
         first: ${limit}
@@ -113,13 +111,10 @@ async function fetchSport(sportSlug: string, limit: number, sevenDaysAgo: number
 }
 
 export async function fetchAzuro(): Promise<Market[]> {
-  console.log('Azuro: fetching all 15 sports (7-day lookback)...')
-
-  const nowTs        = Math.floor(Date.now() / 1000)
-  const sevenDaysAgo = nowTs - 7 * 24 * 60 * 60
+  console.log('Azuro: fetching all 15 sports (no date filter)...')
 
   const results = await Promise.allSettled(
-    SPORTS.map(s => fetchSport(s.slug, s.limit, sevenDaysAgo))
+    SPORTS.map(s => fetchSport(s.slug, s.limit))
   )
 
   const seen    = new Set<string>()
