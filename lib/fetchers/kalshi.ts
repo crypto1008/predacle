@@ -30,84 +30,50 @@ function getKalshiHeaders(method: string, path: string): HeadersInit {
   }
 }
 
-// All known Kalshi series tickers with real liquidity
-const KNOWN_SERIES: { ticker: string; category: string }[] = [
-  // Soccer
-  { ticker: 'KXEPLGOAL',          category: 'sports' },
-  { ticker: 'KXEPL',              category: 'sports' },
-  { ticker: 'KXCHAMPIONSLG',      category: 'sports' },
-  { ticker: 'KXLALIGA',           category: 'sports' },
-  { ticker: 'KXMLS',              category: 'sports' },
-  { ticker: 'KXWORLDCUP',         category: 'sports' },
-  // US Sports
-  { ticker: 'KXNBA',              category: 'sports' },
-  { ticker: 'KXNBAPLAYOFF',       category: 'sports' },
-  { ticker: 'KXNFL',              category: 'sports' },
-  { ticker: 'KXMLB',              category: 'sports' },
-  { ticker: 'KXNHL',              category: 'sports' },
-  { ticker: 'KXNHLPLAYOFF',       category: 'sports' },
-  // Golf / Tennis
-  { ticker: 'KXPGATOUR',         category: 'sports' },
-  { ticker: 'KXTENNIS',          category: 'sports' },
-  { ticker: 'KXWIMBLEDON',       category: 'sports' },
-  // Crypto
-  { ticker: 'KXBTCFRIDAY',       category: 'crypto' },
-  { ticker: 'KXBTCMONDAY',       category: 'crypto' },
-  { ticker: 'KXBTCW',            category: 'crypto' },
-  { ticker: 'KXBTCD',            category: 'crypto' },
-  { ticker: 'KXETHFRIDAY',       category: 'crypto' },
-  { ticker: 'KXETHD',            category: 'crypto' },
-  { ticker: 'KXBTCX',            category: 'crypto' },
-  // Economics
-  { ticker: 'KXCPI',             category: 'economics' },
-  { ticker: 'KXFED',             category: 'economics' },
-  { ticker: 'KXFOMC',            category: 'economics' },
-  { ticker: 'KXGDP',             category: 'economics' },
-  { ticker: 'KXUNEMP',          category: 'economics' },
-  { ticker: 'KXINFL',           category: 'economics' },
-  { ticker: 'KXPCE',            category: 'economics' },
-  { ticker: 'KXOIL',            category: 'economics' },
-  { ticker: 'KXGOLD',           category: 'economics' },
-  { ticker: 'KXSP500',          category: 'economics' },
-  // Elections / Politics
-  { ticker: 'KXSENATE',         category: 'politics' },
-  { ticker: 'KXHOUSE',          category: 'politics' },
-  { ticker: 'KXPRES',           category: 'politics' },
-  { ticker: 'KXGOV',            category: 'politics' },
-  { ticker: 'KXELECT',          category: 'politics' },
-  { ticker: 'KXPOPVOTE',        category: 'politics' },
-  // Science / Tech
-  { ticker: 'KXAI',             category: 'tech' },
-  { ticker: 'KXTECH',           category: 'tech' },
-  { ticker: 'KXSCIENCE',        category: 'science' },
+// Most reliable Kalshi series — confirmed or very high confidence
+// Category mapped to our platform categories
+const SERIES: { ticker: string; category: string }[] = [
+  // ── Soccer ──────────────────────────────────────
+  { ticker: 'KXEPLGOAL',    category: 'sports' },  // EPL Goals ✅ confirmed
+  { ticker: 'KXEPL',        category: 'sports' },  // EPL match winner
+  { ticker: 'KXCHAMPIONS',  category: 'sports' },  // Champions League
+  { ticker: 'KXLALIGA',     category: 'sports' },  // La Liga
+  // ── US Sports ───────────────────────────────────
+  { ticker: 'KXNBA',        category: 'sports' },  // NBA
+  { ticker: 'KXNFL',        category: 'sports' },  // NFL
+  { ticker: 'KXMLB',        category: 'sports' },  // MLB
+  { ticker: 'KXNHL',        category: 'sports' },  // NHL
+  // ── Golf / Tennis ───────────────────────────────
+  { ticker: 'KXPGATOUR',    category: 'sports' },  // PGA Tour ✅ confirmed
+  { ticker: 'KXTENNIS',     category: 'sports' },  // Tennis
+  // ── Crypto ──────────────────────────────────────
+  { ticker: 'KXBTCFRIDAY',  category: 'crypto' },  // Bitcoin weekly
+  { ticker: 'KXBTCMONDAY',  category: 'crypto' },  // Bitcoin weekly
+  { ticker: 'KXBTCW',       category: 'crypto' },  // Bitcoin
+  { ticker: 'KXETHFRIDAY',  category: 'crypto' },  // Ethereum weekly
+  // ── Economics ───────────────────────────────────
+  { ticker: 'KXCPI',        category: 'economics' },
+  { ticker: 'KXFED',        category: 'economics' },
+  { ticker: 'KXFOMC',       category: 'economics' },
+  { ticker: 'KXGDP',        category: 'economics' },
+  { ticker: 'KXUNEMP',      category: 'economics' },
+  { ticker: 'KXOIL',        category: 'economics' },
+  // ── Politics ────────────────────────────────────
+  { ticker: 'KXSENATE',     category: 'politics'  },
+  { ticker: 'KXHOUSE',      category: 'politics'  },
+  { ticker: 'KXPRES',       category: 'politics'  },
+  { ticker: 'KXELECT',      category: 'politics'  },
 ]
 
-async function fetchSeries(
-  ticker: string,
-  category: string,
-  headers: HeadersInit
-): Promise<Market[]> {
-  try {
-    const path = `/trade-api/v2/markets?limit=10&status=open&series_ticker=${ticker}`
-    const res  = await fetch(`${BASE}${path}`, { headers, cache: 'no-store' })
-    if (!res.ok) return []
-
-    const data    = await res.json()
-    const markets = data.markets || []
-    if (markets.length > 0) {
-      console.log(`Kalshi ${ticker}: ${markets.length} markets`)
-    }
-    return markets.map((m: any) => mapMarket(m, category))
-  } catch {
-    return []
-  }
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 function mapMarket(m: any, category: string): Market {
   const ticker = m.ticker || ''
 
   let priceCents: number | null = null
-  for (const f of ['yes_ask','yes_bid','last_price','previous_yes_ask','previous_price']) {
+  for (const f of ['yes_ask', 'yes_bid', 'last_price', 'previous_yes_ask', 'previous_price']) {
     const v = Number(m[f])
     if (v > 0 && v < 100) { priceCents = v; break }
   }
@@ -126,13 +92,13 @@ function mapMarket(m: any, category: string): Market {
     probability,
     volume: vol,
     volume_label: vol && vol > 0
-      ? vol >= 1_000_000 ? `$${(vol/1_000_000).toFixed(1)}M`
+      ? vol >= 1_000_000 ? `$${(vol / 1_000_000).toFixed(1)}M`
       : `$${Math.round(vol).toLocaleString()}` : null,
     end_date: m.close_time
       ? new Date(m.close_time).toISOString().split('T')[0] : null,
     end_date_label: m.close_time
       ? new Date(m.close_time).toLocaleDateString('en-US',
-          { month:'short', year:'numeric' }) : null,
+          { month: 'short', year: 'numeric' }) : null,
     traders:    null,
     category,
     url,
@@ -148,36 +114,49 @@ export async function fetchKalshi(): Promise<Market[]> {
     return []
   }
 
-  // Generate headers once — signing path is the same for all markets calls
-  const headers = getKalshiHeaders('GET', '/trade-api/v2/markets')
-  if (Object.keys(headers).length === 0) {
-    console.log('Kalshi: auth header generation failed')
-    return []
-  }
-
-  console.log(`Kalshi: fetching from ${KNOWN_SERIES.length} series...`)
-
-  // Fetch all series in parallel
-  const results = await Promise.allSettled(
-    KNOWN_SERIES.map(({ ticker, category }) =>
-      fetchSeries(ticker, category, headers)
-    )
-  )
-
   const seen       = new Set<string>()
   const allMarkets: Market[] = []
+  let   totalHits  = 0
 
-  for (const result of results) {
-    if (result.status !== 'fulfilled') continue
-    for (const market of result.value) {
-      if (seen.has(market.id)) continue
-      seen.add(market.id)
-      allMarkets.push(market)
+  for (const { ticker, category } of SERIES) {
+    try {
+      // Fresh headers per request (timestamp must be current)
+      const path    = `/trade-api/v2/markets?limit=10&status=open&series_ticker=${ticker}`
+      const headers = getKalshiHeaders('GET', path)
+      if (Object.keys(headers).length === 0) continue
+
+      const res = await fetch(`${BASE}${path}`, { headers, cache: 'no-store' })
+
+      if (res.status === 429) {
+        console.log(`Kalshi: rate limited on ${ticker} — stopping early`)
+        break
+      }
+      if (!res.ok) continue
+
+      const data    = await res.json()
+      const markets = data.markets || []
+
+      if (markets.length > 0) {
+        console.log(`Kalshi ${ticker}: ${markets.length} markets`)
+        totalHits++
+      }
+
+      for (const m of markets) {
+        if (!m.ticker || seen.has(m.ticker)) continue
+        seen.add(m.ticker)
+        allMarkets.push(mapMarket(m, category))
+      }
+
+      // Small delay between calls to avoid rate limiting
+      await sleep(150)
+
+    } catch (e: any) {
+      console.error(`Kalshi ${ticker} error:`, e.message)
     }
   }
 
-  const withProb = allMarkets.filter(m => m.probability !== null)
-  console.log(`Kalshi: ${allMarkets.length} total markets, ${withProb.length} with probability`)
+  const withProb = allMarkets.filter(m => m.probability !== null).length
+  console.log(`Kalshi: ${allMarkets.length} markets from ${totalHits} series, ${withProb} with probability`)
 
   return allMarkets
 }
