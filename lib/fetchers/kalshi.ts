@@ -30,72 +30,41 @@ function getKalshiHeaders(method: string, path: string): HeadersInit {
   }
 }
 
+// Confirmed real Kalshi series tickers from their public volume reports
 const SERIES: { ticker: string; category: string }[] = [
-  // ── Soccer ──────────────────────────────
-  { ticker: 'KXEPLGOAL',       category: 'sports' },
-  { ticker: 'KXEPL',           category: 'sports' },
-  { ticker: 'KXCHAMPIONS',     category: 'sports' },
-  { ticker: 'KXUCL',           category: 'sports' },
-  { ticker: 'KXLALIGA',        category: 'sports' },
-  { ticker: 'KXMLS',           category: 'sports' },
-  { ticker: 'KXWORLDCUP',      category: 'sports' },
-  { ticker: 'KXFIFA',          category: 'sports' },
-  // ── US Sports ────────────────────────────
-  { ticker: 'KXNBA',           category: 'sports' },
-  { ticker: 'KXNBAPLAYOFF',    category: 'sports' },
-  { ticker: 'KXNFL',           category: 'sports' },
-  { ticker: 'KXMLB',           category: 'sports' },
-  { ticker: 'KXNHL',           category: 'sports' },
-  { ticker: 'KXNHLPLAYOFF',    category: 'sports' },
-  // ── Golf / Tennis ────────────────────────
-  { ticker: 'KXPGATOUR',       category: 'sports' },
-  { ticker: 'KXTENNIS',        category: 'sports' },
-  { ticker: 'KXATP',           category: 'sports' },
-  { ticker: 'KXWTA',           category: 'sports' },
-  // ── Crypto (multiple variants) ───────────
-  { ticker: 'KXBTCFRIDAY',     category: 'crypto' },
-  { ticker: 'KXBTCMONDAY',     category: 'crypto' },
-  { ticker: 'KXBTCW',          category: 'crypto' },
-  { ticker: 'KXBTCD',          category: 'crypto' },
-  { ticker: 'KXBTC',           category: 'crypto' },
-  { ticker: 'KXBTCUSD',        category: 'crypto' },
-  { ticker: 'KXETHFRIDAY',     category: 'crypto' },
-  { ticker: 'KXETH',           category: 'crypto' },
-  { ticker: 'KXETHUSD',        category: 'crypto' },
-  { ticker: 'KXSOL',           category: 'crypto' },
-  { ticker: 'KXDOGE',          category: 'crypto' },
-  // ── Economics (multiple variants) ────────
-  { ticker: 'KXCPI',           category: 'economics' },
-  { ticker: 'KXCPIU',          category: 'economics' },
-  { ticker: 'KXCPIM',          category: 'economics' },
-  { ticker: 'KXFED',           category: 'economics' },
-  { ticker: 'KXFEDRATE',       category: 'economics' },
-  { ticker: 'KXFOMC',          category: 'economics' },
-  { ticker: 'KXFOMCRATE',      category: 'economics' },
-  { ticker: 'KXGDP',           category: 'economics' },
-  { ticker: 'KXUNEMP',         category: 'economics' },
-  { ticker: 'KXUNEMPLOYMENT',  category: 'economics' },
-  { ticker: 'KXINFL',          category: 'economics' },
-  { ticker: 'KXOIL',           category: 'economics' },
-  { ticker: 'KXGOLD',          category: 'economics' },
-  { ticker: 'KXSP500',         category: 'economics' },
-  { ticker: 'KXSPX',           category: 'economics' },
-  { ticker: 'KXNASDAQ',        category: 'economics' },
-  { ticker: 'KXPCE',           category: 'economics' },
-  // ── Politics ─────────────────────────────
-  { ticker: 'KXSENATE',        category: 'politics' },
-  { ticker: 'KXHOUSE',         category: 'politics' },
-  { ticker: 'KXPRES',          category: 'politics' },
-  { ticker: 'KXGOV',           category: 'politics' },
-  { ticker: 'KXELECT',         category: 'politics' },
-  { ticker: 'KXPOPVOTE',       category: 'politics' },
-  { ticker: 'KXDEMS',          category: 'politics' },
-  { ticker: 'KXREP',           category: 'politics' },
-  // ── Tech / Science ───────────────────────
-  { ticker: 'KXAI',            category: 'tech'     },
-  { ticker: 'KXTECH',          category: 'tech'     },
-  { ticker: 'KXSCIENCE',       category: 'science'  },
-  { ticker: 'KXCLIMATE',       category: 'science'  },
+  // ── Daily Sports (highest volume) ──────────────
+  { ticker: 'KXNBAGAME',    category: 'sports'    }, // NBA game winners ✅
+  { ticker: 'KXMLBGAME',    category: 'sports'    }, // MLB game winners ✅
+  { ticker: 'KXNHLGAME',    category: 'sports'    }, // NHL game winners ✅
+  { ticker: 'KXWNBAGAME',   category: 'sports'    }, // WNBA game winners ✅
+  { ticker: 'KXMLSGAME',    category: 'sports'    }, // MLS match winners ✅
+  { ticker: 'KXUCLGAME',    category: 'sports'    }, // Champions League games ✅
+  { ticker: 'KXATPMATCH',   category: 'sports'    }, // ATP tennis matches ✅
+  { ticker: 'KXWTAMATCH',   category: 'sports'    }, // WTA tennis matches ✅
+  { ticker: 'KXUFCFIGHT',   category: 'sports'    }, // UFC fight winners ✅
+  { ticker: 'KXEPLGOAL',    category: 'sports'    }, // EPL goals ✅ confirmed
+  // ── Playoff Series ──────────────────────────────
+  { ticker: 'KXNBASERIES',  category: 'sports'    }, // NBA playoff series ✅
+  { ticker: 'KXNHLSERIES',  category: 'sports'    }, // NHL playoff series ✅
+  // ── Season/Championship ─────────────────────────
+  { ticker: 'KXNBAEAST',    category: 'sports'    }, // NBA Eastern conf ✅
+  { ticker: 'KXNBAWEST',    category: 'sports'    }, // NBA Western conf ✅
+  { ticker: 'KXPGATOUR',    category: 'sports'    }, // PGA Tour ✅ confirmed
+  // ── Daily Crypto (real volume) ──────────────────
+  { ticker: 'KXBTCD',       category: 'crypto'    }, // Bitcoin price today ✅
+  { ticker: 'KXBTC',        category: 'crypto'    }, // Bitcoin price range ✅
+  { ticker: 'KXETHD',       category: 'crypto'    }, // Ethereum price today ✅
+  { ticker: 'KXETH',        category: 'crypto'    }, // Ethereum price range ✅
+  // ── Economics (high volume) ─────────────────────
+  { ticker: 'KXFEDDECISION',  category: 'economics' }, // Fed rate decision ✅
+  { ticker: 'KXCPIYOY',       category: 'economics' }, // CPI/Inflation ✅
+  { ticker: 'KXINXU',         category: 'economics' }, // S&P 500 today ✅
+  { ticker: 'KXNASDAQ100U',   category: 'economics' }, // NASDAQ today ✅
+  { ticker: 'KXAAAGASM',      category: 'economics' }, // Gas prices ✅
+  // ── Politics ────────────────────────────────────
+  { ticker: 'KXNEXTPOPE',     category: 'politics'  }, // Next Pope ✅
+  { ticker: 'KXCANADAPM',     category: 'politics'  }, // Canada PM ✅
+  { ticker: 'KXMAYORNYCPARTY',category: 'politics'  }, // NYC Mayor ✅
 ]
 
 function sleep(ms: number) {
@@ -147,16 +116,16 @@ export async function fetchKalshi(): Promise<Market[]> {
     return []
   }
 
-  // Only get markets closing in the future (active/upcoming)
+  // Only get markets closing in the future
   const nowTs = Math.floor(Date.now() / 1000)
 
-  const seen       = new Set<string>()
+  const seen        = new Set<string>()
   const allMarkets: Market[] = []
-  const hitSeries: string[]  = []
+  const hitSeries:  string[] = []
 
   for (const { ticker, category } of SERIES) {
     try {
-      const path = `/trade-api/v2/markets?limit=10&status=open&series_ticker=${ticker}&min_close_ts=${nowTs}`
+      const path    = `/trade-api/v2/markets?limit=10&status=open&series_ticker=${ticker}&min_close_ts=${nowTs}`
       const headers = getKalshiHeaders('GET', path)
       if (Object.keys(headers).length === 0) continue
 
@@ -167,7 +136,7 @@ export async function fetchKalshi(): Promise<Market[]> {
         break
       }
       if (!res.ok) {
-        await sleep(200)
+        await sleep(100)
         continue
       }
 
@@ -183,7 +152,7 @@ export async function fetchKalshi(): Promise<Market[]> {
         }
       }
 
-      await sleep(150)
+      await sleep(120)
 
     } catch (e: any) {
       console.error(`Kalshi ${ticker}:`, e.message)
@@ -191,8 +160,8 @@ export async function fetchKalshi(): Promise<Market[]> {
   }
 
   const withProb = allMarkets.filter(m => m.probability !== null).length
-  console.log(`Kalshi: ${allMarkets.length} markets from [${hitSeries.join(', ')}]`)
-  console.log(`Kalshi: ${withProb} with probability, ${allMarkets.length - withProb} without`)
+  console.log(`Kalshi: ${allMarkets.length} markets — [${hitSeries.join(', ')}]`)
+  console.log(`Kalshi: ${withProb}/${allMarkets.length} with probability`)
 
   return allMarkets
 }
