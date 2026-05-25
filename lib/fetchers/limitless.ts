@@ -69,7 +69,7 @@ export async function fetchLimitless(): Promise<Market[]> {
       // URL — prefer slug, fall back to id
       const url = m.slug
         ? `https://limitless.exchange/markets/${m.slug}`
-        : `https://limitless.exchange/markets/${m.id}`
+        : 'https://limitless.exchange'
 
       return {
         id:       `limitless-${m.id}`,
