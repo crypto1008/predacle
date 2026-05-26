@@ -116,7 +116,7 @@ export default function Footer() {
         {/* Bottom */}
         <div style={{ borderTop: '1px solid #e8ecf0', paddingTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <p style={{ fontSize: 12, color: '#94a3b8' }}>© {new Date().getFullYear()} Predacle · Not financial advice</p>
-          <p style={{ fontSize: 12, color: '#94a3b8' }}>Live · 6 platforms · updates every 5 min</p>
+          <p style={{ fontSize: 12, color: '#94a3b8' }}>Live · 6 platforms · updates every 30 min</p>
         </div>
 
       </div>

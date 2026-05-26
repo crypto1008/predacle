@@ -22,7 +22,7 @@ export async function fetchManifold(): Promise<Market[]> {
         m.outcomeType === 'BINARY' &&
         m.probability != null &&
         !m.isResolved &&
-        (m.uniqueBettorCount || 0) >= 10
+        (m.uniqueBettorCount || 0) >= 5
       )
       .map((m: any) => {
         const vol       = m.volume || 0
