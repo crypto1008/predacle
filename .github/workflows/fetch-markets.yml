@@ -1,10 +1,8 @@
-name: Fetch Markets Every 5 Minutes
-
+name: Fetch Markets Every 30 Minutes
 on:
   schedule:
     - cron: '*/30 * * * *'
   workflow_dispatch:
-
 jobs:
   fetch:
     runs-on: ubuntu-latest

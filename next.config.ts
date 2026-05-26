@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'limitless.exchange' },
       { protocol: 'https', hostname: 'azuro.org' },
       { protocol: 'https', hostname: '**.supabase.co' },
+      { protocol: 'https', hostname: 'cdn.polkamarkets.com' },
+      { protocol: 'https', hostname: 'cdn.limitless.exchange' },
+      { protocol: 'https', hostname: 'polymarket-upload.s3.us-east-2.amazonaws.com' },
     ],
   },
 }

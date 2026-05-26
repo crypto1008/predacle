@@ -1,0 +1,13 @@
+{
+  "name": "Predacle",
+  "short_name": "Predacle",
+  "description": "Prediction market aggregator across 6 platforms",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fa",
+  "theme_color": "#5f5cf0",
+  "icons": [
+    { "src": "/favicon-32x32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
