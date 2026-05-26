@@ -43,17 +43,12 @@ export async function fetchLimitless(): Promise<Market[]> {
         }
       }
 
-      // Volume — Limitless returns `volume` in raw token units (6 decimal places for USDC)
-      // Use `volumeFormatted` which is already human-readable USDC, falling back to
-      // dividing raw `volume` by 10^decimals if volumeFormatted is missing
-      const decimals     = m.collateralToken?.decimals ?? 6
-      const volFormatted = parseFloat(String(m.volumeFormatted || '0'))
-      const volRaw       = parseFloat(String(m.volume          || '0'))
-      const vol = volFormatted > 0
-        ? volFormatted
-        : volRaw > 0
-        ? volRaw / Math.pow(10, decimals)
-        : null
+      // Volume — Limitless stores volume in raw USDC token units
+      // collateralToken.decimals = 6, so divide by 10^6 to get real USDC amount
+      // e.g. 2050200000 raw ÷ 10^6 = 2050.2 USDC
+      const decimals = m.collateralToken?.decimals ?? 6
+      const volRaw   = parseFloat(String(m.volume || '0'))
+      const vol      = volRaw > 0 ? volRaw / Math.pow(10, decimals) : null
 
       // Category
       const assetType = m.priceOracleMetadata?.assetType || ''
@@ -93,11 +88,11 @@ export async function fetchLimitless(): Promise<Market[]> {
         end_date_label: endDate
           ? endDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
           : null,
-        traders:           null,
+        traders:            null,
         category,
         url,
-        status:            'active' as const,
-        fetched_at:        new Date().toISOString(),
+        status:             'active' as const,
+        fetched_at:         new Date().toISOString(),
         probability_change: null,
         image_url:          m.imageUrl || m.logo || null,
       }
