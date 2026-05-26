@@ -13,6 +13,9 @@ interface Market {
   end_date_label: string | null; traders: number | null
   category: string | null; url: string; status: string
   fingerprint: string | null
+  created_at?: string
+  probability_change?: number | null
+  image_url?: string | null
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -26,6 +29,11 @@ const PLATFORM_URLS: Record<string, string> = {
   limitless: 'https://limitless.exchange', azuro: 'https://azuro.org',
 }
 
+const CATEGORY_ICONS: Record<string, string> = {
+  crypto: '₿', sports: '🏆', politics: '🗳️', economics: '📈',
+  tech: '💻', science: '🔬', entertainment: '🎬', football: '⚽', other: '🌐',
+}
+
 function getProbColor(p: number | null) {
   if (p === null) return '#94a3b8'
   if (p >= 0.65) return '#10b981'
@@ -33,11 +41,43 @@ function getProbColor(p: number | null) {
   return '#ef4444'
 }
 
+function getProbLabel(p: number | null): { text: string; color: string; bg: string } | null {
+  if (p === null) return null
+  if (p >= 0.80) return { text: 'Strong YES', color: '#059669', bg: '#ecfdf5' }
+  if (p >= 0.65) return { text: 'Likely YES', color: '#10b981', bg: '#d1fae5' }
+  if (p >= 0.45) return { text: 'Toss-up',    color: '#d97706', bg: '#fffbeb' }
+  if (p >= 0.20) return { text: 'Unlikely',   color: '#ef4444', bg: '#fef2f2' }
+  return              { text: 'Long shot',  color: '#dc2626', bg: '#fef2f2' }
+}
+
+function getClosingBadge(end_date: string | null) {
+  if (!end_date) return null
+  const days = Math.ceil((new Date(end_date).getTime() - Date.now()) / 86400000)
+  if (days < 0)   return null
+  if (days === 0) return { label: 'Closes today', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' }
+  if (days <= 3)  return { label: `⏰ ${days}d left`, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' }
+  if (days <= 7)  return { label: `⏰ ${days}d left`, color: '#d97706', bg: '#fffbeb', border: '#fde68a' }
+  return null
+}
+
+function isNewMarket(created_at?: string): boolean {
+  if (!created_at) return false
+  return Date.now() - new Date(created_at).getTime() < 3 * 86400000
+}
+
+function getTrendLabel(change: number | null | undefined) {
+  if (!change || Math.abs(change) < 0.005) return null
+  const pct = Math.round(Math.abs(change) * 100)
+  return change > 0
+    ? { label: `↑${pct}% last month`, color: '#10b981' }
+    : { label: `↓${pct}% last month`, color: '#ef4444' }
+}
+
 function MarketDetail({ id }: { id: string }) {
   const router = useRouter()
-  const [market, setMarket]     = useState<Market | null>(null)
-  const [loading, setLoading]   = useState(true)
-  const [trading, setTrading]   = useState(false)
+  const [market,   setMarket]   = useState<Market | null>(null)
+  const [loading,  setLoading]  = useState(true)
+  const [trading,  setTrading]  = useState(false)
   const [notFound, setNotFound] = useState(false)
 
   useEffect(() => {
@@ -61,11 +101,7 @@ function MarketDetail({ id }: { id: string }) {
     fetch('/api/track-click', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        market_id: market.id,
-        platform:  market.platform,
-        url:       market.url,
-      }),
+      body: JSON.stringify({ market_id: market.id, platform: market.platform, url: market.url }),
     }).catch(() => {})
     window.open(market.url, '_blank', 'noopener,noreferrer')
     setTimeout(() => setTrading(false), 1000)
@@ -86,9 +122,7 @@ function MarketDetail({ id }: { id: string }) {
   if (notFound) return (
     <div style={{ maxWidth: 720, margin: '80px auto', padding: '0 20px', textAlign: 'center' }}>
       <p style={{ fontSize: 48, marginBottom: 16 }}>🔍</p>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
-        Market not found
-      </h1>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>Market not found</h1>
       <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: 24 }}>
         This market may have expired or been removed
       </p>
@@ -102,28 +136,43 @@ function MarketDetail({ id }: { id: string }) {
   if (!market) return null
 
   const pColor   = getProbColor(market.probability)
+  const probLbl  = getProbLabel(market.probability)
+  const closingB = getClosingBadge(market.end_date)
+  const isNew    = isNewMarket(market.created_at)
+  const trendLbl = getTrendLabel(market.probability_change)
   const pct      = market.probability !== null ? Math.round(market.probability * 100) : null
   const pLabel   = PLATFORM_LABELS[market.platform] || market.platform
   const catLabel = market.category
     ? market.category.charAt(0).toUpperCase() + market.category.slice(1)
     : null
-
+  const catIcon  = market.category ? (CATEGORY_ICONS[market.category] || '') : ''
   const isKalshi = market.platform === 'kalshi'
   const isAzuro  = market.platform === 'azuro'
   const isCombo  = isKalshi && market.question.startsWith('Multi-bet:')
+
+  // Avg bet size
+  const avgBet = market.volume && market.traders && market.traders > 0
+    ? market.volume / market.traders : null
+  const avgBetLabel = avgBet
+    ? avgBet >= 1000 ? `$${(avgBet / 1000).toFixed(1)}k avg` : `$${Math.round(avgBet)} avg`
+    : null
 
   return (
     <main id="main" style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px 64px' }}>
 
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 24, fontSize: 13, color: '#94a3b8' }}>
+      <nav aria-label="Breadcrumb" style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        marginBottom: 24, fontSize: 13, color: '#94a3b8',
+      }}>
         <a href="/" style={{ color: '#94a3b8', textDecoration: 'none' }}>Home</a>
         <span>›</span>
         <a href="/markets" style={{ color: '#94a3b8', textDecoration: 'none' }}>Markets</a>
         {catLabel && (
           <>
             <span>›</span>
-            <a href={`/markets?category=${market.category}`} style={{ color: '#94a3b8', textDecoration: 'none' }}>
+            <a href={`/markets?category=${market.category}`}
+              style={{ color: '#94a3b8', textDecoration: 'none' }}>
               {catLabel}
             </a>
           </>
@@ -131,33 +180,81 @@ function MarketDetail({ id }: { id: string }) {
       </nav>
 
       {/* Main card */}
-      <article style={{ background: '#fff', border: '1px solid #e8ecf0', borderRadius: 16, overflow: 'hidden', marginBottom: 20 }}>
+      <article style={{
+        background: '#fff', border: '1px solid #e8ecf0',
+        borderRadius: 16, overflow: 'hidden', marginBottom: 20,
+        position: 'relative',
+      }}>
+
+        {/* NEW ribbon */}
+        {isNew && (
+          <div style={{
+            position: 'absolute', top: 14, right: -1,
+            background: '#5f5cf0', color: '#fff',
+            fontSize: 9, fontWeight: 700, letterSpacing: '0.4px',
+            padding: '2px 8px 2px 6px', borderRadius: '4px 0 0 4px',
+            zIndex: 1,
+          }}>
+            🆕 NEW
+          </div>
+        )}
 
         {/* Header */}
         <div style={{ padding: '24px 24px 20px', borderBottom: '1px solid #f1f5f9' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            marginBottom: 14, flexWrap: 'wrap',
+          }}>
+            {/* Platform badge */}
             <span className={`badge-${market.platform}`} style={{
               fontSize: 11, fontWeight: 700, letterSpacing: '0.3px',
               padding: '3px 9px', borderRadius: 6, textTransform: 'uppercase',
             }}>
               {pLabel}
             </span>
+
+            {/* Category badge with icon */}
             {catLabel && (
-              <span style={{ fontSize: 11, color: '#94a3b8', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '3px 9px', borderRadius: 6, fontWeight: 500 }}>
-                {catLabel}
+              <span style={{
+                fontSize: 11, color: '#94a3b8', background: '#f8fafc',
+                border: '1px solid #e2e8f0', padding: '3px 9px',
+                borderRadius: 6, fontWeight: 500,
+              }}>
+                {catIcon} {catLabel}
               </span>
             )}
+
+            {/* Combo badge */}
             {isCombo && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#059669', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '2px 8px', borderRadius: 5 }}>
+              <span style={{
+                fontSize: 10, fontWeight: 700, color: '#059669',
+                background: '#ecfdf5', border: '1px solid #a7f3d0',
+                padding: '2px 8px', borderRadius: 5,
+              }}>
                 Multi-leg bet
               </span>
             )}
-            {market.end_date_label && (
+
+            {/* Closing urgency badge */}
+            {closingB && (
+              <span style={{
+                fontSize: 10, fontWeight: 700,
+                color: closingB.color, background: closingB.bg,
+                border: `1px solid ${closingB.border}`,
+                padding: '2px 8px', borderRadius: 5,
+              }}>
+                {closingB.label}
+              </span>
+            )}
+
+            {/* End date */}
+            {market.end_date_label && !closingB && (
               <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 'auto' }}>
                 Ends {market.end_date_label}
               </span>
             )}
           </div>
+
           <h1 style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.4, color: '#0f172a' }}>
             {market.question}
           </h1>
@@ -166,27 +263,60 @@ function MarketDetail({ id }: { id: string }) {
         {/* Probability */}
         <div style={{ padding: '24px', borderBottom: '1px solid #f1f5f9' }}>
           {pct !== null ? (
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
-              <div>
-                <p style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Current probability
-                </p>
-                <p style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-1px', color: pColor, lineHeight: 1 }}>
-                  {pct}%
-                </p>
-              </div>
-              <div style={{ flex: 1, minWidth: 120 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: pColor }}>YES</span>
-                  <span style={{ fontSize: 12, color: '#94a3b8' }}>NO {100 - pct}%</span>
+            <>
+              <div style={{
+                display: 'flex', alignItems: 'flex-end',
+                gap: 16, marginBottom: 12, flexWrap: 'wrap',
+              }}>
+                <div>
+                  <p style={{
+                    fontSize: 12, color: '#94a3b8', fontWeight: 500,
+                    marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px',
+                  }}>
+                    Current probability
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                    <p style={{
+                      fontSize: 48, fontWeight: 700, letterSpacing: '-1px',
+                      color: pColor, lineHeight: 1,
+                    }}>
+                      {pct}%
+                    </p>
+                    {probLbl && (
+                      <span style={{
+                        fontSize: 13, fontWeight: 700, padding: '4px 10px',
+                        borderRadius: 6, background: probLbl.bg, color: probLbl.color,
+                      }}>
+                        {probLbl.text}
+                      </span>
+                    )}
+                    {trendLbl && (
+                      <span style={{ fontSize: 12, fontWeight: 600, color: trendLbl.color }}>
+                        {trendLbl.label}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div style={{ height: 8, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ height: 8, background: pColor, borderRadius: 4, width: `${pct}%`, transition: 'width 0.6s' }} />
+
+                <div style={{ flex: 1, minWidth: 120 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: pColor }}>YES</span>
+                    <span style={{ fontSize: 12, color: '#94a3b8' }}>NO {100 - pct}%</span>
+                  </div>
+                  <div style={{ height: 8, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{
+                      height: 8, background: pColor, borderRadius: 4,
+                      width: `${pct}%`, transition: 'width 0.6s',
+                    }} />
+                  </div>
                 </div>
               </div>
-            </div>
+            </>
           ) : (
-            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '16px 18px' }}>
+            <div style={{
+              background: '#f0fdf4', border: '1px solid #bbf7d0',
+              borderRadius: 10, padding: '16px 18px',
+            }}>
               <p style={{ fontSize: 14, fontWeight: 600, color: '#15803d', marginBottom: 6 }}>
                 {isKalshi
                   ? 'No current offers in order book'
@@ -196,7 +326,7 @@ function MarketDetail({ id }: { id: string }) {
               </p>
               <p style={{ fontSize: 13, color: '#16a34a', lineHeight: 1.5 }}>
                 {isKalshi
-                  ? 'There are no active sell orders right now. You can place your own offer in the order book on Kalshi — you will be notified when it gets filled.'
+                  ? 'There are no active sell orders right now. You can place your own offer on Kalshi directly.'
                   : isAzuro
                   ? 'Live betting odds are available directly on the Azuro platform.'
                   : 'This market does not currently report probability data.'}
@@ -205,16 +335,22 @@ function MarketDetail({ id }: { id: string }) {
           )}
         </div>
 
-        {/* Stats */}
+        {/* Stats grid */}
         <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid #f1f5f9' }}>
           {[
-            { label: 'Volume',   val: market.volume_label || '—' },
-            { label: 'Traders',  val: market.traders ? market.traders.toLocaleString() : '—' },
-            { label: 'Platform', val: pLabel },
-            { label: 'Category', val: catLabel || '—' },
+            { label: 'Volume',    val: market.volume_label || '—' },
+            { label: 'Avg Bet',   val: avgBetLabel || '—' },
+            { label: 'Traders',   val: market.traders ? market.traders.toLocaleString() : '—' },
+            { label: 'Platform',  val: pLabel },
           ].map(s => (
-            <div key={s.label} style={{ flex: '1 1 120px', padding: '16px 24px', borderRight: '1px solid #f1f5f9' }}>
-              <p style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
+            <div key={s.label} style={{
+              flex: '1 1 120px', padding: '16px 24px',
+              borderRight: '1px solid #f1f5f9',
+            }}>
+              <p style={{
+                fontSize: 11, color: '#94a3b8', fontWeight: 500,
+                textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4,
+              }}>
                 {s.label}
               </p>
               <p style={{ fontSize: 15, fontWeight: 600, color: '#0f172a' }}>{s.val}</p>
@@ -225,8 +361,8 @@ function MarketDetail({ id }: { id: string }) {
         {/* Trade CTA */}
         <div style={{
           padding: '20px 24px', background: '#fafbfc',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexWrap: 'wrap', gap: 12,
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
         }}>
           <div>
             <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>
@@ -260,7 +396,10 @@ function MarketDetail({ id }: { id: string }) {
 
       <div style={{ textAlign: 'center', marginTop: 24 }}>
         <button onClick={() => router.back()}
-          style={{ fontSize: 13, color: '#5f5cf0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
+          style={{
+            fontSize: 13, color: '#5f5cf0', background: 'none',
+            border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500,
+          }}>
           ← Back to markets
         </button>
       </div>
@@ -272,7 +411,9 @@ export default function MarketPage({ params }: { params: Promise<{ id: string }>
   const { id } = use(params)
   return (
     <>
-      <Suspense fallback={<div style={{ height: 56, background: '#fff', borderBottom: '1px solid #e8ecf0' }} />}>
+      <Suspense fallback={
+        <div style={{ height: 56, background: '#fff', borderBottom: '1px solid #e8ecf0' }} />
+      }>
         <Header />
       </Suspense>
       <MarketDetail id={id} />
