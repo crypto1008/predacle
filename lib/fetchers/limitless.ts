@@ -21,7 +21,7 @@ export async function fetchLimitless(): Promise<Market[]> {
     const markets = all.filter((m: any) => {
       if (!m.title) return false
       const cats = (m.categories || []).map((c: string) => c.toLowerCase())
-      const tags  = (m.tags || []).map((t: string) => t.toLowerCase())
+      const tags  = (m.tags     || []).map((t: string) => t.toLowerCase())
       if (cats.some((c: string) => c.includes('minut'))) return false
       if (tags.some((t: string) => t.includes('minut'))) return false
       if (cats.includes('5 min')) return false
@@ -31,6 +31,7 @@ export async function fetchLimitless(): Promise<Market[]> {
     console.log(`Limitless: ${markets.length} after filtering short-term`)
 
     return markets.map((m: any) => {
+      // Probability
       let probability: number | null = null
       if (Array.isArray(m.prices) && m.prices.length > 0) {
         const raw        = m.prices[0]
@@ -42,9 +43,19 @@ export async function fetchLimitless(): Promise<Market[]> {
         }
       }
 
-      const volRaw = parseFloat(String(m.volume || '0'))
-      const vol    = volRaw > 0 ? volRaw : null
+      // Volume — Limitless returns `volume` in raw token units (6 decimal places for USDC)
+      // Use `volumeFormatted` which is already human-readable USDC, falling back to
+      // dividing raw `volume` by 10^decimals if volumeFormatted is missing
+      const decimals     = m.collateralToken?.decimals ?? 6
+      const volFormatted = parseFloat(String(m.volumeFormatted || '0'))
+      const volRaw       = parseFloat(String(m.volume          || '0'))
+      const vol = volFormatted > 0
+        ? volFormatted
+        : volRaw > 0
+        ? volRaw / Math.pow(10, decimals)
+        : null
 
+      // Category
       const assetType = m.priceOracleMetadata?.assetType || ''
       const cats      = (m.categories || []).map((c: string) => c.toLowerCase())
       const category  = (() => {
@@ -55,6 +66,7 @@ export async function fetchLimitless(): Promise<Market[]> {
         return inferCategory(String(m.title || ''))
       })()
 
+      // End date — skip if expires within 2 hours
       const expTs           = m.expirationTimestamp || null
       const expiry          = expTs ? new Date(expTs) : null
       const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000)
