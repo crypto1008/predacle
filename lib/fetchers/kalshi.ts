@@ -30,9 +30,7 @@ function getKalshiHeaders(method: string, path: string): Record<string, string> 
   }
 }
 
-// Confirmed Kalshi series tickers from public volume reports
 const SERIES: { ticker: string; category: string }[] = [
-  // Daily Sports
   { ticker: 'KXNBAGAME',    category: 'sports'    },
   { ticker: 'KXMLBGAME',    category: 'sports'    },
   { ticker: 'KXNHLGAME',    category: 'sports'    },
@@ -43,24 +41,20 @@ const SERIES: { ticker: string; category: string }[] = [
   { ticker: 'KXWTAMATCH',   category: 'sports'    },
   { ticker: 'KXUFCFIGHT',   category: 'sports'    },
   { ticker: 'KXEPLGOAL',    category: 'sports'    },
-  // Playoff Series
   { ticker: 'KXNBASERIES',  category: 'sports'    },
   { ticker: 'KXNHLSERIES',  category: 'sports'    },
   { ticker: 'KXNBAEAST',    category: 'sports'    },
   { ticker: 'KXNBAWEST',    category: 'sports'    },
   { ticker: 'KXPGATOUR',    category: 'sports'    },
-  // Daily Crypto
   { ticker: 'KXBTCD',       category: 'crypto'    },
   { ticker: 'KXBTC',        category: 'crypto'    },
   { ticker: 'KXETHD',       category: 'crypto'    },
   { ticker: 'KXETH',        category: 'crypto'    },
-  // Economics
   { ticker: 'KXFEDDECISION', category: 'economics' },
   { ticker: 'KXCPIYOY',     category: 'economics' },
   { ticker: 'KXINXU',       category: 'economics' },
   { ticker: 'KXNASDAQ100U', category: 'economics' },
   { ticker: 'KXAAAGASM',    category: 'economics' },
-  // Politics
   { ticker: 'KXNEXTPOPE',   category: 'politics'  },
   { ticker: 'KXCANADAPM',   category: 'politics'  },
 ]
@@ -72,7 +66,6 @@ function sleep(ms: number) {
 function mapMarket(m: any, category: string): Market {
   const ticker = m.ticker || ''
 
-  // KEY FIX: Kalshi uses _dollars suffix, values are 0.0000–1.0000 range
   let probability: number | null = null
   const priceFields = [
     'yes_ask_dollars',
@@ -83,22 +76,26 @@ function mapMarket(m: any, category: string): Market {
   ]
   for (const f of priceFields) {
     const v = parseFloat(m[f] || '0')
-    if (v > 0.005 && v < 0.995) { // between 0.5% and 99.5%
+    if (v > 0.005 && v < 0.995) {
       probability = v
       break
     }
   }
 
-  // Volume: _fp = fixed-point contracts, each contract = $1
+  // Probability trend: current vs previous
+  const curr = parseFloat(m.yes_ask_dollars || m.yes_bid_dollars || '0')
+  const prev = parseFloat(m.previous_yes_ask_dollars || m.previous_price_dollars || '0')
+  const probability_change = curr > 0.005 && prev > 0.005
+    ? Math.round((curr - prev) * 1000) / 1000
+    : null
+
   const volFp = parseFloat(m.volume_fp || '0')
   const vol24 = parseFloat(m.volume_24h_fp || '0')
   const vol   = volFp > 0 ? volFp : vol24 > 0 ? vol24 : null
 
-  // Fix double-space in title by combining with subtitle
   const question = (m.title || '').replace(/\s+/g, ' ').trim()
-
-  const series = (m.series_ticker || ticker.split('-')[0] || '').toLowerCase()
-  const url    = series ? `https://kalshi.com/markets/${series}` : 'https://kalshi.com'
+  const series   = (m.series_ticker || ticker.split('-')[0] || '').toLowerCase()
+  const url      = series ? `https://kalshi.com/markets/${series}` : 'https://kalshi.com'
 
   return {
     id:       `kalshi-${ticker}`,
@@ -119,8 +116,10 @@ function mapMarket(m: any, category: string): Market {
       : null,
     category,
     url,
-    status:     'active' as const,
-    fetched_at: new Date().toISOString(),
+    status:            'active' as const,
+    fetched_at:        new Date().toISOString(),
+    probability_change,
+    image_url:         null,
   }
 }
 
@@ -131,10 +130,10 @@ export async function fetchKalshi(): Promise<Market[]> {
     return []
   }
 
-  const nowTs       = Math.floor(Date.now() / 1000)
-  const seen        = new Set<string>()
+  const nowTs      = Math.floor(Date.now() / 1000)
+  const seen       = new Set<string>()
   const allMarkets: Market[] = []
-  const hitSeries:  string[] = []
+  const hitSeries: string[]  = []
 
   for (const { ticker: series, category } of SERIES) {
     try {
@@ -165,9 +164,10 @@ export async function fetchKalshi(): Promise<Market[]> {
     }
   }
 
-  const withProb = allMarkets.filter(m => m.probability !== null).length
+  const withProb  = allMarkets.filter(m => m.probability !== null).length
+  const withTrend = allMarkets.filter(m => m.probability_change !== null).length
   console.log(`Kalshi: ${allMarkets.length} markets — [${hitSeries.join(', ')}]`)
-  console.log(`Kalshi: ${withProb}/${allMarkets.length} with probability`)
+  console.log(`Kalshi: ${withProb} with prob, ${withTrend} with trend`)
 
   return allMarkets
 }

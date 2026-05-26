@@ -14,16 +14,14 @@ export async function fetchLimitless(): Promise<Market[]> {
     console.log(`Limitless: status ${response.status}`)
     if (!response.ok) return []
 
-    const json    = await response.json()
+    const json       = await response.json()
     const all: any[] = json.data || []
     console.log(`Limitless: ${all.length} markets received`)
 
-    // Filter out very short-term markets (5-min, minutely)
     const markets = all.filter((m: any) => {
       if (!m.title) return false
       const cats = (m.categories || []).map((c: string) => c.toLowerCase())
       const tags  = (m.tags || []).map((t: string) => t.toLowerCase())
-      // Skip 5-minute and minutely markets
       if (cats.some((c: string) => c.includes('minut'))) return false
       if (tags.some((t: string) => t.includes('minut'))) return false
       if (cats.includes('5 min')) return false
@@ -33,7 +31,6 @@ export async function fetchLimitless(): Promise<Market[]> {
     console.log(`Limitless: ${markets.length} after filtering short-term`)
 
     return markets.map((m: any) => {
-      // Probability from prices array
       let probability: number | null = null
       if (Array.isArray(m.prices) && m.prices.length > 0) {
         const raw        = m.prices[0]
@@ -45,28 +42,24 @@ export async function fetchLimitless(): Promise<Market[]> {
         }
       }
 
-      // Volume
       const volRaw = parseFloat(String(m.volume || '0'))
       const vol    = volRaw > 0 ? volRaw : null
 
-      // Category from API data
       const assetType = m.priceOracleMetadata?.assetType || ''
       const cats      = (m.categories || []).map((c: string) => c.toLowerCase())
       const category  = (() => {
-        if (assetType === 'CRYPTO' || cats.includes('crypto'))    return 'crypto'
-        if (cats.includes('sports') || cats.includes('sport'))    return 'sports'
+        if (assetType === 'CRYPTO' || cats.includes('crypto'))      return 'crypto'
+        if (cats.includes('sports') || cats.includes('sport'))      return 'sports'
         if (cats.includes('politics') || cats.includes('election')) return 'politics'
         if (cats.includes('economics') || cats.includes('finance')) return 'economics'
         return inferCategory(String(m.title || ''))
       })()
 
-      // End date — skip if expires within 2 hours (too short-term)
-      const expTs  = m.expirationTimestamp || null
-      const expiry = expTs ? new Date(expTs) : null
+      const expTs           = m.expirationTimestamp || null
+      const expiry          = expTs ? new Date(expTs) : null
       const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000)
-      const endDate = expiry && expiry > twoHoursFromNow ? expiry : null
+      const endDate         = expiry && expiry > twoHoursFromNow ? expiry : null
 
-      // URL — prefer slug, fall back to id
       const url = m.slug
         ? `https://limitless.exchange/markets/${m.slug}`
         : 'https://limitless.exchange'
@@ -88,11 +81,13 @@ export async function fetchLimitless(): Promise<Market[]> {
         end_date_label: endDate
           ? endDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
           : null,
-        traders:    null, // not available in Limitless API
+        traders:           null,
         category,
         url,
-        status:     'active' as const,
-        fetched_at: new Date().toISOString(),
+        status:            'active' as const,
+        fetched_at:        new Date().toISOString(),
+        probability_change: null,
+        image_url:          m.imageUrl || m.logo || null,
       }
     })
   } catch (error: any) {

@@ -24,6 +24,8 @@ export interface Market {
   status: MarketStatus
   fetched_at: string
   created_at?: string
+  probability_change?: number | null
+  image_url?: string | null
 }
 
 export interface FetchResult {

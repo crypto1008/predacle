@@ -128,18 +128,20 @@ export async function fetchAzuro(): Promise<Market[]> {
         id:       `azuro-${gameId}`,
         platform: 'azuro' as const,
         question,
-        probability:  oddsToProbability(odds),
-        volume:       null,
-        volume_label: null,
+        probability:       oddsToProbability(odds),
+        volume:            null,
+        volume_label:      null,
         end_date: startDate ? startDate.toISOString().split('T')[0] : null,
         end_date_label: startDate
           ? startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
           : null,
-        traders:    null,
-        category:   ESPORTS.has(sportSlug) ? 'tech' : 'sports',
-        url:        buildGameUrl(g),
-        status:     'active' as const,
-        fetched_at: new Date().toISOString(),
+        traders:           null,
+        category:          ESPORTS.has(sportSlug) ? 'tech' : 'sports',
+        url:               buildGameUrl(g),
+        status:            'active' as const,
+        fetched_at:        new Date().toISOString(),
+        probability_change: null,
+        image_url:          null,
       })
     }
   }

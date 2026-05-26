@@ -4,7 +4,6 @@ import { Market } from '../types'
 export async function fetchManifold(): Promise<Market[]> {
   try {
     const response = await fetch(
-      // sort=last-bet-time gets recently active markets, not just newest created
       'https://api.manifold.markets/v0/markets?limit=100&sort=last-bet-time',
       {
         headers: {
@@ -23,21 +22,19 @@ export async function fetchManifold(): Promise<Market[]> {
         m.outcomeType === 'BINARY' &&
         m.probability != null &&
         !m.isResolved &&
-        (m.uniqueBettorCount || 0) >= 10  // skip ghost markets with 1-2 bettors
+        (m.uniqueBettorCount || 0) >= 10
       )
       .map((m: any) => {
         const vol       = m.volume || 0
         const closeTime = m.closeTime ? new Date(m.closeTime) : null
         const isExpired = closeTime && closeTime < new Date()
 
-        // Manifold uses Mana (M$) — NOT real USD. Label clearly.
         const volume_label = vol > 0
           ? vol >= 1_000_000
             ? `M$${(vol / 1_000_000).toFixed(1)}M`
             : `M$${Math.round(vol).toLocaleString()}`
           : null
 
-        // Category: prefer groupSlugs mapping, fall back to inferCategory
         const rawGroup = m.groupSlugs?.[0] || ''
         const category = (() => {
           if (!rawGroup) return inferCategory(m.question || '')
@@ -64,11 +61,13 @@ export async function fetchManifold(): Promise<Market[]> {
           end_date_label: closeTime
             ? closeTime.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
             : null,
-          traders:    m.uniqueBettorCount || null,
+          traders:           m.uniqueBettorCount || null,
           category,
-          url:        m.url || 'https://manifold.markets',
-          status:     isExpired ? 'closed' : 'active' as const,
-          fetched_at: new Date().toISOString(),
+          url:               m.url || 'https://manifold.markets',
+          status:            isExpired ? 'closed' : 'active' as const,
+          fetched_at:        new Date().toISOString(),
+          probability_change: null,
+          image_url:          null,
         }
       })
   } catch (error) {

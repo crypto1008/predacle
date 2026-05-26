@@ -3,7 +3,6 @@ import { Market } from '../types'
 
 export async function fetchPolymarket(): Promise<Market[]> {
   try {
-    // Use EVENTS endpoint — has uniqueBettors, better metadata than /markets
     const response = await fetch(
       'https://gamma-api.polymarket.com/events?active=true&closed=false&limit=100&order=volume24hr&ascending=false',
       {
@@ -27,20 +26,18 @@ export async function fetchPolymarket(): Promise<Market[]> {
     for (const ev of list) {
       if (!ev.active || ev.closed || ev.archived) continue
 
-      const eventSlug     = ev.slug || ev.ticker || ''
-      const eventUrl      = eventSlug
+      const eventSlug    = ev.slug || ev.ticker || ''
+      const eventUrl     = eventSlug
         ? `https://polymarket.com/event/${eventSlug}`
         : 'https://polymarket.com'
-      const eventTraders  = ev.uniqueBettors ? parseInt(String(ev.uniqueBettors)) : null
-      const eventVol      = parseFloat(ev.volume || ev.volumeClob || 0)
+      const eventTraders = ev.uniqueBettors ? parseInt(String(ev.uniqueBettors)) : null
+      const eventVol     = parseFloat(ev.volume || ev.volumeClob || 0)
 
-      // Expand each market within the event
       const evMarkets: any[] = ev.markets || []
 
       for (const m of evMarkets) {
         if (!m.question || !m.active || m.closed) continue
 
-        // Probability from outcomePrices
         let probability: number | null = null
         try {
           const prices = JSON.parse(m.outcomePrices || '[]')
@@ -52,16 +49,16 @@ export async function fetchPolymarket(): Promise<Market[]> {
           if (p > 0 && p < 1) probability = p
         }
 
-        // Volume — use event vol if market vol is 0
-        const mVol  = parseFloat(m.volume || m.volumeClob || 0)
-        const vol   = mVol > 0 ? mVol : eventVol > 0 ? eventVol / Math.max(evMarkets.length, 1) : null
+        const mVol = parseFloat(m.volume || m.volumeClob || 0)
+        const vol  = mVol > 0 ? mVol : eventVol > 0 ? eventVol / Math.max(evMarkets.length, 1) : null
 
         // Probability trend from oneMonthPriceChange
-        const trend = typeof m.oneMonthPriceChange === 'number'
-          ? m.oneMonthPriceChange
+        const probability_change = typeof m.oneMonthPriceChange === 'number'
+          ? Math.round(m.oneMonthPriceChange * 1000) / 1000
           : null
 
-        console.log(`Polymarket trend sample: ${trend}, traders: ${eventTraders}`)
+        // Market image from icon field
+        const image_url = m.icon || m.image || ev.icon || ev.image || null
 
         markets.push({
           id:       `polymarket-${m.conditionId || m.id}`,
@@ -80,18 +77,18 @@ export async function fetchPolymarket(): Promise<Market[]> {
                 month: 'short', year: 'numeric',
               })
             : null,
-          // uniqueBettors is at event level — shared across all markets in that event
           traders: eventTraders,
           category: (m.category && m.category !== 'All' && m.category !== 'all')
             ? m.category
             : inferCategory(m.question || ev.title || ''),
           url: eventUrl,
-          status:     'active' as const,
-          fetched_at: new Date().toISOString(),
+          status:            'active' as const,
+          fetched_at:        new Date().toISOString(),
+          probability_change,
+          image_url,
         })
       }
 
-      // If event has no nested markets, create one entry from event itself
       if (evMarkets.length === 0 && ev.title) {
         markets.push({
           id:       `polymarket-ev-${ev.id}`,
@@ -108,16 +105,17 @@ export async function fetchPolymarket(): Promise<Market[]> {
           end_date_label: ev.endDate
             ? new Date(ev.endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
             : null,
-          traders:    eventTraders,
-          category:   inferCategory(ev.title || ''),
-          url:        eventUrl,
-          status:     'active' as const,
-          fetched_at: new Date().toISOString(),
+          traders:           eventTraders,
+          category:          inferCategory(ev.title || ''),
+          url:               eventUrl,
+          status:            'active' as const,
+          fetched_at:        new Date().toISOString(),
+          probability_change: null,
+          image_url:          ev.icon || ev.image || null,
         })
       }
     }
 
-    // Deduplicate by id, limit to 100
     const seen    = new Set<string>()
     const deduped = markets.filter(m => {
       if (seen.has(m.id)) return false
@@ -125,7 +123,7 @@ export async function fetchPolymarket(): Promise<Market[]> {
       return true
     }).slice(0, 100)
 
-    console.log(`Polymarket: ${deduped.length} markets, ${deduped.filter(m => m.traders !== null).length} with traders`)
+    console.log(`Polymarket: ${deduped.length} markets, ${deduped.filter(m => m.probability_change !== null).length} with trend`)
     return deduped
 
   } catch (error: any) {
