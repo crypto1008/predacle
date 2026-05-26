@@ -1,7 +1,26 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+
+function useDark() {
+  const [dark, setDark] = useState(false)
+  useEffect(() => {
+    setDark(document.documentElement.classList.contains('dark'))
+    const obs = new MutationObserver(() =>
+      setDark(document.documentElement.classList.contains('dark'))
+    )
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => obs.disconnect()
+  }, [])
+  return dark
+}
+
 export default function MarketCardSkeleton() {
+  const dark = useDark()
   return (
     <div style={{
-      background: '#fff', border: '1px solid #e8ecf0',
+      background:   dark ? '#111318' : '#fff',
+      border:       `1px solid ${dark ? '#1e2330' : '#e8ecf0'}`,
       borderRadius: 12, overflow: 'hidden',
     }}>
       <div style={{ padding: '14px 14px 12px' }}>
@@ -16,8 +35,9 @@ export default function MarketCardSkeleton() {
         <div className="skeleton" style={{ width: '100%', height: 3, borderRadius: 2 }} />
       </div>
       <div style={{
-        padding: '9px 14px', background: '#fafbfc',
-        borderTop: '1px solid #f1f5f9',
+        padding: '9px 14px',
+        background:  dark ? '#0d1117' : '#fafbfc',
+        borderTop:   `1px solid ${dark ? '#1e2330' : '#f1f5f9'}`,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <div className="skeleton" style={{ width: 60, height: 13, borderRadius: 4 }} />
