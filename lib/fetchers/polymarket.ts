@@ -38,6 +38,16 @@ export async function fetchPolymarket(): Promise<Market[]> {
       for (const m of evMarkets) {
         if (!m.question || !m.active || m.closed) continue
 
+        // ── Prop bet filter ──────────────────────────────────────────
+        // Skip in-game prop bets: "Game 1: Odd/Even Kills", "Game 2: First Baron" etc.
+        if (/^Game \d+:/i.test(m.question)) continue
+        // Skip O/U lines: "Points O/U 24.5", "Rebounds O/U 8.5"
+        if (/\bO\/U\b/i.test(m.question)) continue
+        // Skip dust markets under $50 volume (junk markets with no real activity)
+        const mVol = parseFloat(m.volume || m.volumeClob || 0)
+        if (mVol > 0 && mVol < 50) continue
+        // ────────────────────────────────────────────────────────────
+
         let probability: number | null = null
         try {
           const prices = JSON.parse(m.outcomePrices || '[]')
@@ -49,15 +59,12 @@ export async function fetchPolymarket(): Promise<Market[]> {
           if (p > 0 && p < 1) probability = p
         }
 
-        const mVol = parseFloat(m.volume || m.volumeClob || 0)
-        const vol  = mVol > 0 ? mVol : eventVol > 0 ? eventVol / Math.max(evMarkets.length, 1) : null
+        const vol = mVol > 0 ? mVol : eventVol > 0 ? eventVol / Math.max(evMarkets.length, 1) : null
 
-        // Probability trend from oneMonthPriceChange
         const probability_change = typeof m.oneMonthPriceChange === 'number'
           ? Math.round(m.oneMonthPriceChange * 1000) / 1000
           : null
 
-        // Market image from icon field
         const image_url = m.icon || m.image || ev.icon || ev.image || null
 
         markets.push({
@@ -77,11 +84,11 @@ export async function fetchPolymarket(): Promise<Market[]> {
                 month: 'short', year: 'numeric',
               })
             : null,
-          traders: eventTraders,
+          traders:           eventTraders,
           category: (m.category && m.category !== 'All' && m.category !== 'all')
             ? m.category
             : inferCategory(m.question || ev.title || ''),
-          url: eventUrl,
+          url:               eventUrl,
           status:            'active' as const,
           fetched_at:        new Date().toISOString(),
           probability_change,
@@ -89,6 +96,7 @@ export async function fetchPolymarket(): Promise<Market[]> {
         })
       }
 
+      // Event with no nested markets
       if (evMarkets.length === 0 && ev.title) {
         markets.push({
           id:       `polymarket-ev-${ev.id}`,
@@ -123,7 +131,7 @@ export async function fetchPolymarket(): Promise<Market[]> {
       return true
     }).slice(0, 100)
 
-    console.log(`Polymarket: ${deduped.length} markets, ${deduped.filter(m => m.probability_change !== null).length} with trend`)
+    console.log(`Polymarket: ${deduped.length} markets after prop bet filter`)
     return deduped
 
   } catch (error: any) {
