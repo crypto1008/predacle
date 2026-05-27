@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
         .eq('market_id', market.id)
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
         .single()
-
       if (cached) return NextResponse.json(cached)
     } catch {}
 
@@ -29,19 +28,19 @@ export async function POST(request: NextRequest) {
       ? Math.round(market.probability * 100)
       : null
 
-    const prompt = `You are a prediction market analyst. Analyze this market.
+    const prompt = `Analyze this prediction market. Return ONLY a JSON object.
 
-Question: ${market.question}
+Market: ${market.question}
 Platform: ${market.platform}
 Probability: ${pct !== null ? `${pct}%` : 'Unknown'}
 Volume: ${market.volume_label || 'Unknown'}
 Category: ${market.category || 'General'}
 Resolves: ${market.end_date_label || 'Unknown'}
 
-Return ONLY this JSON with no other text:
-{"summary":"2-3 sentences about what this market asks and what ${pct}% means","signal":"BEARISH","signal_reason":"one sentence","key_insight":"one non-obvious insight"}
+Respond with this exact JSON (keep each value SHORT — max 2 sentences each):
+{"summary":"what this market asks and what the probability means","signal":"BEARISH","signal_reason":"why this signal","key_insight":"one trader insight"}
 
-Signal must be BULLISH, BEARISH, or NEUTRAL.`
+signal must be BULLISH, BEARISH, or NEUTRAL. No extra text outside the JSON.`
 
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -51,7 +50,7 @@ Signal must be BULLISH, BEARISH, or NEUTRAL.`
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            maxOutputTokens: 1024,
+            maxOutputTokens: 2048,
             temperature: 0.1,
             responseMimeType: 'application/json',
           },
@@ -65,32 +64,28 @@ Signal must be BULLISH, BEARISH, or NEUTRAL.`
       return NextResponse.json({ error: 'AI request failed' }, { status: 500 })
     }
 
-    const data = await res.json()
+    const data  = await res.json()
 
-    // Skip thought parts — only use actual text response parts
+    // Filter out thinking parts — only use actual text response
     const parts = data.candidates?.[0]?.content?.parts || []
-    const text = parts
+    const text  = parts
       .filter((p: any) => !p.thought)
       .map((p: any) => p.text || '')
       .join('')
       .trim()
 
-    console.log('Gemini response text:', text.substring(0, 300))
-
     if (!text) {
+      console.error('Empty response:', JSON.stringify(data).substring(0, 300))
       return NextResponse.json({ error: 'Empty AI response' }, { status: 500 })
     }
 
-    // Parse JSON — handle any wrapping
     let parsed: any
     try {
-      // Try direct parse first (responseMimeType should give clean JSON)
       parsed = JSON.parse(text)
     } catch {
-      // Fall back to regex extraction
       const match = text.match(/\{[\s\S]*\}/)
       if (!match) {
-        console.error('No JSON in response:', text)
+        console.error('No JSON in:', text.substring(0, 300))
         return NextResponse.json({ error: 'Invalid AI response' }, { status: 500 })
       }
       parsed = JSON.parse(match[0])
