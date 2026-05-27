@@ -619,7 +619,7 @@ function MarketDetail({ id }: { id: string }) {
         }}>
           <div>
             <h2 style={{ fontSize: 15, fontWeight: 700, color: txt1 }}>🤖 AI Market Analysis</h2>
-            <p style={{ fontSize: 12, color: txt2, marginTop: 2 }}>Powered by Claude</p>
+            <p style={{ fontSize: 12, color: txt2, marginTop: 2 }}>Powered by AI</p>
           </div>
           {aiSummary && signalStyle && (
             <span style={{
@@ -647,7 +647,7 @@ function MarketDetail({ id }: { id: string }) {
 
           {aiError && (
             <p style={{ fontSize: 13, color: txt2 }}>
-              AI analysis unavailable. Add your Anthropic API key to enable this feature.
+             AI analysis unavailable. AI service is being configured.
             </p>
           )}
 
