@@ -12,10 +12,25 @@ interface Market {
   volume_label: string | null; end_date: string | null
   end_date_label: string | null; traders: number | null
   category: string | null; url: string; status: string
-  fingerprint: string | null
-  created_at?: string
-  probability_change?: number | null
-  image_url?: string | null
+  fingerprint: string | null; created_at?: string
+  probability_change?: number | null; image_url?: string | null
+}
+
+interface RelatedMarket {
+  id: string; platform: string; question: string
+  probability: number | null; volume_label: string | null
+  end_date_label: string | null; url: string
+}
+
+interface CrossPlatform {
+  id: string; platform: string
+  probability: number | null; volume_label: string | null
+  url: string; question: string
+}
+
+interface AISummary {
+  summary: string; signal: 'BULLISH' | 'BEARISH' | 'NEUTRAL'
+  signal_reason: string; key_insight: string
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -27,6 +42,11 @@ const PLATFORM_URLS: Record<string, string> = {
   polymarket: 'https://polymarket.com', kalshi: 'https://kalshi.com',
   myriad: 'https://myriad.markets', manifold: 'https://manifold.markets',
   limitless: 'https://limitless.exchange', azuro: 'https://azuro.org',
+}
+
+const PLATFORM_COLORS: Record<string, string> = {
+  polymarket: '#6d28d9', kalshi: '#059669', myriad: '#7e22ce',
+  manifold: '#dc2626', limitless: '#d97706', azuro: '#0891b2',
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -73,6 +93,16 @@ function getTrendLabel(change: number | null | undefined) {
     : { label: `↓${pct}% last month`, color: '#ef4444' }
 }
 
+function getTimelineProgress(created_at?: string, end_date?: string | null): number | null {
+  if (!created_at || !end_date) return null
+  const start = new Date(created_at).getTime()
+  const end   = new Date(end_date).getTime()
+  const now   = Date.now()
+  if (now >= end)   return 100
+  if (now <= start) return 0
+  return Math.round((now - start) / (end - start) * 100)
+}
+
 function useDark() {
   const [dark, setDark] = useState(false)
   useEffect(() => {
@@ -87,12 +117,27 @@ function useDark() {
 }
 
 function MarketDetail({ id }: { id: string }) {
-  const router  = useRouter()
-  const dark    = useDark()
-  const [market,   setMarket]   = useState<Market | null>(null)
-  const [loading,  setLoading]  = useState(true)
-  const [trading,  setTrading]  = useState(false)
-  const [notFound, setNotFound] = useState(false)
+  const router = useRouter()
+  const dark   = useDark()
+
+  const [market,    setMarket]    = useState<Market | null>(null)
+  const [loading,   setLoading]   = useState(true)
+  const [trading,   setTrading]   = useState(false)
+  const [notFound,  setNotFound]  = useState(false)
+  const [copied,    setCopied]    = useState(false)
+
+  // Bet calculator
+  const [betAmount, setBetAmount] = useState(100)
+  const [betSide,   setBetSide]   = useState<'YES' | 'NO'>('YES')
+
+  // AI summary
+  const [aiSummary, setAiSummary]   = useState<AISummary | null>(null)
+  const [aiLoading, setAiLoading]   = useState(false)
+  const [aiError,   setAiError]     = useState(false)
+
+  // Related markets
+  const [crossPlatform, setCrossPlatform] = useState<CrossPlatform[]>([])
+  const [similar,       setSimilar]       = useState<RelatedMarket[]>([])
 
   useEffect(() => {
     const load = async () => {
@@ -101,22 +146,48 @@ function MarketDetail({ id }: { id: string }) {
         const res = await fetch(`/api/markets/${encodeURIComponent(id)}`)
         if (res.status === 404) { setNotFound(true); return }
         if (!res.ok) throw new Error('Failed')
-        setMarket(await res.json())
+        const data = await res.json()
+        setMarket(data)
       } catch { setNotFound(true) }
       finally { setLoading(false) }
     }
     load()
   }, [id])
 
-  // Dark palette
-  const bg      = dark ? '#0b0d12'  : '#ffffff'
-  const cardBg  = dark ? '#111318'  : '#ffffff'
-  const border  = dark ? '#1e2330'  : '#e8ecf0'
-  const divider = dark ? '#1e2330'  : '#f1f5f9'
-  const txt1    = dark ? '#f1f5f9'  : '#0f172a'
-  const txt2    = dark ? '#64748b'  : '#94a3b8'
-  const footBg  = dark ? '#0d1117'  : '#fafbfc'
-  const statBg  = dark ? '#0d1117'  : '#fafbfc'
+  // Fetch AI summary + related once market loads
+  useEffect(() => {
+    if (!market) return
+
+    // AI summary
+    const fetchAI = async () => {
+      setAiLoading(true)
+      try {
+        const res = await fetch('/api/ai/market-summary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(market),
+        })
+        if (!res.ok) { setAiError(true); return }
+        const data = await res.json()
+        if (data.error) { setAiError(true); return }
+        setAiSummary(data)
+      } catch { setAiError(true) }
+      finally { setAiLoading(false) }
+    }
+
+    // Related markets
+    const fetchRelated = async () => {
+      try {
+        const res  = await fetch(`/api/markets/${encodeURIComponent(id)}/related`)
+        const data = await res.json()
+        setCrossPlatform(data.crossPlatform || [])
+        setSimilar(data.similar || [])
+      } catch {}
+    }
+
+    fetchAI()
+    fetchRelated()
+  }, [market, id])
 
   const handleTrade = () => {
     if (!market) return
@@ -130,12 +201,41 @@ function MarketDetail({ id }: { id: string }) {
     setTimeout(() => setTrading(false), 1000)
   }
 
+  const handleCopyLink = () => {
+    const url = `${window.location.origin}/markets/${id}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  const handleTweet = () => {
+    if (!market) return
+    const url  = `${window.location.origin}/markets/${id}`
+    const pct  = market.probability !== null ? Math.round(market.probability * 100) : null
+    const text = `${market.question}${pct !== null ? ` — ${pct}% probability` : ''} via Predacle`
+    window.open(
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+      '_blank'
+    )
+  }
+
+  // Dark palette
+  const bg       = dark ? '#0b0d12' : '#ffffff'
+  const cardBg   = dark ? '#111318' : '#ffffff'
+  const border   = dark ? '#1e2330' : '#e8ecf0'
+  const divider  = dark ? '#1e2330' : '#f1f5f9'
+  const txt1     = dark ? '#f1f5f9' : '#0f172a'
+  const txt2     = dark ? '#64748b' : '#94a3b8'
+  const footBg   = dark ? '#0d1117' : '#fafbfc'
+  const inputBg  = dark ? '#1e2330' : '#f5f7fa'
+
   if (loading) return (
-    <div style={{ maxWidth: 720, margin: '60px auto', padding: '0 20px', textAlign: 'center', background: bg }}>
+    <div style={{ maxWidth: 720, margin: '60px auto', padding: '0 20px', textAlign: 'center' }}>
       <div style={{
-        width: 40, height: 40,
-        border: `3px solid ${border}`, borderTopColor: '#5f5cf0',
-        borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px',
+        width: 40, height: 40, border: `3px solid ${border}`,
+        borderTopColor: '#5f5cf0', borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite', margin: '0 auto 16px',
       }} />
       <p style={{ color: txt2, fontSize: 14 }}>Loading market...</p>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
@@ -146,9 +246,7 @@ function MarketDetail({ id }: { id: string }) {
     <div style={{ maxWidth: 720, margin: '80px auto', padding: '0 20px', textAlign: 'center' }}>
       <p style={{ fontSize: 48, marginBottom: 16 }}>🔍</p>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: txt1, marginBottom: 8 }}>Market not found</h1>
-      <p style={{ fontSize: 14, color: txt2, marginBottom: 24 }}>
-        This market may have expired or been removed
-      </p>
+      <p style={{ fontSize: 14, color: txt2, marginBottom: 24 }}>This market may have expired or been removed</p>
       <button onClick={() => router.push('/markets')}
         style={{ padding: '10px 24px', background: '#5f5cf0', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
         Browse all markets
@@ -158,26 +256,45 @@ function MarketDetail({ id }: { id: string }) {
 
   if (!market) return null
 
-  const pColor   = getProbColor(market.probability)
-  const probLbl  = getProbLabel(market.probability)
-  const closingB = getClosingBadge(market.end_date)
-  const isNew    = isNewMarket(market.created_at)
-  const trendLbl = getTrendLabel(market.probability_change)
-  const pct      = market.probability !== null ? Math.round(market.probability * 100) : null
-  const pLabel   = PLATFORM_LABELS[market.platform] || market.platform
-  const catLabel = market.category
-    ? market.category.charAt(0).toUpperCase() + market.category.slice(1)
-    : null
-  const catIcon  = market.category ? (CATEGORY_ICONS[market.category] || '') : ''
-  const isKalshi = market.platform === 'kalshi'
-  const isAzuro  = market.platform === 'azuro'
-  const isCombo  = isKalshi && market.question.startsWith('Multi-bet:')
+  const pColor    = getProbColor(market.probability)
+  const probLbl   = getProbLabel(market.probability)
+  const closingB  = getClosingBadge(market.end_date)
+  const isNew     = isNewMarket(market.created_at)
+  const trendLbl  = getTrendLabel(market.probability_change)
+  const timelinePct = getTimelineProgress(market.created_at, market.end_date)
+  const pct       = market.probability !== null ? Math.round(market.probability * 100) : null
+  const pLabel    = PLATFORM_LABELS[market.platform] || market.platform
+  const catLabel  = market.category ? market.category.charAt(0).toUpperCase() + market.category.slice(1) : null
+  const catIcon   = market.category ? (CATEGORY_ICONS[market.category] || '') : ''
+  const isKalshi  = market.platform === 'kalshi'
+  const isAzuro   = market.platform === 'azuro'
+  const isCombo   = isKalshi && market.question.startsWith('Multi-bet:')
 
   const avgBet = market.volume && market.traders && market.traders > 0
     ? market.volume / market.traders : null
   const avgBetLabel = avgBet
     ? avgBet >= 1000 ? `$${(avgBet / 1000).toFixed(1)}k avg` : `$${Math.round(avgBet)} avg`
     : null
+
+  // Bet calculator
+  const prob        = market.probability || 0.5
+  const yesProfit   = betAmount * (1 - prob) / prob
+  const noProbability = 1 - prob
+  const noProfit    = betAmount * prob / noProbability
+  const yesPayout   = betAmount + yesProfit
+  const noPayout    = betAmount + noProfit
+  const profit      = betSide === 'YES' ? yesProfit : noProfit
+  const payout      = betSide === 'YES' ? yesPayout : noPayout
+  const returnPct   = betSide === 'YES'
+    ? Math.round((1 - prob) / prob * 100)
+    : Math.round(prob / (1 - prob) * 100)
+
+  // Signal styling
+  const signalStyle = aiSummary ? {
+    BULLISH: { color: '#059669', bg: dark ? '#052e16' : '#ecfdf5', label: '↑ Bullish' },
+    BEARISH: { color: '#dc2626', bg: dark ? '#1c0202' : '#fef2f2', label: '↓ Bearish' },
+    NEUTRAL: { color: '#d97706', bg: dark ? '#1c1002' : '#fffbeb', label: '→ Neutral' },
+  }[aiSummary.signal] : null
 
   return (
     <main id="main" style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px 64px', background: bg, minHeight: '80vh' }}>
@@ -194,12 +311,11 @@ function MarketDetail({ id }: { id: string }) {
         )}
       </nav>
 
-      {/* Main card */}
+      {/* ── Main Card ─────────────────────────────────────── */}
       <article style={{
         background: cardBg, border: `1px solid ${border}`,
-        borderRadius: 16, overflow: 'hidden', marginBottom: 20, position: 'relative',
+        borderRadius: 16, overflow: 'hidden', marginBottom: 16, position: 'relative',
       }}>
-
         {isNew && (
           <div style={{
             position: 'absolute', top: 14, right: -1,
@@ -228,21 +344,10 @@ function MarketDetail({ id }: { id: string }) {
                 {catIcon} {catLabel}
               </span>
             )}
-            {isCombo && (
-              <span style={{
-                fontSize: 10, fontWeight: 700, color: '#059669',
-                background: dark ? '#052e16' : '#ecfdf5',
-                border: `1px solid ${dark ? '#065f46' : '#a7f3d0'}`,
-                padding: '2px 8px', borderRadius: 5,
-              }}>
-                Multi-leg bet
-              </span>
-            )}
             {closingB && (
               <span style={{
-                fontSize: 10, fontWeight: 700,
-                color: closingB.color, background: closingB.bg,
-                border: `1px solid ${closingB.border}`,
+                fontSize: 10, fontWeight: 700, color: closingB.color,
+                background: closingB.bg, border: `1px solid ${closingB.border}`,
                 padding: '2px 8px', borderRadius: 5,
               }}>
                 {closingB.label}
@@ -254,9 +359,32 @@ function MarketDetail({ id }: { id: string }) {
               </span>
             )}
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.4, color: txt1 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.4, color: txt1, marginBottom: 16 }}>
             {market.question}
           </h1>
+
+          {/* Share buttons */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={handleCopyLink} style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '6px 12px', fontSize: 12, fontWeight: 600,
+              border: `1px solid ${border}`, borderRadius: 8,
+              background: copied ? (dark ? '#052e16' : '#ecfdf5') : cardBg,
+              color: copied ? '#059669' : txt2,
+              cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+            }}>
+              {copied ? '✓ Copied!' : '🔗 Copy link'}
+            </button>
+            <button onClick={handleTweet} style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '6px 12px', fontSize: 12, fontWeight: 600,
+              border: `1px solid ${border}`, borderRadius: 8,
+              background: cardBg, color: txt2,
+              cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+            }}>
+              𝕏 Share on X
+            </button>
+          </div>
         </div>
 
         {/* Probability */}
@@ -297,6 +425,29 @@ function MarketDetail({ id }: { id: string }) {
                   </div>
                 </div>
               </div>
+
+              {/* Market Timeline */}
+              {timelinePct !== null && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11, color: txt2 }}>
+                    <span>Created</span>
+                    <span style={{ fontWeight: 600, color: '#5f5cf0' }}>Today ({timelinePct}% elapsed)</span>
+                    <span>Closes {market.end_date_label}</span>
+                  </div>
+                  <div style={{ height: 4, background: dark ? '#1e2330' : '#f1f5f9', borderRadius: 4, position: 'relative' }}>
+                    <div style={{
+                      height: 4, background: 'linear-gradient(90deg, #5f5cf0, #a78bfa)',
+                      borderRadius: 4, width: `${timelinePct}%`, transition: 'width 0.6s',
+                    }} />
+                    <div style={{
+                      position: 'absolute', top: '50%', left: `${timelinePct}%`,
+                      transform: 'translate(-50%, -50%)',
+                      width: 10, height: 10, borderRadius: '50%',
+                      background: '#5f5cf0', border: `2px solid ${cardBg}`,
+                    }} />
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div style={{
@@ -309,15 +460,15 @@ function MarketDetail({ id }: { id: string }) {
               </p>
               <p style={{ fontSize: 13, color: '#16a34a', lineHeight: 1.5 }}>
                 {isKalshi
-                  ? 'There are no active sell orders right now. You can place your own offer on Kalshi directly.'
-                  : isAzuro ? 'Live betting odds are available directly on the Azuro platform.'
+                  ? 'No active sell orders right now. You can place your own offer on Kalshi.'
+                  : isAzuro ? 'Live betting odds available directly on the Azuro platform.'
                   : 'This market does not currently report probability data.'}
               </p>
             </div>
           )}
         </div>
 
-        {/* Stats grid */}
+        {/* Stats */}
         <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: `1px solid ${divider}` }}>
           {[
             { label: 'Volume',   val: market.volume_label || '—' },
@@ -325,10 +476,7 @@ function MarketDetail({ id }: { id: string }) {
             { label: 'Traders',  val: market.traders ? market.traders.toLocaleString() : '—' },
             { label: 'Platform', val: pLabel },
           ].map(s => (
-            <div key={s.label} style={{
-              flex: '1 1 120px', padding: '16px 24px',
-              borderRight: `1px solid ${divider}`,
-            }}>
+            <div key={s.label} style={{ flex: '1 1 120px', padding: '16px 24px', borderRight: `1px solid ${divider}` }}>
               <p style={{ fontSize: 11, color: txt2, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
                 {s.label}
               </p>
@@ -350,26 +498,330 @@ function MarketDetail({ id }: { id: string }) {
               Opens {PLATFORM_URLS[market.platform] || pLabel} in a new tab
             </p>
           </div>
-          <button
-            onClick={handleTrade} disabled={trading}
-            style={{
-              padding: '12px 28px', fontSize: 14, fontWeight: 700,
-              background: trading ? (dark ? '#1e2330' : '#94a3b8') : '#5f5cf0',
-              color: '#fff', border: 'none', borderRadius: 10,
-              cursor: trading ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit', transition: 'background 0.15s',
-            }}
-          >
+          <button onClick={handleTrade} disabled={trading} style={{
+            padding: '12px 28px', fontSize: 14, fontWeight: 700,
+            background: trading ? (dark ? '#1e2330' : '#94a3b8') : '#5f5cf0',
+            color: '#fff', border: 'none', borderRadius: 10,
+            cursor: trading ? 'not-allowed' : 'pointer',
+            fontFamily: 'inherit', transition: 'background 0.15s',
+          }}>
             {trading ? 'Opening...' : `Trade on ${pLabel} →`}
           </button>
         </div>
       </article>
 
-      <p style={{ fontSize: 12, color: txt2, textAlign: 'center', lineHeight: 1.6 }}>
+      {/* ── Bet Calculator ────────────────────────────────── */}
+      {pct !== null && (
+        <div style={{
+          background: cardBg, border: `1px solid ${border}`,
+          borderRadius: 16, overflow: 'hidden', marginBottom: 16,
+        }}>
+          <div style={{ padding: '18px 24px', borderBottom: `1px solid ${divider}` }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: txt1 }}>🧮 Bet Calculator</h2>
+            <p style={{ fontSize: 12, color: txt2, marginTop: 2 }}>Estimate your potential profit</p>
+          </div>
+          <div style={{ padding: '20px 24px' }}>
+
+            {/* Inputs */}
+            <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <label style={{ fontSize: 11, color: txt2, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 6 }}>
+                  Bet Amount (USD)
+                </label>
+                <input
+                  type="number" min="1" value={betAmount}
+                  onChange={e => setBetAmount(Math.max(1, parseFloat(e.target.value) || 1))}
+                  style={{
+                    width: '100%', padding: '10px 12px', fontSize: 15, fontWeight: 600,
+                    border: `1px solid ${border}`, borderRadius: 8,
+                    background: inputBg, color: txt1,
+                    outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: txt2, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 6 }}>
+                  Bet on
+                </label>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {(['YES', 'NO'] as const).map(side => (
+                    <button key={side} onClick={() => setBetSide(side)} style={{
+                      padding: '10px 20px', fontSize: 13, fontWeight: 700,
+                      borderRadius: 8, border: `1px solid ${betSide === side ? (side === 'YES' ? '#10b981' : '#ef4444') : border}`,
+                      background: betSide === side
+                        ? side === 'YES'
+                          ? (dark ? '#052e16' : '#ecfdf5')
+                          : (dark ? '#1c0202' : '#fef2f2')
+                        : cardBg,
+                      color: betSide === side
+                        ? side === 'YES' ? '#10b981' : '#ef4444'
+                        : txt2,
+                      cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+                    }}>
+                      {side}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Quick amounts */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
+              {[10, 50, 100, 500, 1000].map(amt => (
+                <button key={amt} onClick={() => setBetAmount(amt)} style={{
+                  padding: '4px 10px', fontSize: 12, fontWeight: 600,
+                  borderRadius: 6, border: `1px solid ${border}`,
+                  background: betAmount === amt ? '#5f5cf0' : cardBg,
+                  color: betAmount === amt ? '#fff' : txt2,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                  ${amt}
+                </button>
+              ))}
+            </div>
+
+            {/* Results */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 12, background: dark ? '#0d1117' : '#f8fafc',
+              border: `1px solid ${border}`, borderRadius: 12, padding: '16px',
+            }}>
+              {[
+                { label: 'Profit if correct', val: `$${profit.toFixed(2)}`, color: betSide === 'YES' ? '#10b981' : '#ef4444' },
+                { label: 'Total payout',      val: `$${payout.toFixed(2)}`,  color: txt1 },
+                { label: 'Return',            val: `${returnPct}%`,           color: '#5f5cf0' },
+              ].map(r => (
+                <div key={r.label} style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: 11, color: txt2, fontWeight: 500, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                    {r.label}
+                  </p>
+                  <p style={{ fontSize: 20, fontWeight: 700, color: r.color }}>{r.val}</p>
+                </div>
+              ))}
+            </div>
+
+            <p style={{ fontSize: 11, color: txt2, marginTop: 10, textAlign: 'center' }}>
+              Based on current {pct}% YES probability. Actual prices may vary.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── AI Market Summary ─────────────────────────────── */}
+      <div style={{
+        background: cardBg, border: `1px solid ${dark ? '#2d1b69' : '#c4b5fd'}`,
+        borderRadius: 16, overflow: 'hidden', marginBottom: 16,
+      }}>
+        <div style={{
+          padding: '18px 24px', borderBottom: `1px solid ${divider}`,
+          background: dark ? '#1a0f4a' : '#faf9ff',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: txt1 }}>🤖 AI Market Analysis</h2>
+            <p style={{ fontSize: 12, color: txt2, marginTop: 2 }}>Powered by Claude</p>
+          </div>
+          {aiSummary && signalStyle && (
+            <span style={{
+              padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+              background: signalStyle.bg, color: signalStyle.color,
+              border: `1px solid ${signalStyle.color}33`,
+            }}>
+              {signalStyle.label}
+            </span>
+          )}
+        </div>
+
+        <div style={{ padding: '20px 24px' }}>
+          {aiLoading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: txt2 }}>
+              <div style={{
+                width: 16, height: 16, border: `2px solid ${border}`,
+                borderTopColor: '#5f5cf0', borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite',
+              }} />
+              <span style={{ fontSize: 13 }}>Analyzing market...</span>
+              <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+            </div>
+          )}
+
+          {aiError && (
+            <p style={{ fontSize: 13, color: txt2 }}>
+              AI analysis unavailable. Add your Anthropic API key to enable this feature.
+            </p>
+          )}
+
+          {aiSummary && (
+            <div>
+              <p style={{ fontSize: 14, color: txt1, lineHeight: 1.7, marginBottom: 16 }}>
+                {aiSummary.summary}
+              </p>
+
+              <div style={{
+                background: dark ? '#0d1117' : '#f8fafc',
+                border: `1px solid ${border}`, borderRadius: 10,
+                padding: '14px 16px', marginBottom: 12,
+              }}>
+                <p style={{ fontSize: 11, color: txt2, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
+                  Signal Reasoning
+                </p>
+                <p style={{ fontSize: 13, color: txt1, lineHeight: 1.6 }}>
+                  {aiSummary.signal_reason}
+                </p>
+              </div>
+
+              <div style={{
+                background: dark ? '#1a0f4a' : '#faf9ff',
+                border: `1px solid ${dark ? '#2d1b69' : '#c4b5fd'}`,
+                borderRadius: 10, padding: '14px 16px',
+              }}>
+                <p style={{ fontSize: 11, color: '#7c3aed', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
+                  💡 Key Insight
+                </p>
+                <p style={{ fontSize: 13, color: txt1, lineHeight: 1.6 }}>
+                  {aiSummary.key_insight}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Cross-Platform Comparison ─────────────────────── */}
+      {crossPlatform.length > 0 && (
+        <div style={{
+          background: cardBg, border: `1px solid ${border}`,
+          borderRadius: 16, overflow: 'hidden', marginBottom: 16,
+        }}>
+          <div style={{ padding: '18px 24px', borderBottom: `1px solid ${divider}` }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: txt1 }}>🔄 Also on Other Platforms</h2>
+            <p style={{ fontSize: 12, color: txt2, marginTop: 2 }}>Same market, different platform probabilities</p>
+          </div>
+          <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Current platform */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 14px', borderRadius: 10,
+              background: dark ? '#1e1b4b' : '#ede9fe',
+              border: `1px solid ${dark ? '#3730a3' : '#c4b5fd'}`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: PLATFORM_COLORS[market.platform] || '#5f5cf0', display: 'inline-block' }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: txt1 }}>{pLabel}</span>
+                <span style={{ fontSize: 10, color: '#5f5cf0', fontWeight: 600, background: dark ? '#312e81' : '#e0e7ff', padding: '1px 6px', borderRadius: 4 }}>Current</span>
+              </div>
+              <span style={{ fontSize: 15, fontWeight: 700, color: pColor }}>
+                {pct !== null ? `${pct}%` : '—'}
+              </span>
+            </div>
+
+            {/* Other platforms */}
+            {crossPlatform.map(cp => {
+              const cpPct   = cp.probability !== null ? Math.round(cp.probability * 100) : null
+              const cpColor = getProbColor(cp.probability)
+              const cpLabel = PLATFORM_LABELS[cp.platform] || cp.platform
+              return (
+                <a key={cp.id} href={cp.url} target="_blank" rel="noopener noreferrer"
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '12px 14px', borderRadius: 10,
+                    background: cardBg, border: `1px solid ${border}`,
+                    textDecoration: 'none', transition: 'border-color 0.15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = '#c4b5fd'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = border}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: PLATFORM_COLORS[cp.platform] || '#94a3b8', display: 'inline-block' }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: txt1 }}>{cpLabel}</span>
+                    {cp.volume_label && <span style={{ fontSize: 11, color: txt2 }}>{cp.volume_label}</span>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: cpColor }}>
+                      {cpPct !== null ? `${cpPct}%` : '—'}
+                    </span>
+                    {pct !== null && cpPct !== null && cpPct !== pct && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 600, padding: '1px 5px', borderRadius: 4,
+                        background: cpPct > pct ? (dark ? '#052e16' : '#ecfdf5') : (dark ? '#1c0202' : '#fef2f2'),
+                        color: cpPct > pct ? '#10b981' : '#ef4444',
+                      }}>
+                        {cpPct > pct ? `+${cpPct - pct}pp` : `${cpPct - pct}pp`}
+                      </span>
+                    )}
+                    <span style={{ fontSize: 11, color: '#5f5cf0' }}>Trade →</span>
+                  </div>
+                </a>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Similar Markets ───────────────────────────────── */}
+      {similar.length > 0 && (
+        <div style={{
+          background: cardBg, border: `1px solid ${border}`,
+          borderRadius: 16, overflow: 'hidden', marginBottom: 16,
+        }}>
+          <div style={{ padding: '18px 24px', borderBottom: `1px solid ${divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: txt1 }}>📊 Similar Markets</h2>
+              <p style={{ fontSize: 12, color: txt2, marginTop: 2 }}>More {catLabel} markets to explore</p>
+            </div>
+            <a href={`/markets?category=${market.category}`} style={{ fontSize: 12, color: '#5f5cf0', textDecoration: 'none', fontWeight: 600 }}>
+              View all →
+            </a>
+          </div>
+          <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {similar.slice(0, 5).map(sm => {
+              const smPct   = sm.probability !== null ? Math.round(sm.probability * 100) : null
+              const smColor = getProbColor(sm.probability)
+              const smLabel = PLATFORM_LABELS[sm.platform] || sm.platform
+              return (
+                <a key={sm.id} href={`/markets/${sm.id}`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 14px', borderRadius: 10,
+                    background: cardBg, border: `1px solid ${border}`,
+                    textDecoration: 'none', transition: 'border-color 0.15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = '#c4b5fd'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = border}
+                >
+                  <span className={`badge-${sm.platform}`} style={{
+                    fontSize: 9, fontWeight: 700, padding: '1px 5px',
+                    borderRadius: 4, textTransform: 'uppercase', flexShrink: 0,
+                  }}>
+                    {smLabel}
+                  </span>
+                  <span style={{
+                    fontSize: 13, color: txt1, flex: 1,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {sm.question}
+                  </span>
+                  {sm.volume_label && (
+                    <span style={{ fontSize: 11, color: txt2, flexShrink: 0 }}>
+                      {sm.volume_label}
+                    </span>
+                  )}
+                  <span style={{ fontSize: 14, fontWeight: 700, color: smColor, flexShrink: 0 }}>
+                    {smPct !== null ? `${smPct}%` : '—'}
+                  </span>
+                </a>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Disclaimer */}
+      <p style={{ fontSize: 12, color: txt2, textAlign: 'center', lineHeight: 1.6, marginBottom: 16 }}>
         Predacle aggregates public data from prediction market platforms.
         This is not financial advice. Always do your own research before trading.
       </p>
-      <div style={{ textAlign: 'center', marginTop: 24 }}>
+      <div style={{ textAlign: 'center' }}>
         <button onClick={() => router.back()}
           style={{ fontSize: 13, color: '#5f5cf0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
           ← Back to markets
