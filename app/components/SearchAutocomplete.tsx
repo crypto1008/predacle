@@ -60,7 +60,7 @@ export default function SearchAutocomplete({
   const [focused, setFocused] = useState(-1)
   const inputRef    = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const debounceRef  = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef  = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   // Dark palette
   const bg      = dark ? '#111318' : '#ffffff'
