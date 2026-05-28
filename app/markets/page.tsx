@@ -7,6 +7,7 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import MarketCard from '../components/MarketCard'
 import MarketCardSkeleton from '../components/MarketCardSkeleton'
+import SearchAutocomplete from '../components/SearchAutocomplete'
 
 interface Market {
   id: string; platform: string; question: string
@@ -18,11 +19,7 @@ interface Market {
   image_url?: string | null
 }
 
-interface SiteStats {
-  totalMarkets: number
-  minutesAgo: number
-  platforms: number
-}
+interface SiteStats { totalMarkets: number; minutesAgo: number; platforms: number }
 
 const CATEGORIES = [
   { label: 'All',              value: '' },
@@ -32,7 +29,7 @@ const CATEGORIES = [
   { label: '📈 Economics',    value: 'economics' },
   { label: '💻 Tech',         value: 'tech' },
   { label: '🔬 Science',      value: 'science' },
-  { label: '🎬 Entertainment',value: 'entertainment' },
+  { label: '🎬 Entertainment', value: 'entertainment' },
 ]
 
 const PLATFORMS = [
@@ -54,60 +51,43 @@ const SORTS = [
 ]
 
 const QUICK_FILTERS = [
-  { label: '🔥 Hot',          sort: 'volume',      min_prob: '',    tip: 'Highest trading volume' },
-  { label: '⏰ Closing Soon', sort: 'end_date',    min_prob: '',    tip: 'Resolving within 7 days' },
-  { label: '🆕 New',          sort: 'newest',      min_prob: '',    tip: 'Added in last 3 days' },
-  { label: '🎯 Near Certain', sort: 'probability', min_prob: '0.8', tip: 'Probability above 80%' },
+  { label: '🔥 Hot',          sort: 'volume',      min_prob: '',    tip: 'Highest volume' },
+  { label: '⏰ Closing Soon', sort: 'end_date',    min_prob: '',    tip: 'Resolving soon' },
+  { label: '🆕 New',          sort: 'newest',      min_prob: '',    tip: 'Added recently' },
+  { label: '🎯 Near Certain', sort: 'probability', min_prob: '0.8', tip: 'Above 80%' },
 ]
 
 const LIMIT = 20
 
-// ── Dark mode hook ────────────────────────────────────────────────
 function useDarkMode() {
   const [dark, setDark] = useState(false)
   useEffect(() => {
     setDark(document.documentElement.classList.contains('dark'))
-    const observer = new MutationObserver(() =>
+    const obs = new MutationObserver(() =>
       setDark(document.documentElement.classList.contains('dark'))
     )
-    observer.observe(document.documentElement, {
-      attributes: true, attributeFilter: ['class'],
-    })
-    return () => observer.disconnect()
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => obs.disconnect()
   }, [])
   return dark
 }
 
-// ── Stats Bar ────────────────────────────────────────────────────
 function StatsBar({ dark }: { dark: boolean }) {
   const [stats, setStats] = useState<SiteStats | null>(null)
-
   useEffect(() => {
     fetch('/api/status')
       .then(r => r.json())
-      .then(d => setStats({
-        totalMarkets: d.overall?.totalMarkets || 0,
-        minutesAgo:   d.overall?.minutesAgo   || 0,
-        platforms:    d.platforms?.length     || 6,
-      }))
+      .then(d => setStats({ totalMarkets: d.overall?.totalMarkets || 0, minutesAgo: d.overall?.minutesAgo || 0, platforms: d.platforms?.length || 6 }))
       .catch(() => {})
   }, [])
-
   if (!stats) return null
-
-  const bg      = dark ? '#0b0d12'  : '#f8fafc'
-  const border  = dark ? '#1e2330'  : '#f1f5f9'
-  const txt     = dark ? '#94a3b8'  : '#64748b'
-  const strong  = dark ? '#f1f5f9'  : '#0f172a'
-
+  const bg     = dark ? '#0b0d12' : '#f8fafc'
+  const border = dark ? '#1e2330' : '#f1f5f9'
+  const txt    = dark ? '#94a3b8' : '#64748b'
+  const strong = dark ? '#f1f5f9' : '#0f172a'
   return (
     <div style={{ background: bg, borderBottom: `1px solid ${border}`, padding: '7px 20px' }}>
-      <div style={{
-        maxWidth: 1280, margin: '0 auto',
-        display: 'flex', alignItems: 'center',
-        gap: 6, fontSize: 12, color: txt,
-        flexWrap: 'wrap',
-      }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: txt, flexWrap: 'wrap' }}>
         <span>📊</span>
         <strong style={{ color: strong }}>{stats.totalMarkets.toLocaleString()}</strong>
         <span>markets</span>
@@ -117,15 +97,8 @@ function StatsBar({ dark }: { dark: boolean }) {
         <span style={{ color: dark ? '#2d3748' : '#e2e8f0' }}>·</span>
         <span>updated</span>
         <strong style={{ color: strong }}>{stats.minutesAgo}m ago</strong>
-        <span style={{
-          marginLeft: 'auto',
-          display: 'flex', alignItems: 'center', gap: 4,
-          color: '#10b981', fontWeight: 600,
-        }}>
-          <span style={{
-            width: 6, height: 6, borderRadius: '50%',
-            background: '#10b981', display: 'inline-block',
-          }} />
+        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, color: '#10b981', fontWeight: 600 }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
           All live
         </span>
       </div>
@@ -133,7 +106,6 @@ function StatsBar({ dark }: { dark: boolean }) {
   )
 }
 
-// ── Markets Content ───────────────────────────────────────────────
 function MarketsContent() {
   const router       = useRouter()
   const searchParams = useSearchParams()
@@ -144,7 +116,6 @@ function MarketsContent() {
   const [page,        setPage]        = useState(1)
   const [loading,     setLoading]     = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [search,      setSearch]      = useState(searchParams?.get('q') || '')
 
   const category = searchParams?.get('category') || ''
   const platform = searchParams?.get('platform') || ''
@@ -165,7 +136,7 @@ function MarketsContent() {
 
   const fetchMarkets = useCallback(async (pageNum: number, append = false) => {
     if (!append) setLoading(true)
-    else         setLoadingMore(true)
+    else setLoadingMore(true)
     try {
       const params = new URLSearchParams()
       params.set('limit', String(LIMIT))
@@ -175,10 +146,8 @@ function MarketsContent() {
       if (sort)     params.set('sort',     sort)
       if (q)        params.set('q',        q)
       if (min_prob) params.set('min_prob', min_prob)
-
       const res  = await fetch(`/api/markets?${params}`)
       const data = await res.json()
-
       if (append) setMarkets(prev => [...prev, ...(data.markets || [])])
       else        setMarkets(data.markets || [])
       setTotal(data.total || 0)
@@ -186,48 +155,27 @@ function MarketsContent() {
     finally { setLoading(false); setLoadingMore(false) }
   }, [category, platform, sort, q, min_prob])
 
-  useEffect(() => {
-    setPage(1)
-    fetchMarkets(1, false)
-  }, [fetchMarkets])
+  useEffect(() => { setPage(1); fetchMarkets(1, false) }, [fetchMarkets])
 
-  const handleLoadMore = () => {
-    const next = page + 1
-    setPage(next)
-    fetchMarkets(next, true)
-  }
-
+  const handleLoadMore = () => { const next = page + 1; setPage(next); fetchMarkets(next, true) }
   const setParam = (key: string, val: string) =>
     router.push(buildUrl({ category, platform, sort, q, min_prob, [key]: val }))
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    router.push(buildUrl({ category, platform, sort, q: search, min_prob }))
-  }
-
-  const activeQuickFilter = QUICK_FILTERS.findIndex(
-    f => f.sort === sort && f.min_prob === min_prob
-  )
-
+  const activeQuickFilter = QUICK_FILTERS.findIndex(f => f.sort === sort && f.min_prob === min_prob)
   const handleQuickFilter = (idx: number) => {
-    if (activeQuickFilter === idx) {
-      router.push(buildUrl({ category, platform, q, sort: '', min_prob: '' }))
-    } else {
-      const f = QUICK_FILTERS[idx]
-      router.push(buildUrl({ category, platform, q, sort: f.sort, min_prob: f.min_prob }))
-    }
+    if (activeQuickFilter === idx) router.push(buildUrl({ category, platform, q, sort: '', min_prob: '' }))
+    else { const f = QUICK_FILTERS[idx]; router.push(buildUrl({ category, platform, q, sort: f.sort, min_prob: f.min_prob })) }
   }
 
   const hasMore = markets.length < total
 
-  // Dark-aware colours
-  const bg       = dark ? '#0b0d12'  : '#ffffff'
-  const bg2      = dark ? '#111318'  : '#f5f7fa'
-  const border   = dark ? '#1e2330'  : '#e8ecf0'
-  const border2  = dark ? '#1e2330'  : '#f1f5f9'
-  const txt1     = dark ? '#f1f5f9'  : '#0f172a'
-  const txt2     = dark ? '#94a3b8'  : '#64748b'
-  const txt3     = dark ? '#475569'  : '#94a3b8'
+  const bg      = dark ? '#0b0d12' : '#ffffff'
+  const bg2     = dark ? '#111318' : '#f5f7fa'
+  const border  = dark ? '#1e2330' : '#e8ecf0'
+  const border2 = dark ? '#1e2330' : '#f1f5f9'
+  const txt1    = dark ? '#f1f5f9' : '#0f172a'
+  const txt2    = dark ? '#94a3b8' : '#64748b'
+  const txt3    = dark ? '#475569' : '#94a3b8'
 
   const selStyle: React.CSSProperties = {
     padding: '7px 12px', fontSize: 13, border: `1px solid ${border}`,
@@ -244,68 +192,37 @@ function MarketsContent() {
 
   return (
     <div>
-      {/* Stats bar */}
       <StatsBar dark={dark} />
 
       {/* Page header */}
       <div style={{ background: bg, borderBottom: `1px solid ${border}`, padding: '20px 20px 0' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
 
-          {/* Title + controls */}
-          <div style={{
-            display: 'flex', alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 16, flexWrap: 'wrap', gap: 12,
-          }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h1 style={{ fontSize: 20, fontWeight: 700, color: txt1, marginBottom: 2 }}>
-                {pageTitle}
-              </h1>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: txt1, marginBottom: 2 }}>{pageTitle}</h1>
               <p style={{ fontSize: 13, color: txt3 }}>
                 {loading ? 'Loading...' : `${total.toLocaleString()} markets found`}
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {/* Search */}
-              <form onSubmit={handleSearch} style={{ display: 'flex', gap: 0 }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  background: bg2, border: `1px solid ${border}`,
-                  borderRadius: '8px 0 0 8px', padding: '7px 12px',
-                }}>
-                  <svg width="14" height="14" fill="none" stroke={txt3} strokeWidth={2} viewBox="0 0 24 24">
-                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                  </svg>
-                  <input
-                    type="search" value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    placeholder="Search markets..."
-                    style={{
-                      background: 'none', border: 'none', outline: 'none',
-                      fontSize: 13, color: txt1, fontFamily: 'inherit', width: 160,
-                    }}
-                    aria-label="Search markets"
-                  />
-                </div>
-                <button type="submit" style={{
-                  padding: '7px 14px', background: '#5f5cf0', color: '#fff',
-                  border: 'none', borderRadius: '0 8px 8px 0', fontSize: 13,
-                  fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                }}>
-                  Go
-                </button>
-              </form>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* Search with autocomplete */}
+              <div style={{ width: 300 }}>
+                <SearchAutocomplete
+                  placeholder="Search markets..."
+                  initialValue={q}
+                  onSearch={(newQ) => router.push(buildUrl({ category, platform, sort, q: newQ, min_prob }))}
+                />
+              </div>
 
               <select value={platform} onChange={e => setParam('platform', e.target.value)} style={selStyle}>
                 {PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
               </select>
 
-              <select
-                value={sort}
+              <select value={sort}
                 onChange={e => router.push(buildUrl({ category, platform, q, sort: e.target.value, min_prob: '' }))}
-                style={selStyle}
-              >
+                style={selStyle}>
                 {SORTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
@@ -314,23 +231,17 @@ function MarketsContent() {
           {/* Category tabs */}
           <div className="scroll-x" style={{ display: 'flex', gap: 2 }}>
             {CATEGORIES.map(cat => (
-              <button
-                key={cat.value}
-                onClick={() => setParam('category', cat.value)}
+              <button key={cat.value} onClick={() => setParam('category', cat.value)}
                 style={{
                   background: 'transparent',
                   color: category === cat.value ? '#5f5cf0' : txt2,
                   border: 'none',
                   borderBottom: category === cat.value ? '2px solid #5f5cf0' : '2px solid transparent',
-                  padding: '8px 14px 10px',
-                  fontSize: 13,
+                  padding: '8px 14px 10px', fontSize: 13,
                   fontWeight: category === cat.value ? 600 : 500,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.15s',
-                  fontFamily: 'inherit',
-                }}
-              >
+                  cursor: 'pointer', whiteSpace: 'nowrap',
+                  transition: 'all 0.15s', fontFamily: 'inherit',
+                }}>
                 {cat.label}
               </button>
             ))}
@@ -339,126 +250,66 @@ function MarketsContent() {
       </div>
 
       {/* Quick filter pills */}
-      <div style={{
-        background: bg,
-        borderBottom: `1px solid ${border2}`,
-        padding: '10px 20px',
-      }}>
-        <div
-          className="scroll-x"
-          style={{
-            maxWidth: 1280, margin: '0 auto',
-            display: 'flex', gap: 8, alignItems: 'center',
-          }}
-        >
-          <span style={{
-            fontSize: 11, color: txt3, fontWeight: 600,
-            letterSpacing: '0.3px', textTransform: 'uppercase',
-            flexShrink: 0,
-          }}>
+      <div style={{ background: bg, borderBottom: `1px solid ${border2}`, padding: '10px 20px' }}>
+        <div className="scroll-x" style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: txt3, fontWeight: 600, letterSpacing: '0.3px', textTransform: 'uppercase', flexShrink: 0 }}>
             Quick:
           </span>
-
           {QUICK_FILTERS.map((f, i) => {
             const isActive = activeQuickFilter === i
             return (
-              <button
-                key={f.sort + f.min_prob}
-                onClick={() => handleQuickFilter(i)}
-                title={f.tip}
+              <button key={f.sort + f.min_prob} onClick={() => handleQuickFilter(i)} title={f.tip}
                 style={{
                   padding: '5px 12px', fontSize: 12, fontWeight: 600,
-                  borderRadius: 20,
-                  border: `1px solid ${isActive ? '#5f5cf0' : border}`,
+                  borderRadius: 20, border: `1px solid ${isActive ? '#5f5cf0' : border}`,
                   background: isActive ? '#5f5cf0' : bg,
                   color: isActive ? '#fff' : txt2,
-                  cursor: 'pointer', whiteSpace: 'nowrap',
+                  cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
                   transition: 'all 0.15s', fontFamily: 'inherit',
                   boxShadow: isActive ? '0 2px 8px rgba(95,92,240,0.25)' : 'none',
-                  flexShrink: 0,
-                }}
-              >
+                }}>
                 {f.label}
               </button>
             )
           })}
-
           {(category || platform || q || sort || min_prob) && (
-            <button
-              onClick={() => { setSearch(''); router.push('/markets') }}
-              style={{
-                padding: '5px 12px', fontSize: 12, fontWeight: 500,
-                borderRadius: 20, border: `1px solid ${border}`,
-                background: 'transparent', color: txt3,
-                cursor: 'pointer', marginLeft: 'auto', flexShrink: 0,
-                fontFamily: 'inherit', transition: 'all 0.15s',
-              }}
-            >
-              ✕ Clear
+            <button onClick={() => router.push('/markets')}
+              style={{ padding: '5px 12px', fontSize: 12, fontWeight: 500, borderRadius: 20, border: `1px solid ${border}`, background: 'transparent', color: txt3, cursor: 'pointer', marginLeft: 'auto', flexShrink: 0, fontFamily: 'inherit' }}>
+              × Clear
             </button>
           )}
         </div>
       </div>
 
       {/* Markets grid */}
-      <main id="main" style={{
-        maxWidth: 1280, margin: '0 auto',
-        padding: '24px 20px 48px',
-        background: dark ? '#0b0d12' : 'transparent',
-        minHeight: '60vh',
-      }}>
+      <main id="main" style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 20px 48px', background: dark ? '#0b0d12' : 'transparent', minHeight: '60vh' }}>
 
-        {/* Active filter chips */}
+        {/* Active chips */}
         {(category || platform || q) && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
             {category && (
-              <span style={{
-                display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
-                background: dark ? '#1e1b4b' : '#ede9fe', color: '#5f5cf0',
-                padding: '3px 10px', borderRadius: 20, fontWeight: 500,
-              }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, background: dark ? '#1e1b4b' : '#ede9fe', color: '#5f5cf0', padding: '3px 10px', borderRadius: 20, fontWeight: 500 }}>
                 {category}
-                <button onClick={() => setParam('category', '')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5f5cf0', fontSize: 14, lineHeight: 1, padding: 0 }}>
-                  ×
-                </button>
+                <button onClick={() => setParam('category', '')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5f5cf0', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
               </span>
             )}
             {platform && (
-              <span style={{
-                display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
-                background: dark ? '#1e1b4b' : '#ede9fe', color: '#5f5cf0',
-                padding: '3px 10px', borderRadius: 20, fontWeight: 500,
-              }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, background: dark ? '#1e1b4b' : '#ede9fe', color: '#5f5cf0', padding: '3px 10px', borderRadius: 20, fontWeight: 500 }}>
                 {platform}
-                <button onClick={() => setParam('platform', '')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5f5cf0', fontSize: 14, lineHeight: 1, padding: 0 }}>
-                  ×
-                </button>
+                <button onClick={() => setParam('platform', '')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5f5cf0', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
               </span>
             )}
             {q && (
-              <span style={{
-                display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
-                background: dark ? '#1e1b4b' : '#ede9fe', color: '#5f5cf0',
-                padding: '3px 10px', borderRadius: 20, fontWeight: 500,
-              }}>
-                &ldquo;{q}&rdquo;
-                <button onClick={() => { setSearch(''); setParam('q', '') }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5f5cf0', fontSize: 14, lineHeight: 1, padding: 0 }}>
-                  ×
-                </button>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, background: dark ? '#1e1b4b' : '#ede9fe', color: '#5f5cf0', padding: '3px 10px', borderRadius: 20, fontWeight: 500 }}>
+                "{q}"
+                <button onClick={() => router.push(buildUrl({ category, platform, sort, q: '', min_prob }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5f5cf0', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
               </span>
             )}
           </div>
         )}
 
         {/* Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          gap: 12, marginBottom: 32,
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12, marginBottom: 32 }}>
           {loading
             ? Array.from({ length: 9 }).map((_, i) => <MarketCardSkeleton key={i} />)
             : markets.length === 0
@@ -466,52 +317,25 @@ function MarketsContent() {
               <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '60px 20px' }}>
                 <p style={{ fontSize: 40, marginBottom: 12 }}>🔍</p>
                 <p style={{ fontSize: 16, color: txt3, marginBottom: 8 }}>No markets found</p>
-                <p style={{ fontSize: 13, color: txt3, marginBottom: 20 }}>
-                  Try a different search term or filter
-                </p>
-                <button
-                  onClick={() => router.push('/markets')}
-                  style={{
-                    padding: '8px 20px', background: '#5f5cf0', color: '#fff',
-                    border: 'none', borderRadius: 8, fontSize: 13,
-                    fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >
+                <p style={{ fontSize: 13, color: txt3, marginBottom: 20 }}>Try a different search term or filter</p>
+                <button onClick={() => router.push('/markets')}
+                  style={{ padding: '8px 20px', background: '#5f5cf0', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                   Clear all filters
                 </button>
               </div>
             )
-            : markets.map(m => (
-              <MarketCard
-                key={m.id}
-                market={m}
-                onClick={() => router.push(`/markets/${m.id}`)}
-              />
-            ))
+            : markets.map(m => <MarketCard key={m.id} market={m} onClick={() => router.push(`/markets/${m.id}`)} />)
           }
-          {loadingMore && Array.from({ length: 3 }).map((_, i) => (
-            <MarketCardSkeleton key={`more-${i}`} />
-          ))}
+          {loadingMore && Array.from({ length: 3 }).map((_, i) => <MarketCardSkeleton key={`more-${i}`} />)}
         </div>
 
-        {/* Load more */}
         {!loading && hasMore && (
           <div style={{ textAlign: 'center' }}>
             <p style={{ fontSize: 13, color: txt3, marginBottom: 12 }}>
               Showing {markets.length.toLocaleString()} of {total.toLocaleString()} markets
             </p>
-            <button
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              style={{
-                padding: '10px 32px', fontSize: 14, fontWeight: 600,
-                border: `1px solid ${border}`, borderRadius: 10,
-                background: loadingMore ? bg2 : bg,
-                color: loadingMore ? txt3 : txt1,
-                cursor: loadingMore ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit', transition: 'all 0.15s',
-              }}
-            >
+            <button onClick={handleLoadMore} disabled={loadingMore}
+              style={{ padding: '10px 32px', fontSize: 14, fontWeight: 600, border: `1px solid ${border}`, borderRadius: 10, background: loadingMore ? bg2 : bg, color: loadingMore ? txt3 : txt1, cursor: loadingMore ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
               {loadingMore ? 'Loading...' : 'Load 20 more'}
             </button>
           </div>
@@ -530,9 +354,7 @@ function MarketsContent() {
 export default function MarketsPage() {
   return (
     <>
-      <Suspense fallback={
-        <div style={{ height: 56, background: '#fff', borderBottom: '1px solid #e8ecf0' }} />
-      }>
+      <Suspense fallback={<div style={{ height: 56, background: '#fff', borderBottom: '1px solid #e8ecf0' }} />}>
         <Header />
       </Suspense>
       <Suspense fallback={

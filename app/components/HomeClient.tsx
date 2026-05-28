@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import MarketCard from './MarketCard'
 import MarketCardSkeleton from './MarketCardSkeleton'
+import SearchAutocomplete from './SearchAutocomplete'
 
 interface Market {
   id: string; platform: string; question: string
@@ -67,7 +68,6 @@ export default function HomeClient() {
   const [stats,      setStats]      = useState<Stats | null>(null)
   const [loading,    setLoading]    = useState(true)
   const [activeTab,  setActiveTab]  = useState('')
-  const [search,     setSearch]     = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -88,11 +88,6 @@ export default function HomeClient() {
   const handleTab = (val: string) => {
     setActiveTab(val)
     setMarkets(val ? allMarkets.filter(m => m.platform === val) : allMarkets)
-  }
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (search.trim()) router.push(`/markets?q=${encodeURIComponent(search.trim())}`)
   }
 
   const total = stats?.totalMarkets
@@ -147,33 +142,13 @@ export default function HomeClient() {
             Manifold, Limitless and Azuro — updated every 30 minutes.
           </p>
 
-          <form onSubmit={handleSearch} style={{ marginBottom: 14 }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              maxWidth: 520, margin: '0 auto',
-              background: bg2, border: `1.5px solid ${border2}`,
-              borderRadius: 12, padding: '10px 16px',
-            }}>
-              <svg width="16" height="16" fill="none" stroke={txt3} strokeWidth={2} viewBox="0 0 24 24">
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-              </svg>
-              <input
-                type="search" value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search — Bitcoin, FIFA, Elections, AI..."
-                style={{
-                  flex: 1, background: 'none', border: 'none', outline: 'none',
-                  fontSize: 14, color: txt1, fontFamily: 'inherit',
-                }}
-              />
-              <button type="submit" style={{
-                background: '#5f5cf0', color: '#fff', border: 'none',
-                borderRadius: 8, padding: '6px 14px', fontSize: 13,
-                fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
-              }}>
-                Search
-              </button>
-            </div>
-          </form>
+          {/* Search with autocomplete */}
+          <div style={{ maxWidth: 520, margin: '0 auto 14px', display: 'flex' }}>
+            <SearchAutocomplete
+              placeholder="Search — Bitcoin, FIFA, Elections, AI..."
+              size="large"
+            />
+          </div>
 
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
             {['Bitcoin', 'FIFA World Cup', 'US Elections', 'AI predictions'].map(tag => (
@@ -260,7 +235,7 @@ export default function HomeClient() {
           </div>
         </section>
 
-        {/* Browse by category divider */}
+        {/* Browse by category */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <div style={{ flex: 1, height: 1, background: divClr }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: txt3, letterSpacing: '0.5px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
@@ -281,14 +256,8 @@ export default function HomeClient() {
                     display: 'flex', flexDirection: 'column', alignItems: 'center',
                     gap: 6, textAlign: 'center', transition: 'all 0.15s',
                   }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = '#c4b5fd'
-                    e.currentTarget.style.background  = dark ? '#1a1a2e' : '#faf9ff'
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = border
-                    e.currentTarget.style.background  = cardBg
-                  }}>
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#c4b5fd'; e.currentTarget.style.background = dark ? '#1a1a2e' : '#faf9ff' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = border; e.currentTarget.style.background = cardBg }}>
                   <span style={{ fontSize: 26 }}>{cat.icon}</span>
                   <span style={{ fontSize: 13, fontWeight: 600, color: txt1 }}>{cat.label}</span>
                   {count !== undefined && <span style={{ fontSize: 11, color: txt3 }}>{count.toLocaleString()}</span>}
@@ -298,7 +267,7 @@ export default function HomeClient() {
           </div>
         </section>
 
-        {/* Supported platforms divider */}
+        {/* Supported platforms */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <div style={{ flex: 1, height: 1, background: divClr }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: txt3, letterSpacing: '0.5px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
