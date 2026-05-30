@@ -3,30 +3,33 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    // Use SQL GROUP BY to avoid 1000 row limit
-    const { data: platformData, error: platformError } = await supabaseAdmin
-      .rpc('get_platform_counts')
+    // Count only ACTIVE markets per platform
+    const { data: platformData } = await supabaseAdmin
+      .from('markets')
+      .select('platform')
+      .eq('status', 'active')
 
     const platformCounts: Record<string, number> = {}
     if (platformData) {
       platformData.forEach((row: any) => {
-        platformCounts[row.platform] = parseInt(row.market_count)
+        platformCounts[row.platform] = (platformCounts[row.platform] || 0) + 1
       })
     }
 
-    // Get accurate total count
+    // Total active only
     const { count: totalCount } = await supabaseAdmin
       .from('markets')
       .select('*', { count: 'exact', head: true })
+      .eq('status', 'active')
 
-    // Get last fetch time
+    // Last fetch time
     const { data: lastFetchData } = await supabaseAdmin
       .from('markets')
       .select('fetched_at')
       .order('fetched_at', { ascending: false })
       .limit(1)
 
-    const lastFetch = lastFetchData?.[0]?.fetched_at
+    const lastFetch  = lastFetchData?.[0]?.fetched_at
     const minutesAgo = lastFetch
       ? Math.round((Date.now() - new Date(lastFetch).getTime()) / 60_000)
       : null
@@ -36,21 +39,21 @@ export async function GET() {
       'myriad', 'limitless', 'azuro',
     ]
 
-    const platformStatus = expectedPlatforms.map((p) => ({
+    const platformStatus = expectedPlatforms.map(p => ({
       platform: p,
-      count: platformCounts[p] || 0,
-      status: (platformCounts[p] || 0) > 0 ? '✅ Working' : '❌ No data',
+      count:    platformCounts[p] || 0,
+      status:   (platformCounts[p] || 0) > 0 ? '✅ Working' : '❌ No data',
     }))
 
     return NextResponse.json({
       overall: {
-        status: totalCount && totalCount > 0 ? '✅ Healthy' : '❌ No data',
+        status:       totalCount && totalCount > 0 ? '✅ Healthy' : '❌ No data',
         totalMarkets: totalCount || 0,
         lastFetch,
         minutesAgo,
       },
-      platforms: platformStatus,
-      rawCounts: platformCounts,
+      platforms:  platformStatus,
+      rawCounts:  platformCounts,
     })
   } catch (error) {
     return NextResponse.json(

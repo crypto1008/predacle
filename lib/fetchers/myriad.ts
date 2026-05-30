@@ -54,6 +54,13 @@ export async function fetchMyriad(): Promise<Market[]> {
       // Skip very short titles that are likely junk
       if (title.length < 10) return false
 
+      // ← ADD THIS: skip already-expired markets
+      const rawDate = m.closingDate || m.expirationDate || m.expiresAt || null
+      if (rawDate && new Date(rawDate) < new Date()) return false
+
+      const vol = parseFloat(String(m.volume || m.volume24h || '0'))
+      if (vol > 500_000_000) return false
+
       return true
     }).slice(0, 100)
 
