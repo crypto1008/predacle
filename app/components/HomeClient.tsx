@@ -151,9 +151,14 @@ export default function HomeClient() {
           </div>
 
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {['Bitcoin', 'FIFA World Cup', 'US Elections', 'AI predictions'].map(tag => (
-              <button key={tag}
-                onClick={() => router.push(`/markets?q=${encodeURIComponent(tag)}`)}
+            {[
+              { label: 'Bitcoin',        query: 'Bitcoin' },
+              { label: 'FIFA World Cup', query: 'FIFA' },
+              { label: 'US Elections',   query: 'election' },
+              { label: 'AI',             query: 'OpenAI' },
+            ].map(tag => (
+              <button key={tag.label}
+                onClick={() => router.push(`/markets?q=${encodeURIComponent(tag.query)}`)}
                 style={{
                   fontSize: 12, color: txt2,
                   background: dark ? '#1e2330' : '#f1f5f9',
@@ -161,7 +166,7 @@ export default function HomeClient() {
                   padding: '4px 10px', borderRadius: 20,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}>
-                {tag}
+                {tag.label}
               </button>
             ))}
           </div>
