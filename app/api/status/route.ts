@@ -3,24 +3,24 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    // Count only ACTIVE markets per platform
-    const { data: platformData } = await supabaseAdmin
-      .from('markets')
-      .select('platform')
-      .eq('status', 'active')
+    const expectedPlatforms = [
+      'polymarket', 'manifold', 'kalshi',
+      'myriad', 'limitless', 'azuro',
+    ]
 
-    const platformCounts: Record<string, number> = {}
-    if (platformData) {
-      platformData.forEach((row: any) => {
-        platformCounts[row.platform] = (platformCounts[row.platform] || 0) + 1
+    // Count each platform separately — avoids 1000 row limit
+    const platformCounts = await Promise.all(
+      expectedPlatforms.map(async (p) => {
+        const { count } = await supabaseAdmin
+          .from('markets')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'active')
+          .eq('platform', p)
+        return { platform: p, count: count || 0 }
       })
-    }
+    )
 
-    // Total active only
-    const { count: totalCount } = await supabaseAdmin
-      .from('markets')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'active')
+    const totalCount = platformCounts.reduce((sum, p) => sum + p.count, 0)
 
     // Last fetch time
     const { data: lastFetchData } = await supabaseAdmin
@@ -34,26 +34,25 @@ export async function GET() {
       ? Math.round((Date.now() - new Date(lastFetch).getTime()) / 60_000)
       : null
 
-    const expectedPlatforms = [
-      'polymarket', 'manifold', 'kalshi',
-      'myriad', 'limitless', 'azuro',
-    ]
-
-    const platformStatus = expectedPlatforms.map(p => ({
-      platform: p,
-      count:    platformCounts[p] || 0,
-      status:   (platformCounts[p] || 0) > 0 ? '✅ Working' : '❌ No data',
+    const platformStatus = platformCounts.map(p => ({
+      platform: p.platform,
+      count:    p.count,
+      status:   p.count > 0 ? '✅ Working' : '❌ No data',
     }))
+
+    const rawCounts = Object.fromEntries(
+      platformCounts.filter(p => p.count > 0).map(p => [p.platform, p.count])
+    )
 
     return NextResponse.json({
       overall: {
-        status:       totalCount && totalCount > 0 ? '✅ Healthy' : '❌ No data',
-        totalMarkets: totalCount || 0,
+        status:       totalCount > 0 ? '✅ Healthy' : '❌ No data',
+        totalMarkets: totalCount,
         lastFetch,
         minutesAgo,
       },
       platforms:  platformStatus,
-      rawCounts:  platformCounts,
+      rawCounts,
     })
   } catch (error) {
     return NextResponse.json(
