@@ -20,15 +20,37 @@ export async function fetchLimitless(): Promise<Market[]> {
 
     const markets = all.filter((m: any) => {
       if (!m.title) return false
-      const cats = (m.categories || []).map((c: string) => c.toLowerCase())
-      const tags  = (m.tags     || []).map((t: string) => t.toLowerCase())
+
+      const title = (m.title || '').toLowerCase().trim()
+      const cats  = (m.categories || []).map((c: string) => c.toLowerCase())
+      const tags  = (m.tags       || []).map((t: string) => t.toLowerCase())
+
+      // Skip minute-based markets
       if (cats.some((c: string) => c.includes('minut'))) return false
       if (tags.some((t: string) => t.includes('minut'))) return false
       if (cats.includes('5 min')) return false
+
+      // Skip hourly trading markets
+      if (title.includes('hourly') || title.includes(' - hourly')) return false
+      if (title.includes('- 1h') || title.includes('- 4h')) return false
+      if (cats.includes('hourly') || tags.includes('hourly')) return false
+
+      // Skip "up or down" generic trading games
+      if (title.includes('up or down')) return false
+
+      // Skip markets expiring within 2 hours (too short-term)
+      const expTs  = m.expirationTimestamp || null
+      const expiry = expTs ? new Date(expTs) : null
+      const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000)
+      if (expiry && expiry <= twoHoursFromNow) return false
+
+      // Skip if title is too short (likely junk)
+      if (title.length < 8) return false
+
       return true
     })
 
-    console.log(`Limitless: ${markets.length} after filtering short-term`)
+    console.log(`Limitless: ${markets.length} after filtering short-term and junk`)
 
     return markets.map((m: any) => {
       // Probability
@@ -45,7 +67,6 @@ export async function fetchLimitless(): Promise<Market[]> {
 
       // Volume — Limitless stores volume in raw USDC token units
       // collateralToken.decimals = 6, so divide by 10^6 to get real USDC amount
-      // e.g. 2050200000 raw ÷ 10^6 = 2050.2 USDC
       const decimals = m.collateralToken?.decimals ?? 6
       const volRaw   = parseFloat(String(m.volume || '0'))
       const vol      = volRaw > 0 ? volRaw / Math.pow(10, decimals) : null

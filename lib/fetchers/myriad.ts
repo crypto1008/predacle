@@ -29,9 +29,31 @@ export async function fetchMyriad(): Promise<Market[]> {
     }
 
     const markets = all.filter((m: any) => {
-      const title = (m.title || m.question || '').toLowerCase()
-      if (title.includes('candle') || title.includes('candles')) return false
+      const title = (m.title || m.question || '').toLowerCase().trim()
+
+      // Skip if no title
       if (!m.title && !m.question) return false
+
+      // Skip candle/chart markets
+      if (title.includes('candle') || title.includes('candles')) return false
+
+      // Skip generic "up or down" trading games
+      if (title === 'up or down?' || title === 'up or down') return false
+      if (title.includes('up or down')) return false
+
+      // Skip vague multi-choice markets with no close date
+      if (!m.closingDate && !m.expirationDate && !m.expiresAt && title.length < 20) return false
+
+      // Skip markets with absurd volume (> $500M is clearly wrong data)
+      const vol = parseFloat(String(m.volume || m.volume24h || '0'))
+      if (vol > 500_000_000) return false
+
+      // Skip markets asking "which has most upside" without a close date (non-binary vague)
+      if (title.includes('upside') && !m.closingDate && !m.expirationDate) return false
+
+      // Skip very short titles that are likely junk
+      if (title.length < 10) return false
+
       return true
     }).slice(0, 100)
 
@@ -110,8 +132,8 @@ export async function fetchMyriad(): Promise<Market[]> {
           return m.category || m.topic || inferCategory(m.title || m.question || '')
         })(),
         url,
-        status:            'active' as const,
-        fetched_at:        new Date().toISOString(),
+        status:             'active' as const,
+        fetched_at:         new Date().toISOString(),
         probability_change: null,
         image_url:          m.imageUrl || m.image || null,
       }
