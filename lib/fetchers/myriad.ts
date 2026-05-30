@@ -44,22 +44,19 @@ export async function fetchMyriad(): Promise<Market[]> {
       // Skip vague multi-choice markets with no close date
       if (!m.closingDate && !m.expirationDate && !m.expiresAt && title.length < 20) return false
 
-      // Skip markets with absurd volume (> $500M is clearly wrong data)
-      const vol = parseFloat(String(m.volume || m.volume24h || '0'))
-      if (vol > 500_000_000) return false
-
-      // Skip markets asking "which has most upside" without a close date (non-binary vague)
+      // Skip markets asking "which has most upside" without a close date
       if (title.includes('upside') && !m.closingDate && !m.expirationDate) return false
 
       // Skip very short titles that are likely junk
       if (title.length < 10) return false
 
-      // ← ADD THIS: skip already-expired markets
+      // Skip already-expired markets
       const rawDate = m.closingDate || m.expirationDate || m.expiresAt || null
       if (rawDate && new Date(rawDate) < new Date()) return false
 
-      const volCheck = parseFloat(String(m.volume || m.volume24h || '0'))
-      if (volCheck > 500_000_000) return false
+      // Skip markets with absurd volume (> $500M is clearly wrong data)
+      const vol = parseFloat(String(m.volume || m.volume24h || '0'))
+      if (vol > 500_000_000) return false
 
       return true
     }).slice(0, 100)
