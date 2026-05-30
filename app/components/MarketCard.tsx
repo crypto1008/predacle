@@ -22,7 +22,7 @@ interface Market {
 
 const PLATFORM_LABELS: Record<string, string> = {
   polymarket: 'Polymarket', kalshi: 'Kalshi', myriad: 'Myriad',
-  manifold: 'Manifold', limitless: 'Limitless', azuro: ''Bookmaker',
+  manifold: 'Manifold', limitless: 'Limitless', azuro: 'Bookmaker',
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
