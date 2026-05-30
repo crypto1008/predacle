@@ -64,7 +64,7 @@ export async function generateMetadata(
     '. Compare odds across Polymarket, Kalshi, Manifold and more on Predacle.'
 
   return {
-    title,
+    title: { absolute: title },
     description,
     alternates: { canonical: url },
     openGraph: { title, description, url, siteName: 'Predacle', type: 'website' },
