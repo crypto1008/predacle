@@ -15,7 +15,7 @@ const PLATFORM_COLORS: Record<string, string> = {
 
 const PLATFORM_SHORT: Record<string, string> = {
   polymarket: 'POLY', kalshi: 'KALS', myriad: 'MYRI',
-  manifold:   'MANI', limitless: 'LIMI', azuro: 'AZUR',
+  manifold:   'MANI', limitless: 'LIMI', azuro: 'BOOK',
 }
 
 function getProbColor(p: number | null) {

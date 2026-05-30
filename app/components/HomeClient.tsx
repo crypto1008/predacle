@@ -43,7 +43,7 @@ const TABS = [
   { label: 'Myriad',     value: 'myriad' },
   { label: 'Manifold',   value: 'manifold' },
   { label: 'Limitless',  value: 'limitless' },
-  { label: 'Azuro',      value: 'azuro' },
+  { label: 'Bookmaker',      value: 'azuro' },
 ]
 
 const CATEGORIES = [
@@ -280,7 +280,8 @@ export default function HomeClient() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
             {Object.entries(PLATFORM_COLORS).map(([platform, color]) => {
               const count = stats?.platforms.find(p => p.platform === platform)?.market_count
-              const label = platform.charAt(0).toUpperCase() + platform.slice(1)
+              const DISPLAY: Record<string, string> = { azuro: 'Bookmaker', limitless: 'Limitless' }
+              const label = DISPLAY[platform] || platform.charAt(0).toUpperCase() + platform.slice(1)
               return (
                 <a key={platform} href={`/markets?platform=${platform}`}
                   style={{

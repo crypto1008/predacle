@@ -39,7 +39,7 @@ const PLATFORMS = [
   { label: 'Myriad',        value: 'myriad' },
   { label: 'Manifold',      value: 'manifold' },
   { label: 'Limitless',     value: 'limitless' },
-  { label: 'Azuro',         value: 'azuro' },
+  { label: 'Bookmaker',         value: 'azuro' },
 ]
 
 const SORTS = [

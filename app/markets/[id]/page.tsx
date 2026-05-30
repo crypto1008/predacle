@@ -35,13 +35,13 @@ interface AISummary {
 
 const PLATFORM_LABELS: Record<string, string> = {
   polymarket: 'Polymarket', kalshi: 'Kalshi', myriad: 'Myriad',
-  manifold: 'Manifold', limitless: 'Limitless', azuro: 'Azuro',
+  manifold: 'Manifold', limitless: 'Limitless', azuro: 'Bookmaker',
 }
 
 const PLATFORM_URLS: Record<string, string> = {
   polymarket: 'https://polymarket.com', kalshi: 'https://kalshi.com',
   myriad: 'https://myriad.markets', manifold: 'https://manifold.markets',
-  limitless: 'https://limitless.exchange', azuro: 'https://azuro.org',
+  limitless: 'https://limitless.exchange', azuro: 'https://bookmaker.xyz',
 }
 
 const PLATFORM_COLORS: Record<string, string> = {
