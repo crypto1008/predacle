@@ -6,7 +6,7 @@ import { Suspense } from 'react'
 import Header from '../../components/Header'
 import Footer from '../../components/Footer'
 
-interface Market {
+export interface Market {
   id: string; platform: string; question: string
   probability: number | null; volume: number | null
   volume_label: string | null; end_date: string | null
@@ -116,12 +116,12 @@ function useDark() {
   return dark
 }
 
-function MarketDetail({ id }: { id: string }) {
+function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market | null }) {
   const router = useRouter()
   const dark   = useDark()
 
-  const [market,         setMarket]         = useState<Market | null>(null)
-  const [loading,        setLoading]        = useState(true)
+  const [market,         setMarket]         = useState<Market | null>(initialMarket)
+  const [loading,        setLoading]        = useState(!initialMarket)
   const [trading,        setTrading]        = useState(false)
   const [notFound,       setNotFound]       = useState(false)
   const [copied,         setCopied]         = useState(false)
@@ -135,6 +135,7 @@ function MarketDetail({ id }: { id: string }) {
   const [platformHealth, setPlatformHealth] = useState<'live' | 'delayed' | 'offline' | null>(null)
 
   useEffect(() => {
+    if (initialMarket) return
     const load = async () => {
       setLoading(true)
       try {
@@ -146,7 +147,7 @@ function MarketDetail({ id }: { id: string }) {
       finally { setLoading(false) }
     }
     load()
-  }, [id])
+  }, [id, initialMarket])
 
   useEffect(() => {
     if (!market) return
@@ -632,13 +633,13 @@ function MarketDetail({ id }: { id: string }) {
   )
 }
 
-export default function MarketDetailClient({ id }: { id: string }) {
+export default function MarketDetailClient({ id, initialMarket }: { id: string; initialMarket: Market | null }) {
   return (
     <>
       <Suspense fallback={<div style={{ height: 56, background: '#fff', borderBottom: '1px solid #e8ecf0' }} />}>
         <Header />
       </Suspense>
-      <MarketDetail id={id} />
+      <MarketDetail id={id} initialMarket={initialMarket} />
       <Footer />
     </>
   )

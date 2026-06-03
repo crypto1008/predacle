@@ -1,15 +1,9 @@
 import type { Metadata } from 'next'
-import MarketDetailClient from './MarketDetailClient'
+import MarketDetailClient, { type Market } from './MarketDetailClient'
 
 const PLATFORM_LABELS: Record<string, string> = {
   polymarket: 'Polymarket', kalshi: 'Kalshi', myriad: 'Myriad',
   manifold: 'Manifold', limitless: 'Limitless', azuro: 'Bookmaker',
-}
-
-type MarketMeta = {
-  id: string; question: string; platform: string
-  probability: number | null; volume_label: string | null
-  end_date_label: string | null; category: string | null
 }
 
 function getBaseUrl() {
@@ -18,7 +12,7 @@ function getBaseUrl() {
   return 'http://localhost:3000'
 }
 
-async function getMarket(id: string): Promise<MarketMeta | null> {
+async function getMarket(id: string): Promise<Market | null> {
   try {
     const res = await fetch(`${getBaseUrl()}/api/markets/${encodeURIComponent(id)}`, {
       next: { revalidate: 300 }, // matches your 5-min data refresh
@@ -72,7 +66,7 @@ export async function generateMetadata(
   }
 }
 
-function buildJsonLd(market: MarketMeta, id: string) {
+function buildJsonLd(market: Market, id: string) {
   const base = getBaseUrl()
   const url = `${base}/markets/${id}`
   const pct = market.probability != null ? Math.round(market.probability * 100) : null
@@ -124,7 +118,7 @@ export default async function MarketPage(
           dangerouslySetInnerHTML={{ __html: JSON.stringify(buildJsonLd(market, id)) }}
         />
       )}
-      <MarketDetailClient id={id} />
+      <MarketDetailClient id={id} initialMarket={market} />
     </>
   )
 }
