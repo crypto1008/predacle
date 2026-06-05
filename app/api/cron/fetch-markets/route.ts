@@ -149,6 +149,17 @@ export async function GET(request: NextRequest) {
     .lt('fetched_at', new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString())
     .eq('status', 'active')
 
+  // Close any active market not refreshed in the last 12 hours. When a market
+  // resolves or is delisted it drops out of the platform's active feed and
+  // stops being re-fetched, so a stale fetched_at reliably means "no longer
+  // live". Any market that reappears in a later fetch is set back to 'active'
+  // by the upsert above, so this self-corrects.
+  await supabaseAdmin
+    .from('markets')
+    .update({ status: 'closed' })
+    .eq('status', 'active')
+    .lt('fetched_at', new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString())
+
   return NextResponse.json({
     success: true,
     marketsCount: markets.length,
