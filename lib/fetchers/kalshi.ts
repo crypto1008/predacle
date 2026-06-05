@@ -137,12 +137,12 @@ export async function fetchKalshi(): Promise<Market[]> {
 
   for (const { ticker: series, category } of SERIES) {
     try {
-      const path    = `/trade-api/v2/markets?limit=10&status=open&series_ticker=${series}&min_close_ts=${nowTs}`
+      const path    = `/trade-api/v2/markets?limit=100&status=open&series_ticker=${series}&min_close_ts=${nowTs}`
       const headers = getKalshiHeaders('GET', path)
       if (Object.keys(headers).length === 0) continue
 
       const res = await fetch(`${BASE}${path}`, { headers, cache: 'no-store' })
-      if (res.status === 429) { console.log('Kalshi: rate limited'); break }
+      if (res.status === 429) { console.log('Kalshi: rate limited, backing off'); await sleep(400); continue }
       if (!res.ok) { await sleep(100); continue }
 
       const data    = await res.json()
@@ -157,7 +157,7 @@ export async function fetchKalshi(): Promise<Market[]> {
         }
       }
 
-      await sleep(120)
+      await sleep(250)
 
     } catch (e: any) {
       console.error(`Kalshi ${series}:`, e.message)

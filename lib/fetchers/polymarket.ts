@@ -4,7 +4,7 @@ import { Market } from '../types'
 export async function fetchPolymarket(): Promise<Market[]> {
   try {
     const response = await fetch(
-      'https://gamma-api.polymarket.com/events?active=true&closed=false&limit=100&order=volume24hr&ascending=false',
+      'https://gamma-api.polymarket.com/events?active=true&closed=false&limit=200&order=volume24hr&ascending=false',
       {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
@@ -129,7 +129,7 @@ export async function fetchPolymarket(): Promise<Market[]> {
       if (seen.has(m.id)) return false
       seen.add(m.id)
       return true
-    }).slice(0, 100)
+    }).slice(0, 500)
 
     console.log(`Polymarket: ${deduped.length} markets after prop bet filter`)
     return deduped
