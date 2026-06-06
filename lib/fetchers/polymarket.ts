@@ -35,6 +35,7 @@ export async function fetchPolymarket(): Promise<Market[]> {
         if (/^Game \d+:/i.test(m.question)) continue
         // Skip O/U lines: "Points O/U 24.5", "Rebounds O/U 8.5"
         if (/\bO\/U\b/i.test(m.question)) continue
+        if (/\b(handicap|moneyline|odd\/even|completed match|to score first|first (blood|baron|tower|inning)|map \d+|set \d+ winner|game \d+ winner|total (points|runs|maps|kills|games))\b/i.test(m.question)) continue
         // Skip dust markets under $50 volume (junk markets with no real activity)
         const mVol = parseFloat(m.volume || m.volumeClob || 0)
         if (mVol > 0 && mVol < 50) continue
