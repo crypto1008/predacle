@@ -1,65 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { matchMarkets, isReal } from '@/lib/match'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const minGap = parseFloat(searchParams.get('minGap') || '0.03')
   const limit = parseInt(searchParams.get('limit') || '50')
+  const realOnly = searchParams.get('realOnly') === 'true'
 
   try {
-    // Get all active markets with fingerprints and probabilities
+    // Pull active, priced markets. Note: we now need end_date (for date bucketing)
+    // and volume (to pick one representative price per platform).
     const { data, error } = await supabaseAdmin
       .from('markets')
-      .select('id, platform, question, probability, url, category, fingerprint, volume_label')
+      .select('id, platform, question, probability, url, category, volume, volume_label, end_date')
       .eq('status', 'active')
-      .not('fingerprint', 'is', null)
       .not('probability', 'is', null)
       .order('fetched_at', { ascending: false })
       .limit(5000)
 
     if (error) throw error
 
-    // Group by fingerprint
-    const groups: Record<string, any[]> = {}
-    data?.forEach((market) => {
-      if (!market.fingerprint) return
-      if (!groups[market.fingerprint]) groups[market.fingerprint] = []
-      groups[market.fingerprint].push(market)
-    })
+    // Smart cross-platform clustering (threshold + date + subject + topic similarity)
+    const { crossClusters, realClusters } = matchMarkets(data || [])
+    const clusters = realOnly ? realClusters : crossClusters
 
-    // Find arbitrage opportunities
-    const arbitrage = Object.entries(groups)
-      .filter(([_, markets]) => {
-        const platforms = new Set(markets.map((m) => m.platform))
-        return platforms.size >= 2
-      })
-      .map(([fingerprint, markets]) => {
-        const withProb = markets.filter((m) => m.probability !== null)
-        if (withProb.length < 2) return null
+    // One representative price per platform (highest volume) avoids double-counting
+    const repByPlatform = (g: any[]) => {
+      const b: Record<string, any> = {}
+      for (const m of g) {
+        const v = m.volume || 0
+        if (!b[m.platform] || v > (b[m.platform].volume || 0)) b[m.platform] = m
+      }
+      return b
+    }
 
-        const probs = withProb.map((m) => m.probability as number)
+    const opportunities = clusters
+      .map((g: any[]) => {
+        const reps = Object.values(repByPlatform(g)) as any[]
+        const priced = reps.filter((m) => m.probability != null)
+        if (priced.length < 2) return null
+
+        const probs = priced.map((m) => m.probability as number)
         const maxProb = Math.max(...probs)
         const minProb = Math.min(...probs)
         const gap = maxProb - minProb
-
-        const highMarket = withProb.find((m) => m.probability === maxProb)
-        const lowMarket = withProb.find((m) => m.probability === minProb)
+        const highMarket = priced.find((m) => m.probability === maxProb)
+        const lowMarket = priced.find((m) => m.probability === minProb)
 
         return {
-          fingerprint,
-          question: markets[0].question,
-          category: markets[0].category,
+          fingerprint: g[0].id,                         // stable key for React lists
+          question: g[0].question,
+          category: g[0].category,
           gap: Math.round(gap * 100) / 100,
           gapPercent: Math.round(gap * 100),
-          markets: withProb.map((m) => ({
+          threshold: g[0]._th || null,                  // e.g. "gt:100000" or null (binary)
+          endDate: g[0]._date || null,
+          markets: reps.map((m) => ({
             platform: m.platform,
-            probability: Math.round((m.probability as number) * 100),
+            probability: m.probability == null ? null : Math.round((m.probability as number) * 100),
             url: m.url,
             volume: m.volume_label,
           })),
           highPlatform: highMarket?.platform,
           lowPlatform: lowMarket?.platform,
-          platformCount: new Set(markets.map((m) => m.platform)).size,
+          platformCount: reps.length,
+          realMoney: reps.filter((m) => isReal(m.platform)).length >= 2,
+          // flag stale/extreme prices (0% / 100%) so the UI can mark them "verify"
+          suspect: reps.some((m) => m.probability != null && (m.probability <= 0.005 || m.probability >= 0.995)),
         }
       })
       .filter((g): g is NonNullable<typeof g> => g !== null && g.gap >= minGap)
@@ -67,9 +75,9 @@ export async function GET(request: NextRequest) {
       .slice(0, limit)
 
     return NextResponse.json({
-      arbitrageCount: arbitrage.length,
+      arbitrageCount: opportunities.length,
       minGapUsed: minGap,
-      opportunities: arbitrage,
+      opportunities,
     })
   } catch (error: any) {
     return NextResponse.json(
