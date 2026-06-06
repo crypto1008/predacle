@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { matchMarkets, isReal } from '@/lib/match'
 
+// Supabase caps each query at 1000 rows, so paginate to get the whole table.
+async function fetchActiveMarkets() {
+  const cols = 'id, platform, question, probability, url, category, volume, volume_label, end_date'
+  const PAGE = 1000
+  const all: any[] = []
+  for (let from = 0; from < 50000; from += PAGE) {
+    const { data, error } = await supabaseAdmin
+      .from('markets')
+      .select(cols)
+      .eq('status', 'active')
+      .order('id', { ascending: true })       // stable order for pagination
+      .range(from, from + PAGE - 1)
+    if (error) throw error
+    if (!data || data.length === 0) break
+    all.push(...data)
+    if (data.length < PAGE) break
+  }
+  return all
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const minGap = parseFloat(searchParams.get('minGap') || '0.03')
@@ -10,41 +30,24 @@ export async function GET(request: NextRequest) {
   const debug = searchParams.get('debug') === '1'
 
   try {
-    const { data, error } = await supabaseAdmin
-      .from('markets')
-      .select('id, platform, question, probability, url, category, volume, volume_label, end_date')
-      .eq('status', 'active')
-      .not('probability', 'is', null)
-      .order('fetched_at', { ascending: false })
-      .limit(5000)
+    const data = await fetchActiveMarkets()
+    const { crossClusters, realClusters } = matchMarkets(data)
 
-    if (error) throw error
-
-    const { crossClusters, realClusters } = matchMarkets(data || [])
-
-    // ── DEBUG: report what the route actually sees ──────────────────────
     if (debug) {
       const byPlatform: Record<string, number> = {}
-      for (const d of data || []) byPlatform[d.platform] = (byPlatform[d.platform] || 0) + 1
+      for (const d of data) byPlatform[d.platform] = (byPlatform[d.platform] || 0) + 1
       return NextResponse.json({
         debug: true,
-        rowsPulled: (data || []).length,
+        rowsPulled: data.length,
         byPlatform,
         crossClusters: crossClusters.length,
         realClusters: realClusters.length,
-        sampleCross: crossClusters.slice(0, 6).map((g: any[]) => ({
+        sampleCross: crossClusters.slice(0, 8).map((g: any[]) => ({
           platforms: [...new Set(g.map((x) => x.platform))],
           questions: g.map((x) => (x.question || '').slice(0, 45)),
         })),
-        sampleRows: (data || []).slice(0, 4).map((d: any) => ({
-          platform: d.platform,
-          end_date: d.end_date,
-          probability: d.probability,
-          question: (d.question || '').slice(0, 40),
-        })),
       })
     }
-    // ────────────────────────────────────────────────────────────────────
 
     const clusters = realOnly ? realClusters : crossClusters
     const repByPlatform = (g: any[]) => {
