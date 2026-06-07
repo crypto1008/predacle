@@ -1,4 +1,7 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
+import Header from '../components/Header'
+import Footer from '../components/Footer'
 import DivergenceClient from './DivergenceClient'
 
 export const metadata: Metadata = {
@@ -8,5 +11,13 @@ export const metadata: Metadata = {
 }
 
 export default function ArbitragePage() {
-  return <DivergenceClient />
+  return (
+    <>
+      <Suspense fallback={null}>
+        <Header />
+      </Suspense>
+      <DivergenceClient />
+      <Footer />
+    </>
+  )
 }
