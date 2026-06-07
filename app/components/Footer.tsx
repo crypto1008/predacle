@@ -138,6 +138,7 @@ export default function Footer() {
           <div>
             <p style={head}>Company</p>
             <ul style={{ listStyle: 'none', ...col }}>
+              <li><Link href="/pro" style={{ ...lnk, color: '#5f5cf0', fontWeight: 600 }}>Predacle Pro</Link></li>
               <li><Link href="/about"        style={lnk}>About</Link></li>
               <li><Link href="/how-it-works" style={lnk}>How it works</Link></li>
               <li><Link href="/faq"          style={lnk}>FAQ</Link></li>

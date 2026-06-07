@@ -87,6 +87,19 @@ export default function Header() {
               <span style={{ fontSize: 14, lineHeight: 1 }}>⇄</span> Divergence
             </Link>
 
+            {/* Pro link - desktop */}
+            <Link href="/pro" className="pro-link"
+              style={{
+                display: 'flex', alignItems: 'center', flexShrink: 0,
+                padding: '6px 10px', fontSize: 13, fontWeight: 600, borderRadius: 8,
+                textDecoration: 'none', whiteSpace: 'nowrap', color: '#5f5cf0',
+                background: pathname === '/pro' ? (dark ? '#1e1b4b' : '#ede9fe') : 'transparent',
+                transition: 'all 0.15s',
+              }}
+              aria-current={pathname === '/pro' ? 'page' : undefined}>
+              Pro
+            </Link>
+
             {/* Category tabs — desktop */}
             <nav className="scroll-x" style={{ display: 'flex', gap: 2, flex: 1, overflowX: 'auto' }} aria-label="Market categories">
               {CATEGORIES.map(cat => {
@@ -149,6 +162,14 @@ export default function Header() {
           {/* Mobile category menu */}
           {menuOpen && (
             <div style={{ borderTop: `1px solid ${dark ? '#1e2330' : '#e8ecf0'}`, padding: '12px 0', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <Link href="/pro" onClick={() => setMenuOpen(false)}
+                style={{
+                  padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 20,
+                  textDecoration: 'none', display: 'flex', alignItems: 'center',
+                  background: dark ? '#1e1b4b' : '#ede9fe', color: '#5f5cf0',
+                }}>
+                Pro
+              </Link>
               <Link href="/arbitrage" onClick={() => setMenuOpen(false)}
                 style={{
                   padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 20,
@@ -181,6 +202,7 @@ export default function Header() {
         @media (max-width: 768px) {
           .mobile-menu-btn  { display: flex !important; }
           .desktop-search   { display: none !important; }
+          .pro-link        { display: none !important; }
           .divergence-link  { display: none !important; }
           nav[aria-label="Market categories"] { display: none !important; }
           .mobile-search    { display: block !important; }
