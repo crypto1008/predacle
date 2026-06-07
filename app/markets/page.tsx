@@ -54,7 +54,7 @@ const QUICK_FILTERS = [
   { label: '🔥 Hot',          sort: 'volume',      min_prob: '',    max_prob: '',    tip: 'Highest volume' },
   { label: '⏰ Closing Soon', sort: 'end_date',    min_prob: '',    max_prob: '',    tip: 'Resolving soon' },
   { label: '🆕 New',          sort: 'newest',      min_prob: '',    max_prob: '',    tip: 'Added recently' },
-  { label: '🎯 Near Certain', sort: 'probability', min_prob: '0.8', max_prob: '',    tip: 'Above 80%' },
+  { label: '🎯 Near Certain', sort: 'probability', min_prob: '0.8', max_prob: '0.97', tip: '80–97% — confident, not yet decided' },
   { label: '🎲 Toss-ups',     sort: 'probability', min_prob: '0.4', max_prob: '0.6', tip: '40–60% — genuinely uncertain' },
 ]
 
