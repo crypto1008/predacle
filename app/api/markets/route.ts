@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -11,18 +10,17 @@ export async function GET(request: NextRequest) {
     const search   = searchParams.get('q')
     const sort     = searchParams.get('sort') || 'fetched_at'
     const minProb  = searchParams.get('min_prob')
+    const maxProb  = searchParams.get('max_prob')
     const offset   = (page - 1) * limit
-
     let query = supabaseAdmin
       .from('markets')
       .select('*', { count: 'exact' })
       .eq('status', 'active')
-
     if (platform) query = query.eq('platform', platform)
     if (category) query = query.eq('category', category)
     if (search)   query = query.ilike('question', `%${search}%`)
     if (minProb)  query = query.gte('probability', parseFloat(minProb))
-
+    if (maxProb)  query = query.lte('probability', parseFloat(maxProb))
     if (sort === 'probability') {
       query = query.order('probability', { ascending: false, nullsFirst: false })
     } else if (sort === 'volume') {
@@ -36,15 +34,11 @@ export async function GET(request: NextRequest) {
     } else {
       query = query.order('fetched_at', { ascending: false })
     }
-
     query = query.range(offset, offset + limit - 1)
-
     const { data, count, error } = await query
-
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
-
     return NextResponse.json({
       markets:    data || [],
       total:      count || 0,

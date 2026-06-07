@@ -51,10 +51,11 @@ const SORTS = [
 ]
 
 const QUICK_FILTERS = [
-  { label: '🔥 Hot',          sort: 'volume',      min_prob: '',    tip: 'Highest volume' },
-  { label: '⏰ Closing Soon', sort: 'end_date',    min_prob: '',    tip: 'Resolving soon' },
-  { label: '🆕 New',          sort: 'newest',      min_prob: '',    tip: 'Added recently' },
-  { label: '🎯 Near Certain', sort: 'probability', min_prob: '0.8', tip: 'Above 80%' },
+  { label: '🔥 Hot',          sort: 'volume',      min_prob: '',    max_prob: '',    tip: 'Highest volume' },
+  { label: '⏰ Closing Soon', sort: 'end_date',    min_prob: '',    max_prob: '',    tip: 'Resolving soon' },
+  { label: '🆕 New',          sort: 'newest',      min_prob: '',    max_prob: '',    tip: 'Added recently' },
+  { label: '🎯 Near Certain', sort: 'probability', min_prob: '0.8', max_prob: '',    tip: 'Above 80%' },
+  { label: '🎲 Toss-ups',     sort: 'probability', min_prob: '0.4', max_prob: '0.6', tip: '40–60% — genuinely uncertain' },
 ]
 
 const LIMIT = 20
@@ -122,6 +123,7 @@ function MarketsContent() {
   const sort     = searchParams?.get('sort')     || ''
   const q        = searchParams?.get('q')        || ''
   const min_prob = searchParams?.get('min_prob') || ''
+  const max_prob = searchParams?.get('max_prob') || ''
 
   const buildUrl = useCallback((params: Record<string, string>) => {
     const p = new URLSearchParams()
@@ -130,6 +132,7 @@ function MarketsContent() {
     if (params.sort)     p.set('sort',     params.sort)
     if (params.q)        p.set('q',        params.q)
     if (params.min_prob) p.set('min_prob', params.min_prob)
+    if (params.max_prob) p.set('max_prob', params.max_prob)
     const qs = p.toString()
     return `/markets${qs ? `?${qs}` : ''}`
   }, [])
@@ -146,6 +149,7 @@ function MarketsContent() {
       if (sort)     params.set('sort',     sort)
       if (q)        params.set('q',        q)
       if (min_prob) params.set('min_prob', min_prob)
+      if (max_prob) params.set('max_prob', max_prob)
       const res  = await fetch(`/api/markets?${params}`)
       const data = await res.json()
       if (append) setMarkets(prev => [...prev, ...(data.markets || [])])
@@ -153,18 +157,18 @@ function MarketsContent() {
       setTotal(data.total || 0)
     } catch (e) { console.error(e) }
     finally { setLoading(false); setLoadingMore(false) }
-  }, [category, platform, sort, q, min_prob])
+  }, [category, platform, sort, q, min_prob, max_prob])
 
   useEffect(() => { setPage(1); fetchMarkets(1, false) }, [fetchMarkets])
 
   const handleLoadMore = () => { const next = page + 1; setPage(next); fetchMarkets(next, true) }
   const setParam = (key: string, val: string) =>
-    router.push(buildUrl({ category, platform, sort, q, min_prob, [key]: val }))
+    router.push(buildUrl({ category, platform, sort, q, min_prob, max_prob, [key]: val }))
 
-  const activeQuickFilter = QUICK_FILTERS.findIndex(f => f.sort === sort && f.min_prob === min_prob)
+  const activeQuickFilter = QUICK_FILTERS.findIndex(f => f.sort === sort && f.min_prob === min_prob && (f.max_prob || '') === max_prob)
   const handleQuickFilter = (idx: number) => {
-    if (activeQuickFilter === idx) router.push(buildUrl({ category, platform, q, sort: '', min_prob: '' }))
-    else { const f = QUICK_FILTERS[idx]; router.push(buildUrl({ category, platform, q, sort: f.sort, min_prob: f.min_prob })) }
+    if (activeQuickFilter === idx) router.push(buildUrl({ category, platform, q, sort: '', min_prob: '', max_prob: '' }))
+    else { const f = QUICK_FILTERS[idx]; router.push(buildUrl({ category, platform, q, sort: f.sort, min_prob: f.min_prob, max_prob: f.max_prob || '' })) }
   }
 
   const hasMore = markets.length < total
@@ -212,7 +216,7 @@ function MarketsContent() {
                 <SearchAutocomplete
                   placeholder="Search markets..."
                   initialValue={q}
-                  onSearch={(newQ) => router.push(buildUrl({ category, platform, sort, q: newQ, min_prob }))}
+                  onSearch={(newQ) => router.push(buildUrl({ category, platform, sort, q: newQ, min_prob, max_prob }))}
                 />
               </div>
 
@@ -221,7 +225,7 @@ function MarketsContent() {
               </select>
 
               <select value={sort}
-                onChange={e => router.push(buildUrl({ category, platform, q, sort: e.target.value, min_prob: '' }))}
+                onChange={e => router.push(buildUrl({ category, platform, q, sort: e.target.value, min_prob: '', max_prob: '' }))}
                 style={selStyle}>
                 {SORTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
@@ -272,7 +276,7 @@ function MarketsContent() {
               </button>
             )
           })}
-          {(category || platform || q || sort || min_prob) && (
+          {(category || platform || q || sort || min_prob || max_prob) && (
             <button onClick={() => router.push('/markets')}
               style={{ padding: '5px 12px', fontSize: 12, fontWeight: 500, borderRadius: 20, border: `1px solid ${border}`, background: 'transparent', color: txt3, cursor: 'pointer', marginLeft: 'auto', flexShrink: 0, fontFamily: 'inherit' }}>
               × Clear
@@ -302,7 +306,7 @@ function MarketsContent() {
             {q && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, background: dark ? '#1e1b4b' : '#ede9fe', color: '#5f5cf0', padding: '3px 10px', borderRadius: 20, fontWeight: 500 }}>
                 "{q}"
-                <button onClick={() => router.push(buildUrl({ category, platform, sort, q: '', min_prob }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5f5cf0', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                <button onClick={() => router.push(buildUrl({ category, platform, sort, q: '', min_prob, max_prob }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5f5cf0', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
               </span>
             )}
           </div>
