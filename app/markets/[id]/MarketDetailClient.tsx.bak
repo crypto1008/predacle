@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { Suspense } from 'react'
 import Header from '../../components/Header'
 import Footer from '../../components/Footer'
-import { affiliateUrl } from '@/lib/affiliate'
 
 export interface Market {
   id: string; platform: string; question: string
@@ -203,7 +202,7 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ market_id: market.id, platform: market.platform, url: market.url }),
     }).catch(() => {})
-    window.open(affiliateUrl(market.platform, market.url), '_blank', 'noopener,noreferrer')
+    window.open(market.url, '_blank', 'noopener,noreferrer')
     setTimeout(() => setTrading(false), 1000)
   }
 
@@ -561,7 +560,7 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
               const cpColor = getProbColor(cp.probability)
               const cpLabel = PLATFORM_LABELS[cp.platform] || cp.platform
               return (
-                <a key={cp.id} href={affiliateUrl(cp.platform, cp.url)} target="_blank" rel="noopener noreferrer"
+                <a key={cp.id} href={cp.url} target="_blank" rel="noopener noreferrer"
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 10, background: cardBg, border: `1px solid ${border}`, textDecoration: 'none', transition: 'border-color 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = '#c4b5fd'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = border}>

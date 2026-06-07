@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { affiliateUrl } from '@/lib/affiliate'
 
 /* ---------- types (shape returned by /api/arbitrage) ---------- */
 interface OppMarket {
@@ -241,7 +240,7 @@ function OppCard({ opp, dark }: { opp: Opportunity; dark: boolean }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ market_id: `${opp.fingerprint}:${m.platform}`, platform: m.platform, url: m.url }),
     }).catch(() => {})
-    window.open(affiliateUrl(m.platform, m.url), '_blank', 'noopener,noreferrer')
+    window.open(m.url, '_blank', 'noopener,noreferrer')
   }
 
   return (
