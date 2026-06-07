@@ -93,7 +93,22 @@ function mapMarket(m: any, category: string): Market {
   const vol24 = parseFloat(m.volume_24h_fp || '0')
   const vol   = volFp > 0 ? volFp : vol24 > 0 ? vol24 : null
 
-  const question = (m.title || '').replace(/\s+/g, ' ').trim()
+  let question = (m.title || '').replace(/\s+/g, ' ').trim()
+
+  // Kalshi crypto price ladders share one event title across many strike rungs
+  // (e.g. 50+ identical "Bitcoin price on Jun 12, 2026?" rows). The strike is in
+  // the ticker (…-T49999.99). Append it so each rung reads distinctly — which also
+  // lets the cross-platform matcher bucket rungs by strike instead of collapsing them.
+  if (category === 'crypto') {
+    const st = ticker.match(/-T(\d+(?:\.\d+)?)$/)
+    if (st && !/\$\d/.test(question)) {
+      const sub    = (m.yes_sub_title || '').toString().replace(/\s+/g, ' ').trim()
+      const strike = Math.round(parseFloat(st[1]))
+      const money  = `$${strike.toLocaleString()}`
+      question = sub ? `${question} — ${sub}` : `${question} — ≥ ${money}`
+    }
+  }
+
   const series   = (m.series_ticker || ticker.split('-')[0] || '').toLowerCase()
   const url      = series ? `https://kalshi.com/markets/${series}` : 'https://kalshi.com'
 
