@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import SearchAutocomplete from './SearchAutocomplete'
 
 const CATEGORIES = [
@@ -18,11 +18,13 @@ const CATEGORIES = [
 export default function Header() {
   const router       = useRouter()
   const searchParams = useSearchParams()
+  const pathname     = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
   const [dark, setDark]         = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
   const activeCategory = searchParams?.get('category') || ''
+  const onDivergence   = pathname === '/arbitrage'
 
   useEffect(() => {
     setDark(document.documentElement.classList.contains('dark'))
@@ -71,10 +73,24 @@ export default function Header() {
               </span>
             </Link>
 
+            {/* Divergence link — desktop */}
+            <Link href="/arbitrage" className="divergence-link"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 8,
+                textDecoration: 'none', whiteSpace: 'nowrap', color: '#5f5cf0',
+                background: onDivergence ? (dark ? '#1e1b4b' : '#ede9fe') : 'transparent',
+                border: `1px solid ${dark ? '#312e81' : '#ddd6fe'}`,
+                transition: 'all 0.15s',
+              }}
+              aria-current={onDivergence ? 'page' : undefined}>
+              <span style={{ fontSize: 14, lineHeight: 1 }}>⇄</span> Divergence
+            </Link>
+
             {/* Category tabs — desktop */}
             <nav className="scroll-x" style={{ display: 'flex', gap: 2, flex: 1, overflowX: 'auto' }} aria-label="Market categories">
               {CATEGORIES.map(cat => {
-                const isActive = activeCategory === cat.value
+                const isActive = activeCategory === cat.value && !onDivergence
                 return (
                   <button key={cat.value} onClick={() => handleCategory(cat.value)}
                     style={{
@@ -133,8 +149,17 @@ export default function Header() {
           {/* Mobile category menu */}
           {menuOpen && (
             <div style={{ borderTop: `1px solid ${dark ? '#1e2330' : '#e8ecf0'}`, padding: '12px 0', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <Link href="/arbitrage" onClick={() => setMenuOpen(false)}
+                style={{
+                  padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 20,
+                  textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5,
+                  background: onDivergence ? '#ede9fe' : (dark ? '#1e1b4b' : '#ede9fe'),
+                  color: '#5f5cf0',
+                }}>
+                <span style={{ fontSize: 14, lineHeight: 1 }}>⇄</span> Divergence
+              </Link>
               {CATEGORIES.map(cat => {
-                const isActive = activeCategory === cat.value
+                const isActive = activeCategory === cat.value && !onDivergence
                 return (
                   <button key={cat.value} onClick={() => handleCategory(cat.value)}
                     style={{
@@ -156,6 +181,7 @@ export default function Header() {
         @media (max-width: 768px) {
           .mobile-menu-btn  { display: flex !important; }
           .desktop-search   { display: none !important; }
+          .divergence-link  { display: none !important; }
           nav[aria-label="Market categories"] { display: none !important; }
           .mobile-search    { display: block !important; }
         }
