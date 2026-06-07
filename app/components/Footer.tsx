@@ -21,6 +21,14 @@ export default function Footer() {
   const [email,  setEmail]  = useState('')
   const [status, setStatus] = useState<'idle'|'loading'|'done'|'error'>('idle')
   const [msg,    setMsg]    = useState('')
+  const [marketCount, setMarketCount] = useState<number | null>(null)
+
+  useEffect(() => {
+    fetch('/api/status')
+      .then(r => r.json())
+      .then(d => setMarketCount(d.overall?.totalMarkets ?? null))
+      .catch(() => {})
+  }, [])
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,6 +55,10 @@ export default function Footer() {
   const txt2   = dark ? '#64748b' : '#64748b'
   const inputBg = dark ? '#111318' : '#f5f7fa'
   const inputBorder = dark ? '#1e2330' : '#e8ecf0'
+
+  const countLabel = marketCount && marketCount > 0
+    ? `${(Math.floor(marketCount / 100) * 100).toLocaleString()}+`
+    : '2,300+'
 
   const col: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8 }
   const lnk: React.CSSProperties = { fontSize: 13, color: txt2, textDecoration: 'none' }
@@ -76,7 +88,7 @@ export default function Footer() {
               <span style={{ fontWeight: 700, fontSize: 15, color: txt1 }}>Predacle</span>
             </div>
             <p style={{ fontSize: 13, color: txt2, lineHeight: 1.6, marginBottom: 20, maxWidth: 280 }}>
-              The prediction market aggregator. Browse 1,200+ markets across 6 platforms, updated every 30 minutes.
+              The prediction market aggregator. Browse {countLabel} markets across 6 platforms, updated every 30 minutes.
             </p>
             <p style={{ fontSize: 12, fontWeight: 600, color: txt1, marginBottom: 8 }}>
               Weekly market highlights
