@@ -527,6 +527,7 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
           {aiSummary && (
             <div>
               <p style={{ fontSize: 14, color: txt1, lineHeight: 1.7, marginBottom: 16 }}>{aiSummary.summary}</p>
+              <p style={{ fontSize: 11, color: txt2, lineHeight: 1.5, marginBottom: 16, fontStyle: 'italic' }}>The signal reflects how the AI reads value at the current price: Bullish = underpriced, Bearish = overpriced, Neutral = fairly priced. An opinion, not financial advice.</p>
               <div style={{ background: dark ? '#0d1117' : '#f8fafc', border: `1px solid ${border}`, borderRadius: 10, padding: '14px 16px', marginBottom: 12 }}>
                 <p style={{ fontSize: 11, color: txt2, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Signal Reasoning</p>
                 <p style={{ fontSize: 13, color: txt1, lineHeight: 1.6 }}>{aiSummary.signal_reason}</p>
