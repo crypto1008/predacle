@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import MarketCard from './MarketCard'
 import MarketCardSkeleton from './MarketCardSkeleton'
 import SearchAutocomplete from './SearchAutocomplete'
+import MarketBrief from './MarketBrief'
 
 interface Market {
   id: string; platform: string; question: string
@@ -195,6 +196,10 @@ export default function HomeClient() {
 
       {/* Main */}
       <main id="main" style={{ maxWidth: 1280, margin: '0 auto', padding: '28px 20px 48px' }}>
+
+        {/* AI Market Brief */}
+        <MarketBrief />
+
 
         {/* Trending markets */}
         <section style={{ marginBottom: 44 }}>
