@@ -24,6 +24,8 @@ interface Opportunity {
   platformCount: number
   realMoney: boolean
   suspect: boolean
+  score: number
+  quality: 'high' | 'medium' | 'low'
 }
 interface ApiResponse {
   arbitrageCount: number
@@ -45,6 +47,19 @@ const CATEGORY_LABELS: Record<string, string> = {
 const CATEGORY_ICONS: Record<string, string> = {
   crypto: '₿', sports: '🏆', politics: '🗳️', economics: '📈',
   tech: '💻', science: '🔬', entertainment: '🎬', football: '⚽', other: '🌐',
+}
+
+/* Quality grade styling (light/dark) */
+const QUALITY: Record<string, { label: string; color: string; bgL: string; bgD: string; bdL: string; bdD: string }> = {
+  high:   { label: '🎯 High signal',   color: '#5f5cf0', bgL: '#ede9fe', bgD: '#1e1b4b', bdL: '#c7d2fe', bdD: '#312e81' },
+  medium: { label: 'Medium signal',    color: '#d97706', bgL: '#fffbeb', bgD: '#1c1002', bdL: '#fde68a', bdD: '#78350f' },
+  low:    { label: 'Low signal',       color: '#94a3b8', bgL: '#f1f5f9', bgD: '#1e2330', bdL: '#e2e8f0', bdD: '#2d3748' },
+}
+
+function confColor(c: string) {
+  if (c === 'high') return '#10b981'
+  if (c === 'medium') return '#f59e0b'
+  return '#94a3b8'
 }
 
 function probColor(pct: number) {
@@ -90,6 +105,7 @@ export default function DivergenceClient() {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
   const [realOnly, setRealOnly] = useState(false)
+  const [bestOnly, setBestOnly] = useState(false)
   const dark = useDark()
 
   const load = () => {
@@ -113,7 +129,13 @@ export default function DivergenceClient() {
   const panelBorder = dark ? '#1e2330' : '#e8ecf0'
 
   const opps = data?.opportunities ?? []
-  const shown = realOnly ? opps.filter((o) => o.realMoney) : opps
+  const shown = (realOnly ? opps.filter((o) => o.realMoney) : opps)
+    .filter((o) => !bestOnly || o.quality !== 'low')
+
+  // Surface AI "the play" only on the strongest few, to keep it fast + cheap.
+  const aiEligible = new Set(
+    shown.filter((o) => o.quality !== 'low').slice(0, 8).map((o) => o.fingerprint)
+  )
 
   /* ---- toggle pill ---- */
   const Pill = ({ active, onClick, children }: {
@@ -142,10 +164,12 @@ export default function DivergenceClient() {
         <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', color: headClr, margin: '0 0 8px' }}>
           Price Divergence
         </h1>
-        <p style={{ fontSize: 14, lineHeight: 1.6, color: subClr, maxWidth: 700, margin: 0 }}>
-          Where prediction markets disagree on the same outcome. A bigger gap means platforms are
-          pricing the same event differently — sometimes a real signal, sometimes just thin liquidity
-          on one side. Always open each market and check the live order book before trading. Not financial advice.
+        <p style={{ fontSize: 14, lineHeight: 1.6, color: subClr, maxWidth: 720, margin: 0 }}>
+          Where prediction markets disagree on the same outcome. Ranked by an opportunity score that
+          weighs the size of the gap, how liquid the thinner side is, time to resolution, and whether
+          real money is involved — a bigger gap is sometimes a real signal, sometimes just thin
+          liquidity on one side. Always open each market and check the live order book before trading.
+          Not financial advice.
         </p>
       </div>
 
@@ -157,6 +181,9 @@ export default function DivergenceClient() {
           </span>
         )}
         <div style={{ flex: 1 }} />
+        <Pill active={bestOnly} onClick={() => setBestOnly((v) => !v)}>
+          ✨ Best only
+        </Pill>
         <Pill active={realOnly} onClick={() => setRealOnly((v) => !v)}>
           💰 Real-money only
         </Pill>
@@ -189,17 +216,25 @@ export default function DivergenceClient() {
         }}>
           <div style={{ fontSize: 30, marginBottom: 10 }}>🤝</div>
           <p style={{ fontSize: 15, fontWeight: 600, color: headClr, margin: '0 0 6px' }}>
-            {realOnly ? 'No real-money divergences right now' : 'Markets are largely in agreement'}
+            {realOnly
+              ? 'No real-money divergences right now'
+              : bestOnly
+              ? 'No high-quality opportunities right now'
+              : 'Markets are largely in agreement'}
           </p>
           <p style={{ fontSize: 13, color: subClr, margin: 0 }}>
             {realOnly
               ? 'Try turning off the real-money filter to see play-money disagreements too.'
+              : bestOnly
+              ? 'Turn off “Best only” to see every cross-platform gap, including weaker ones.'
               : 'No significant cross-platform gaps at the moment. Check back later — prices move constantly.'}
           </p>
         </div>
       ) : (
         <div style={gridStyle}>
-          {shown.map((opp) => <OppCard key={opp.fingerprint} opp={opp} dark={dark} />)}
+          {shown.map((opp) => (
+            <OppCard key={opp.fingerprint} opp={opp} dark={dark} showAi={aiEligible.has(opp.fingerprint)} />
+          ))}
         </div>
       )}
     </main>
@@ -214,7 +249,7 @@ const gridStyle: React.CSSProperties = {
 
 /* =================================================================== */
 
-function OppCard({ opp, dark }: { opp: Opportunity; dark: boolean }) {
+function OppCard({ opp, dark, showAi }: { opp: Opportunity; dark: boolean; showAi: boolean }) {
   const cardBg = dark ? '#111318' : '#ffffff'
   const cardBorder = dark ? '#1e2330' : '#e8ecf0'
   const footerBg = dark ? '#0d1117' : '#fafbfc'
@@ -229,8 +264,27 @@ function OppCard({ opp, dark }: { opp: Opportunity; dark: boolean }) {
   const cIcon = opp.category ? (CATEGORY_ICONS[opp.category] || '') : ''
   const closing = getClosingBadge(opp.endDate)
   const ends = fmtDate(opp.endDate)
+  const q = QUALITY[opp.quality] || QUALITY.low
 
   const rows = [...opp.markets].sort((a, b) => (b.probability ?? 0) - (a.probability ?? 0))
+
+  /* ---- AI "the play" (lazy, top cards only; silent until the endpoint exists) ---- */
+  const [play, setPlay] = useState<string | null>(null)
+  const [conf, setConf] = useState<string | null>(null)
+  useEffect(() => {
+    if (!showAi) return
+    let alive = true
+    fetch('/api/ai/opportunity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(opp),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (alive && d && d.play) { setPlay(d.play); setConf(d.confidence || null) } })
+      .catch(() => {})
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAi, opp.fingerprint])
 
   const handleOpen = (m: OppMarket) => (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -265,6 +319,16 @@ function OppCard({ opp, dark }: { opp: Opportunity; dark: boolean }) {
       <div style={{ padding: '14px 14px 12px', flex: 1, display: 'flex', flexDirection: 'column' }}>
         {/* Badges */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10, flexWrap: 'wrap' }}>
+          <span
+            title={`Opportunity score ${opp.score}/100`}
+            style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase',
+              color: q.color, background: dark ? q.bgD : q.bgL,
+              border: `1px solid ${dark ? q.bdD : q.bdL}`, borderRadius: 4, padding: '1px 6px',
+            }}
+          >
+            {q.label}
+          </span>
           {cLabel && (
             <span style={{
               fontSize: 10, color: metaClr, background: catBg, border: `1px solid ${catBorder}`,
@@ -327,6 +391,29 @@ function OppCard({ opp, dark }: { opp: Opportunity; dark: boolean }) {
             gap · {PLATFORM_LABELS[opp.highPlatform] || opp.highPlatform} vs {PLATFORM_LABELS[opp.lowPlatform] || opp.lowPlatform}
           </span>
         </div>
+
+        {/* AI "the play" — renders only once the endpoint returns one */}
+        {play && (
+          <div style={{
+            marginBottom: 14, padding: '9px 10px', borderRadius: 8,
+            background: dark ? '#15131f' : '#faf9ff',
+            border: `1px solid ${dark ? '#312e81' : '#e9e7fb'}`,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: '#5f5cf0' }}>
+                🤖 The play
+              </span>
+              {conf && (
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: confColor(conf) }}>
+                  · {conf} confidence
+                </span>
+              )}
+            </div>
+            <p style={{ fontSize: 12, lineHeight: 1.5, color: dark ? '#cbd5e1' : '#475569', margin: 0 }}>
+              {play}
+            </p>
+          </div>
+        )}
 
         {/* Platform rows */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 'auto' }}>
