@@ -160,9 +160,56 @@ export async function GET(request: NextRequest) {
     .eq('status', 'active')
     .lt('fetched_at', new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString())
 
+  // ---- Price-history snapshots (Phase 11) --------------------------------
+  // Capture every active market's probability roughly every 6 hours so we can
+  // later show movers, 24h change, and sparklines. This runs every cron tick
+  // but only writes when ~6h have passed since the last snapshot, so it's ~4
+  // captures/day per market. It is strictly secondary to the refresh above:
+  // any failure here is logged and swallowed so it can never break the sync.
+  let snapshotted = 0
+  try {
+    let due = true
+    try {
+      const { data: last } = await supabaseAdmin
+        .from('price_snapshots')
+        .select('captured_at')
+        .order('captured_at', { ascending: false })
+        .limit(1)
+        .single()
+      // 5.5h threshold keeps ~6h spacing while tolerating cron timing jitter.
+      if (last && Date.now() - new Date(last.captured_at).getTime() < 5.5 * 60 * 60 * 1000) {
+        due = false
+      }
+    } catch {}
+
+    if (due) {
+      const at = new Date().toISOString()
+      const rows = sanitized
+        .filter((m: any) => m.probability != null)
+        .map((m: any) => ({ market_id: m.id, probability: m.probability, captured_at: at }))
+
+      // Insert in chunks to keep each request small.
+      for (let i = 0; i < rows.length; i += 1000) {
+        const { error } = await supabaseAdmin.from('price_snapshots').insert(rows.slice(i, i + 1000))
+        if (error) { console.error('snapshot insert error:', error.message); break }
+      }
+      snapshotted = rows.length
+
+      // Retention: drop snapshots older than 30 days.
+      await supabaseAdmin
+        .from('price_snapshots')
+        .delete()
+        .lt('captured_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+    }
+  } catch (snapErr: any) {
+    console.error('price snapshot step failed:', snapErr?.message)
+  }
+  // ------------------------------------------------------------------------
+
   return NextResponse.json({
     success: true,
     marketsCount: markets.length,
+    snapshotted,
     platforms: platformCounts,
     errors: Object.keys(errors).length > 0 ? errors : undefined,
   })
