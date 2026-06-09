@@ -39,6 +39,9 @@ async function fetchActiveMarkets() {
 // Strongest clean real-money divergences for the brief. Both legs of the gap
 // must be real money and non-suspect; we headline/link to the highest-volume
 // trusted real leg (never the play-money member that happened to sort first).
+// Myriad-driven gaps are down-weighted: cleaner pairs rank first, and at most
+// one Myriad-involving gap is allowed, so the brief doesn't lean on a single
+// lower-trust source twice.
 function topDivergences(data: any[]) {
   const { realClusters } = matchMarkets(data)
   const repByPlatform = (g: any[]) => {
@@ -46,7 +49,7 @@ function topDivergences(data: any[]) {
     for (const m of g) { const v = m.volume || 0; if (!b[m.platform] || v > (b[m.platform].volume || 0)) b[m.platform] = m }
     return b
   }
-  return (realClusters as any[][])
+  const qualifying = (realClusters as any[][])
     .map((g) => {
       const reps = Object.values(repByPlatform(g)) as any[]
       const priced = reps.filter((m) => m.probability != null)
@@ -74,11 +77,23 @@ function topDivergences(data: any[]) {
         gapPercent,
         high: high.platform as string,
         low: low.platform as string,
+        myriad: high.platform === 'myriad' || low.platform === 'myriad',
       }
     })
     .filter((d): d is NonNullable<typeof d> => !!d)
-    .sort((a, b) => b.gapPercent - a.gapPercent)
-    .slice(0, 2)
+    // Cleaner (non-Myriad) pairs first, then by gap size.
+    .sort((a, b) => (a.myriad === b.myriad ? b.gapPercent - a.gapPercent : (a.myriad ? 1 : -1)))
+
+  // Take up to 2, allowing at most one Myriad-involving gap.
+  const out: typeof qualifying = []
+  let myriadUsed = 0
+  for (const d of qualifying) {
+    if (d.myriad && myriadUsed >= 1) continue
+    if (d.myriad) myriadUsed++
+    out.push(d)
+    if (out.length >= 2) break
+  }
+  return out
 }
 
 export async function GET(_req: NextRequest) {
@@ -141,7 +156,9 @@ export async function GET(_req: NextRequest) {
     }
 
     const list = candidates.map((c, i) => `${i + 1}. [${c.cid}] "${c.question}" — ${c.fact}`).join('\n')
-    const prompt = `You are the editor of a prediction-market brief. For each situation below, write ONE short, substantive line — a genuine observation a sharp reader would value (what the price implies, which venue looks rich or cheap, what is worth watching). Do NOT simply restate the gap size or the volume figure. Honest and specific, no hype, no financial advice, and do not invent specific facts beyond what a knowledgeable reader would already know about the topic.
+    const prompt = `You are the editor of a prediction-market brief. For each situation below, write ONE short, substantive line — a genuine observation a sharp reader would value (what the price implies, what is worth watching). Do NOT simply restate the gap size or the volume figure. Honest and specific, no hype, no financial advice, and do not invent specific facts beyond what a knowledgeable reader would already know about the topic.
+
+For a price divergence, frame it as a disagreement BETWEEN the two venues — do not assume the higher or the lower price is the "correct" one. Note where relevant that a gap can reflect thinner liquidity or a stale quote on one venue, not necessarily stronger conviction.
 
 Situations:
 ${list}
