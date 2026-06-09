@@ -55,6 +55,24 @@ function getFingerprint(question: string): string {
     .join('-')
 }
 
+// Detect price-ladder rungs, e.g.
+//   "Bitcoin price on Jun 12, 2026? — $63,500 or above"
+// The family key is the text before the threshold; the threshold is the dollar
+// figure. Rungs sharing a key are one ladder (same underlying + resolution date).
+// Handles "or/and above|below|higher|lower|more|less". Other ladder phrasings
+// (e.g. ranges) fall through as non-ladders for now and can be added later.
+function parseLadder(question: string): { key: string; threshold: number } | null {
+  if (!question) return null
+  const m = question.match(
+    /^(.*?)\s*[—–-]\s*\$?\s*([\d,]+(?:\.\d+)?)\s*(?:or|and)\s+(?:above|below|higher|lower|more|less)\b/i
+  )
+  if (!m) return null
+  const base = m[1].trim()
+  const threshold = parseFloat(m[2].replace(/,/g, ''))
+  if (!base || !isFinite(threshold)) return null
+  return { key: base.toLowerCase().replace(/\s+/g, ' '), threshold }
+}
+
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -81,19 +99,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, message: 'No markets fetched', errors })
   }
 
-  const sanitized = markets.map((m: any) => ({
-    ...m,
-    probability: m.probability !== null && m.probability !== undefined
-      ? Math.min(0.9999, Math.max(0, parseFloat(String(m.probability)) || 0))
-      : null,
-    volume: m.volume !== null && m.volume !== undefined
-      ? Math.min(999999999999, Math.max(0, parseFloat(String(m.volume)) || 0))
-      : null,
-    traders: m.traders !== null && m.traders !== undefined
-      ? Math.round(Math.abs(parseInt(String(m.traders)) || 0))
-      : null,
-    fingerprint: getFingerprint(m.question || ''),
-  }))
+  const sanitized = markets.map((m: any) => {
+    const ladder = parseLadder(m.question || '')
+    return {
+      ...m,
+      probability: m.probability !== null && m.probability !== undefined
+        ? Math.min(0.9999, Math.max(0, parseFloat(String(m.probability)) || 0))
+        : null,
+      volume: m.volume !== null && m.volume !== undefined
+        ? Math.min(999999999999, Math.max(0, parseFloat(String(m.volume)) || 0))
+        : null,
+      traders: m.traders !== null && m.traders !== undefined
+        ? Math.round(Math.abs(parseInt(String(m.traders)) || 0))
+        : null,
+      fingerprint: getFingerprint(m.question || ''),
+      ladder_key: ladder ? ladder.key : null,
+      ladder_threshold: ladder ? ladder.threshold : null,
+    }
+  })
 
   try {
     const { error: upsertError } = await supabaseAdmin
