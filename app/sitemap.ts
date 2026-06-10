@@ -5,6 +5,12 @@ export const revalidate = 3600
 
 const base = process.env.NEXT_PUBLIC_APP_URL || 'https://predacle.com'
 
+// A price-ladder rung — thin, near-duplicate content we keep out of the sitemap.
+function isLadderRung(question?: string | null): boolean {
+  if (!question) return false
+  return /[—–-]\s*\$\s*[\d,]+(?:\.\d+)?\s*(?:or|and)\s+(?:above|below|higher|lower|more|less)\b/i.test(question)
+}
+
 async function getAllMarkets(): Promise<{ id: string; lastmod: string | null }[]> {
   const pageSize = 1000
   let from = 0
@@ -12,12 +18,14 @@ async function getAllMarkets(): Promise<{ id: string; lastmod: string | null }[]
   while (true) {
     const { data, error } = await supabaseAdmin
       .from('markets')
-      .select('id, fetched_at, created_at')
+      .select('id, fetched_at, created_at, question')
       .eq('status', 'active')
+      .is('ladder_key', null) // exclude tagged ladder rungs
       .order('created_at', { ascending: false })
       .range(from, from + pageSize - 1)
     if (error || !data || data.length === 0) break
     for (const m of data) {
+      if (isLadderRung(m.question)) continue // belt-and-suspenders for any untagged stragglers
       all.push({ id: m.id, lastmod: m.fetched_at || m.created_at || null })
     }
     if (data.length < pageSize) break

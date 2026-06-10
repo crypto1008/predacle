@@ -6,6 +6,13 @@ const PLATFORM_LABELS: Record<string, string> = {
   manifold: 'Manifold', limitless: 'Limitless', azuro: 'Bookmaker',
 }
 
+// A price-ladder rung, e.g. "Bitcoin price on Jun 12, 2026? — $63,500 or above".
+// These are near-duplicate thin pages, so we keep them out of the search index.
+function isLadderRung(question?: string): boolean {
+  if (!question) return false
+  return /[—–-]\s*\$\s*[\d,]+(?:\.\d+)?\s*(?:or|and)\s+(?:above|below|higher|lower|more|less)\b/i.test(question)
+}
+
 function getBaseUrl() {
   if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
@@ -57,12 +64,16 @@ export async function generateMetadata(
   const description = parts.join(', ') +
     '. Compare odds across Polymarket, Kalshi, Manifold and more on Predacle.'
 
+  // Keep thin, auto-generated ladder rungs out of the search index.
+  const ladder = isLadderRung(market.question)
+
   return {
     title: { absolute: title },
     description,
     alternates: { canonical: url },
     openGraph: { title, description, url, siteName: 'Predacle', type: 'website' },
     twitter: { card: 'summary_large_image', title, description },
+    ...(ladder ? { robots: { index: false, follow: true } } : {}),
   }
 }
 
