@@ -16,6 +16,9 @@ export async function GET(request: NextRequest) {
       .from('markets')
       .select('*', { count: 'exact' })
       .eq('status', 'active')
+      // Exclude price-ladder rungs from the main browse list; they are
+      // consolidated into family views elsewhere. Keeps pagination/count clean.
+      .is('ladder_key', null)
     if (platform) query = query.eq('platform', platform)
     if (category) query = query.eq('category', category)
     if (search)   query = query.ilike('question', `%${search}%`)

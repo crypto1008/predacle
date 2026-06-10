@@ -8,12 +8,16 @@ export async function GET() {
 
     const results = await Promise.all(
       platforms.map(async (platform) => {
-        // First try: markets with valid probability
+        // First try: markets with valid probability.
+        // `.is('ladder_key', null)` excludes price-ladder rungs (e.g. Kalshi
+        // "Bitcoin price ... $63,500 or above") so the homepage shows real
+        // event markets instead of near-duplicate rungs.
         const { data: withProb } = await supabaseAdmin
           .from('markets')
           .select('*')
           .eq('status', 'active')
           .eq('platform', platform)
+          .is('ladder_key', null)
           .not('probability', 'is', null)
           .gt('probability', 0)
           .lt('probability', 1)
@@ -23,12 +27,13 @@ export async function GET() {
 
         if (withProb && withProb.length >= 2) return withProb
 
-        // Fallback: any recent markets from this platform
+        // Fallback: any recent markets from this platform (still no ladders).
         const { data: anyMarkets } = await supabaseAdmin
           .from('markets')
           .select('*')
           .eq('status', 'active')
           .eq('platform', platform)
+          .is('ladder_key', null)
           .or(`end_date.is.null,end_date.gte.${today}`)
           .order('fetched_at', { ascending: false })
           .limit(4)
