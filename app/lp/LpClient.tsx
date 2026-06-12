@@ -17,6 +17,7 @@ interface LpOpportunity {
   spread: number | null
   days: number | null
   volume_24hr: number | null
+  open_interest: number | null
   lp_score: number
   factors: LpFactors | null
   reward_precision: string
@@ -33,7 +34,9 @@ function tierOf(score: number) {
 }
 const fmtReward = (n: number) => `$${Math.round(n).toLocaleString()}/day`
 const fmtPrice  = (p: number | null) => p == null ? '—' : `${+(p * 100).toFixed(1)}¢`
+const fmtCents  = (s: number | null) => s == null ? '—' : `${+(s * 100).toFixed(1)}¢`
 const fmtVol    = (v: number | null) => v == null ? '—' : v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${Math.round(v / 1e3)}K` : `$${Math.round(v)}`
+const fmtCount  = (v: number | null) => v == null ? '—' : v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${Math.round(v / 1e3)}K` : `${Math.round(v)}`
 
 function closingBadge(days: number | null) {
   if (days == null || days < 0) return null
@@ -62,14 +65,16 @@ export default function LpClient() {
   const [longHorizon, setLongHorizon] = useState(false)
   const [sweetSpot, setSweetSpot] = useState(false)
   const [bigPools, setBigPools] = useState(false)
+  const [platform, setPlatform] = useState<'' | 'polymarket' | 'kalshi'>('')
   const dark = useDark()
 
   const load = () => {
     setLoading(true); setErr(null)
-    const p = new URLSearchParams({ limit: '60' })
+    const p = new URLSearchParams({ limit: '80' })
     if (longHorizon) p.set('minDays', '15')
     if (sweetSpot) { p.set('priceMin', '0.15'); p.set('priceMax', '0.40') }
     if (bigPools) p.set('minReward', '100')
+    if (platform) p.set('platform', platform)
     fetch(`/api/lp?${p.toString()}`)
       .then((r) => { if (!r.ok) throw new Error(`Request failed (${r.status})`); return r.json() })
       .then((d: ApiResponse) => setData(d))
@@ -77,7 +82,7 @@ export default function LpClient() {
       .finally(() => setLoading(false))
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load() }, [longHorizon, sweetSpot, bigPools])
+  useEffect(() => { load() }, [longHorizon, sweetSpot, bigPools, platform])
 
   const headClr = dark ? '#f1f5f9' : '#0f172a'
   const subClr = dark ? '#94a3b8' : '#64748b'
@@ -112,19 +117,18 @@ export default function LpClient() {
           LP Rewards Scanner
         </h1>
         <p style={{ fontSize: 14, lineHeight: 1.6, color: subClr, maxWidth: 760, margin: 0 }}>
-          Polymarket pays liquidity providers a daily USDC reward for posting resting orders near a
-          market&apos;s midpoint — you earn whether or not your orders fill. Predacle scans every
-          reward-eligible market, drops the ones no LP should touch (same-day resolvers, dead books,
-          extreme prices), and ranks what&apos;s left by an <strong style={{ color: subClr }}>LP Score</strong>{' '}
-          that weighs the daily pool, time to resolution, price band, spread health and volume. The reward
-          shown is the market&apos;s <em>total</em> daily pool, not your guaranteed share — your actual
-          earnings depend on how much you post and how many others compete. Polymarket LP access is
-          invite-only in some regions; check eligibility. Always open the market and check the live
-          order book first. Not financial advice.
+          Prediction markets pay liquidity providers for posting resting orders near a market&apos;s
+          midpoint — you earn whether or not your orders fill. Predacle scans reward-eligible markets,
+          drops the ones no LP should touch, and ranks what&apos;s left by an{' '}
+          <strong style={{ color: subClr }}>LP Score</strong>. Polymarket shows an exact daily pool;
+          Kalshi runs a liquidity-incentive program but doesn&apos;t publish per-market pools, so its
+          markets are scored on book health and shown as <em>eligible</em> — verify the pool on Kalshi.
+          The reward is the market&apos;s total pool, not your guaranteed share. Access is region-limited;
+          check eligibility. Always check the live order book first. Not financial advice.
         </p>
       </div>
 
-      {/* Strategy filters */}
+      {/* Platform + strategy filters */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22, flexWrap: 'wrap' }}>
         {!loading && !err && (
           <span style={{ fontSize: 13, fontWeight: 600, color: headClr }}>
@@ -132,8 +136,12 @@ export default function LpClient() {
           </span>
         )}
         <div style={{ flex: 1 }} />
+        <Pill active={platform === ''} onClick={() => setPlatform('')}>All</Pill>
+        <Pill active={platform === 'polymarket'} onClick={() => setPlatform('polymarket')}>Polymarket</Pill>
+        <Pill active={platform === 'kalshi'} onClick={() => setPlatform('kalshi')}>Kalshi</Pill>
+        <span style={{ width: 1, height: 22, background: panelBorder, margin: '0 2px' }} />
         <Pill active={bigPools} onClick={() => setBigPools((v) => !v)}>💰 $100+/day</Pill>
-        <Pill active={sweetSpot} onClick={() => setSweetSpot((v) => !v)}>🎯 15–40¢ price</Pill>
+        <Pill active={sweetSpot} onClick={() => setSweetSpot((v) => !v)}>🎯 15–40¢</Pill>
         <Pill active={longHorizon} onClick={() => setLongHorizon((v) => !v)}>📅 15+ days</Pill>
         <Pill active={false} onClick={load}>↻ Refresh</Pill>
       </div>
@@ -156,7 +164,7 @@ export default function LpClient() {
         <div style={{ background: panelBg, border: `1px solid ${panelBorder}`, borderRadius: 12, padding: '40px 20px', textAlign: 'center' }}>
           <div style={{ fontSize: 30, marginBottom: 10 }}>💧</div>
           <p style={{ fontSize: 15, fontWeight: 600, color: headClr, margin: '0 0 6px' }}>No LP opportunities match these filters</p>
-          <p style={{ fontSize: 13, color: subClr, margin: 0 }}>Try loosening the filters above — the strictest combination can narrow the list to nothing.</p>
+          <p style={{ fontSize: 13, color: subClr, margin: 0 }}>Try loosening the filters above.</p>
         </div>
       ) : (
         <div style={gridStyle}>
@@ -198,18 +206,27 @@ function LpCard({ opp, dark }: { opp: LpOpportunity; dark: boolean }) {
   const metaClr = dark ? '#64748b' : '#94a3b8'
   const statClr = dark ? '#cbd5e1' : '#475569'
 
+  const isKalshi = opp.platform === 'kalshi' || opp.reward_precision === 'qualitative'
   const t = tierOf(opp.lp_score)
   const closing = closingBadge(opp.days)
   const f = opp.factors
 
-  const stats: [string, string][] = [
-    ['price', fmtPrice(opp.price)],
-    ['spread', opp.spread == null ? '—' : `${+(opp.spread * 100).toFixed(1)}¢`],
-    ['resolves', opp.days == null ? '—' : `${opp.days}d`],
-    ['volume', fmtVol(opp.volume_24hr)],
-    ['min order', opp.min_size == null ? '—' : `$${opp.min_size}`],
-    ['band', opp.max_spread == null ? '—' : `${opp.max_spread}¢`],
-  ]
+  const stats: [string, string][] = isKalshi
+    ? [
+        ['price', fmtPrice(opp.price)],
+        ['spread', fmtCents(opp.spread)],
+        ['resolves', opp.days == null ? '—' : `${opp.days}d`],
+        ['volume', fmtCount(opp.volume_24hr)],
+        ['open int', fmtCount(opp.open_interest)],
+      ]
+    : [
+        ['price', fmtPrice(opp.price)],
+        ['spread', fmtCents(opp.spread)],
+        ['resolves', opp.days == null ? '—' : `${opp.days}d`],
+        ['volume', fmtVol(opp.volume_24hr)],
+        ['min order', opp.min_size == null ? '—' : `$${opp.min_size}`],
+        ['band', opp.max_spread == null ? '—' : `${opp.max_spread}¢`],
+      ]
 
   const handleOpen = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -236,9 +253,15 @@ function LpCard({ opp, dark }: { opp: LpOpportunity; dark: boolean }) {
           <span title={`LP Score ${opp.lp_score}/100`} style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: t.color, background: dark ? t.bgD : t.bgL, border: `1px solid ${dark ? t.bdD : t.bdL}`, borderRadius: 4, padding: '1px 6px' }}>
             {t.label}
           </span>
-          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: '#059669', background: dark ? '#052e16' : '#ecfdf5', border: `1px solid ${dark ? '#065f46' : '#a7f3d0'}`, borderRadius: 4, padding: '1px 6px' }}>
-            {opp.reward_precision === 'exact' ? '💰 Exact reward' : '~ Est. reward'}
-          </span>
+          {isKalshi ? (
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: '#854f0b', background: dark ? '#1c1002' : '#fef3c7', border: `1px solid ${dark ? '#78350f' : '#fde68a'}`, borderRadius: 4, padding: '1px 6px' }}>
+              🪙 Rewards eligible
+            </span>
+          ) : (
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: '#059669', background: dark ? '#052e16' : '#ecfdf5', border: `1px solid ${dark ? '#065f46' : '#a7f3d0'}`, borderRadius: 4, padding: '1px 6px' }}>
+              💰 Exact reward
+            </span>
+          )}
           {closing && (
             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3px', color: closing.color, background: closing.bg, border: `1px solid ${closing.border}`, borderRadius: 4, padding: '1px 6px' }}>
               {closing.label}
@@ -251,24 +274,31 @@ function LpCard({ opp, dark }: { opp: LpOpportunity; dark: boolean }) {
           {opp.question}
         </h3>
 
-        {/* Headline: LP Score + daily reward */}
+        {/* Headline: LP Score + reward */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 14 }}>
           <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.5px', color: '#5f5cf0', lineHeight: 1 }}>
             {opp.lp_score}<span style={{ fontSize: 12, fontWeight: 700, marginLeft: 1, color: metaClr }}>/100</span>
           </span>
           <span style={{ fontSize: 11, color: metaClr }}>LP Score</span>
           <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 16, fontWeight: 800, color: '#059669', letterSpacing: '-0.3px' }}>{fmtReward(opp.daily_reward)}</span>
+          {isKalshi ? (
+            <span style={{ textAlign: 'right', lineHeight: 1.25 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#854f0b' }}>Rewards eligible</span><br />
+              <span style={{ fontSize: 11, color: metaClr }}>pool not published</span>
+            </span>
+          ) : (
+            <span style={{ fontSize: 16, fontWeight: 800, color: '#059669', letterSpacing: '-0.3px' }}>{fmtReward(opp.daily_reward)}</span>
+          )}
         </div>
 
-        {/* Factor sparkline */}
+        {/* Factor sparkline — 5 bars (Polymarket) or 4 (Kalshi, no reward) */}
         {f && (
           <div style={{ display: 'flex', gap: 7, marginBottom: 14 }}>
-            <FactorBar label="R" value={f.reward} dark={dark} title={`Reward pool: ${Math.round(f.reward * 100)}/100`} />
+            {!isKalshi && <FactorBar label="R" value={f.reward} dark={dark} title={`Reward pool: ${Math.round(f.reward * 100)}/100`} />}
             <FactorBar label="T" value={f.time} dark={dark} title={`Time to resolution: ${Math.round(f.time * 100)}/100`} />
             <FactorBar label="P" value={f.price} dark={dark} title={`Price band: ${Math.round(f.price * 100)}/100`} />
             <FactorBar label="S" value={f.spread} dark={dark} title={`Spread health: ${Math.round(f.spread * 100)}/100`} />
-            <FactorBar label="V" value={f.volume} dark={dark} title={`Volume: ${Math.round(f.volume * 100)}/100`} />
+            <FactorBar label="V" value={f.volume} dark={dark} title={`${isKalshi ? 'Activity' : 'Volume'}: ${Math.round(f.volume * 100)}/100`} />
           </div>
         )}
 
@@ -282,10 +312,10 @@ function LpCard({ opp, dark }: { opp: LpOpportunity; dark: boolean }) {
         </div>
       </div>
 
-      {/* Footer / CTA */}
+      {/* CTA */}
       <button
         onClick={handleOpen}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 14px', background: footerBg, borderTop: `1px solid ${footerBorder}`, border: 'none', borderBottom: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: '#5f5cf0', width: '100%' }}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 14px', background: footerBg, borderTop: `1px solid ${footerBorder}`, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: '#5f5cf0', width: '100%' }}
       >
         Provide liquidity on {PLATFORM_LABELS[opp.platform] || opp.platform} →
       </button>

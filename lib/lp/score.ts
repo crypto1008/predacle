@@ -52,3 +52,38 @@ export function lpScore(o: LpScoreInput): { score: number; factors: LpFactors } 
   const s = f.reward * W.reward + f.time * W.time + f.price * W.price + f.spread * W.spread + f.volume * W.volume
   return { score: Math.round(100 * s), factors: f }
 }
+
+/* ---------------- Kalshi (no published reward pool) ----------------
+   Kalshi's API exposes no reward field and liquidity_dollars is always 0,
+   so we score on book health only: time + price + spread + activity(volume),
+   renormalized to 100. The reward factor is set to 0 (the UI drops its bar). */
+
+export const LP_KALSHI_VOL_FLOOR = 1000  // min contract volume (activity floor)
+
+const activityScore = (v: number) => clamp01((Math.log10(v) - 3) / (Math.log10(1e7) - 3)) // 1e3->0, 1e7->1
+const W_NOREWARD = { time: 0.30, price: 0.30, spread: 0.20, activity: 0.20 }
+
+export interface LpKalshiInput {
+  price: number | null
+  spread: number | null
+  days: number | null
+  volume: number | null   // contract volume
+}
+
+export function lpKalshiExcludeReason(o: LpKalshiInput): string | null {
+  if (o.price == null)                                    return 'no book'
+  if (o.price < 0.03 || o.price > 0.97)                   return 'extreme price'
+  if (o.spread == null || o.spread > LP_MAX_SPREAD)       return 'wide / dead book'
+  if (o.days == null || o.days < LP_MIN_DAYS)             return 'resolved / too soon'
+  if (o.volume == null || o.volume < LP_KALSHI_VOL_FLOOR) return 'low volume'
+  return null
+}
+
+export function lpScoreNoReward(o: LpKalshiInput): { score: number; factors: LpFactors } {
+  const time     = timeScore(o.days ?? 0)
+  const price    = priceScore(o.price ?? 0)
+  const spread   = spreadScore(o.spread ?? 1)
+  const activity = activityScore(o.volume ?? 0)
+  const s = time * W_NOREWARD.time + price * W_NOREWARD.price + spread * W_NOREWARD.spread + activity * W_NOREWARD.activity
+  return { score: Math.round(100 * s), factors: { reward: 0, time, price, spread, volume: activity } }
+}
