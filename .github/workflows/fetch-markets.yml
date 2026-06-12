@@ -6,7 +6,7 @@ on:
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
       - name: Fetch all prediction markets
         run: |
@@ -19,5 +19,19 @@ jobs:
           echo "HTTP Status: $http_code"
           if [ "$http_code" != "200" ]; then
             echo "Cron failed with status $http_code"
+            exit 1
+          fi
+
+      - name: Refresh LP opportunities
+        run: |
+          response=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/lp-refresh")
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+          echo "LP Response: $body"
+          echo "HTTP Status: $http_code"
+          if [ "$http_code" != "200" ]; then
+            echo "LP refresh failed with status $http_code"
             exit 1
           fi

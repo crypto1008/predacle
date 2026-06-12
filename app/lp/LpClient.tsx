@@ -115,8 +115,8 @@ export default function LpClient() {
           Polymarket pays liquidity providers a daily USDC reward for posting resting orders near a
           market&apos;s midpoint — you earn whether or not your orders fill. Predacle scans every
           reward-eligible market, drops the ones no LP should touch (same-day resolvers, dead books,
-          extreme prices), and ranks what&apos;s left by an <strong style={{ color: subClr }}>LP Score</strong> that
-          weighs the daily pool, time to resolution, price band, spread health and volume. The reward
+          extreme prices), and ranks what&apos;s left by an <strong style={{ color: subClr }}>LP Score</strong>{' '}
+          that weighs the daily pool, time to resolution, price band, spread health and volume. The reward
           shown is the market&apos;s <em>total</em> daily pool, not your guaranteed share — your actual
           earnings depend on how much you post and how many others compete. Polymarket LP access is
           invite-only in some regions; check eligibility. Always open the market and check the live

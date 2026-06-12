@@ -25,6 +25,7 @@ export default function Header() {
 
   const activeCategory = searchParams?.get('category') || ''
   const onDivergence   = pathname === '/arbitrage'
+  const onLp           = pathname === '/lp'
 
   useEffect(() => {
     setDark(document.documentElement.classList.contains('dark'))
@@ -87,6 +88,20 @@ export default function Header() {
               <span style={{ fontSize: 14, lineHeight: 1 }}>⇄</span> Divergence
             </Link>
 
+            {/* LP Rewards link — desktop */}
+            <Link href="/lp" className="lp-link"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 8,
+                textDecoration: 'none', whiteSpace: 'nowrap', color: '#5f5cf0',
+                background: onLp ? (dark ? '#1e1b4b' : '#ede9fe') : 'transparent',
+                border: `1px solid ${dark ? '#312e81' : '#ddd6fe'}`,
+                transition: 'all 0.15s',
+              }}
+              aria-current={onLp ? 'page' : undefined}>
+              <span style={{ fontSize: 14, lineHeight: 1 }}>💧</span> LP Rewards
+            </Link>
+
             {/* Pro link - desktop */}
             <Link href="/pro" className="pro-link"
               style={{
@@ -103,7 +118,7 @@ export default function Header() {
             {/* Category tabs — desktop */}
             <nav className="scroll-x" style={{ display: 'flex', gap: 2, flex: 1, overflowX: 'auto' }} aria-label="Market categories">
               {CATEGORIES.map(cat => {
-                const isActive = activeCategory === cat.value && !onDivergence
+                const isActive = activeCategory === cat.value && !onDivergence && !onLp
                 return (
                   <button key={cat.value} onClick={() => handleCategory(cat.value)}
                     style={{
@@ -179,8 +194,17 @@ export default function Header() {
                 }}>
                 <span style={{ fontSize: 14, lineHeight: 1 }}>⇄</span> Divergence
               </Link>
+              <Link href="/lp" onClick={() => setMenuOpen(false)}
+                style={{
+                  padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 20,
+                  textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5,
+                  background: onLp ? '#ede9fe' : (dark ? '#1e1b4b' : '#ede9fe'),
+                  color: '#5f5cf0',
+                }}>
+                <span style={{ fontSize: 14, lineHeight: 1 }}>💧</span> LP Rewards
+              </Link>
               {CATEGORIES.map(cat => {
-                const isActive = activeCategory === cat.value && !onDivergence
+                const isActive = activeCategory === cat.value && !onDivergence && !onLp
                 return (
                   <button key={cat.value} onClick={() => handleCategory(cat.value)}
                     style={{
@@ -204,6 +228,7 @@ export default function Header() {
           .desktop-search   { display: none !important; }
           .pro-link        { display: none !important; }
           .divergence-link  { display: none !important; }
+          .lp-link          { display: none !important; }
           nav[aria-label="Market categories"] { display: none !important; }
           .mobile-search    { display: block !important; }
         }
