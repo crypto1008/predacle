@@ -123,7 +123,7 @@ export async function fetchPolymarket(): Promise<Market[]> {
       if (seen.has(m.id)) return false
       seen.add(m.id)
       return true
-    }).slice(0, 500)
+    }).slice(0, 2000)
     console.log(`Polymarket: ${deduped.length} markets after prop bet filter`)
     return deduped
   } catch (error: any) {

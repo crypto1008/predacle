@@ -119,17 +119,19 @@ export async function GET(request: NextRequest) {
   })
 
   try {
-    const { error: upsertError } = await supabaseAdmin
-      .from('markets')
-      .upsert(sanitized, { onConflict: 'id' })
+    for (let i = 0; i < sanitized.length; i += 500) {
+      const { error: upsertError } = await supabaseAdmin
+        .from('markets')
+        .upsert(sanitized.slice(i, i + 500), { onConflict: 'id' })
 
-    if (upsertError) {
-      return NextResponse.json({
-        error: 'Database save failed',
-        detail: upsertError.message,
-        step: 'upsert',
-        marketsCount: markets.length,
-      }, { status: 500 })
+      if (upsertError) {
+        return NextResponse.json({
+          error: 'Database save failed',
+          detail: upsertError.message,
+          step: 'upsert',
+          marketsCount: markets.length,
+        }, { status: 500 })
+      }
     }
   } catch (dbError: any) {
     return NextResponse.json({
@@ -182,6 +184,7 @@ export async function GET(request: NextRequest) {
     .update({ status: 'closed' })
     .eq('status', 'active')
     .lt('fetched_at', new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString())
+    .or(`end_date.lt.${today},end_date.is.null`)
 
   // ---- Price-history snapshots (Phase 11) --------------------------------
   // Capture every active market's probability roughly every 6 hours so we can
