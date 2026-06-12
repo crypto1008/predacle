@@ -209,7 +209,7 @@ export async function GET(request: NextRequest) {
       const at = new Date().toISOString()
       const rows = sanitized
         .filter((m: any) => m.probability != null)
-        .map((m: any) => ({ market_id: m.id, probability: m.probability, captured_at: at }))
+        .map((m: any) => ({ market_id: m.id, probability: m.probability, volume: m.volume ?? null, captured_at: at }))
 
       // Insert in chunks to keep each request small.
       for (let i = 0; i < rows.length; i += 1000) {
