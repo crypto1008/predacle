@@ -98,10 +98,16 @@ function StatsBar({ dark }: { dark: boolean }) {
         <span style={{ color: dark ? '#2d3748' : '#e2e8f0' }}>·</span>
         <span>updated</span>
         <strong style={{ color: strong }}>{stats.minutesAgo}m ago</strong>
-        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, color: '#10b981', fontWeight: 600 }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-          All live
-        </span>
+        {(() => {
+          const m = stats.minutesAgo
+          const h = m < 90 ? { c: '#10b981', t: 'All live' } : m < 240 ? { c: '#d97706', t: 'Delayed' } : { c: '#dc2626', t: 'Offline' }
+          return (
+            <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, color: h.c, fontWeight: 600 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: h.c, display: 'inline-block' }} />
+              {h.t}
+            </span>
+          )
+        })()}
       </div>
     </div>
   )
