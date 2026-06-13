@@ -14,7 +14,7 @@ const STALE_HOURS = 12     // an active market not fetched in this long has drop
 const RECHECK_HOURS = 24   // re-verify a still-active stale market at most this often
 
 type PassResult = { checked: number; active: number; resolved: number; gone: number }
-type Cand = { id: string; question: string; probability: number | null; status: string }
+type Cand = { id: string; question: string; probability: number | null; status: string; category: string | null; fetched_at: string | null }
 
 // ---------- Polymarket (Gamma) ----------
 async function gamma(cids: string[], closed: boolean): Promise<any[]> {
@@ -63,14 +63,15 @@ const sleep = (ms: number) => new Promise(res => setTimeout(res, ms))
 
 // ---------- shared helpers ----------
 async function gatherCandidates(platform: string, now: string, staleBefore: string, recheckBefore: string): Promise<Cand[]> {
+  const cols = 'id, question, probability, status, category, fetched_at'
   // backlog: closed-but-future that we've never resolution-checked
   const { data: backlog } = await supabaseAdmin
-    .from('markets').select('id, question, probability, status')
+    .from('markets').select(cols)
     .eq('platform', platform).eq('status', 'closed').eq('resolution_checked', false)
     .gt('end_date', now).limit(LIMIT)
   // resolved-early suspects: active, dropped from coverage, not verified recently
   const { data: stale } = await supabaseAdmin
-    .from('markets').select('id, question, probability, status')
+    .from('markets').select(cols)
     .eq('platform', platform).eq('status', 'active')
     .lt('fetched_at', staleBefore)
     .or(`verified_at.is.null,verified_at.lt.${recheckBefore}`)
@@ -92,22 +93,16 @@ async function recordResolutions(rows: any[]) {
   }
 }
 
-// Set each market's status to whatever the platform reported.
 async function applyTruth(nowIso: string, l: {
   activeIds: string[]; rRows: any[]; resolvedIds: string[]; goneClosedIds: string[]; goneActiveIds: string[]; skipIds: string[]
 }) {
-  // confirmed live (reactivate a false-close, or keep a stale market alive)
   if (l.activeIds.length) await updateIn(l.activeIds, { status: 'active', verified_at: nowIso })
-  // resolved (record outcome, ensure closed)
   if (l.rRows.length) {
     await recordResolutions(l.rRows)
     await updateIn(l.resolvedIds, { status: 'closed', resolution_checked: true, verified_at: nowIso })
   }
-  // was closed & not found on platform -> terminal
   if (l.goneClosedIds.length) await updateIn(l.goneClosedIds, { resolution_checked: true, verified_at: nowIso })
-  // was active & couldn't confirm resolution -> leave active, just re-throttle
   if (l.goneActiveIds.length) await updateIn(l.goneActiveIds, { verified_at: nowIso })
-  // unverifiable (no condition_id) -> terminal
   if (l.skipIds.length) await updateIn(l.skipIds, { resolution_checked: true, verified_at: nowIso })
 }
 
@@ -145,7 +140,7 @@ async function verifyPoly(now: string, staleBefore: string, recheckBefore: strin
     else if (resolved.has(cid)) {
       const p = resolved.get(cid)!
       const o = p[0] === 1 ? 'YES' : p[0] === 0 ? 'NO' : 'UNCLEAR'
-      rRows.push({ id, platform: 'polymarket', question: row.question, resolved_outcome: o, final_probability: row.probability ?? null, resolution_source: 'polymarket-gamma', resolved_at: nowIso })
+      rRows.push({ id, platform: 'polymarket', question: row.question, resolved_outcome: o, final_probability: row.probability ?? null, final_probability_at: row.fetched_at ?? null, category: row.category ?? null, resolution_source: 'polymarket-gamma', resolved_at: nowIso })
       resolvedIds.push(id)
     } else if (row.status === 'active') goneActiveIds.push(id)
     else goneClosedIds.push(id)
@@ -177,11 +172,11 @@ async function verifyKalshi(now: string, staleBefore: string, recheckBefore: str
     if (!m) { (row.status === 'active' ? goneActiveIds : goneClosedIds).push(id); continue }
     const status = String(m.status || '').toLowerCase()
     if (status === 'open' || status === 'active') activeIds.push(id)
-    else if (status === 'closed') continue // trading ended, not yet settled — re-check next run
+    else if (status === 'closed') continue
     else {
       const res = String(m.result || '').toLowerCase().trim()
       const o = res === 'yes' ? 'YES' : res === 'no' ? 'NO' : (res ? res.toUpperCase() : 'UNCLEAR')
-      rRows.push({ id, platform: 'kalshi', question: row.question, resolved_outcome: o, final_probability: row.probability ?? null, resolution_source: 'kalshi', resolved_at: nowIso })
+      rRows.push({ id, platform: 'kalshi', question: row.question, resolved_outcome: o, final_probability: row.probability ?? null, final_probability_at: row.fetched_at ?? null, category: row.category ?? null, resolution_source: 'kalshi', resolved_at: nowIso })
       resolvedIds.push(id)
     }
   }
