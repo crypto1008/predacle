@@ -112,6 +112,8 @@ function mapMarket(m: any, category: string): Market {
   const series   = (m.series_ticker || ticker.split('-')[0] || '').toLowerCase()
   const url      = series ? `https://kalshi.com/markets/${series}` : 'https://kalshi.com'
 
+  question = question.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim()
+
   return {
     id:       `kalshi-${ticker}`,
     platform: 'kalshi' as const,
