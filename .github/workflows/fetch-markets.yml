@@ -21,7 +21,6 @@ jobs:
             echo "Cron failed with status $http_code"
             exit 1
           fi
-
       - name: Refresh LP opportunities
         run: |
           response=$(curl -s -w "\n%{http_code}" \
@@ -33,5 +32,18 @@ jobs:
           echo "HTTP Status: $http_code"
           if [ "$http_code" != "200" ]; then
             echo "LP refresh failed with status $http_code"
+            exit 1
+          fi
+      - name: Verify resolutions
+        run: |
+          response=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/verify-resolutions")
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+          echo "Verify Response: $body"
+          echo "HTTP Status: $http_code"
+          if [ "$http_code" != "200" ]; then
+            echo "Verify resolutions failed with status $http_code"
             exit 1
           fi
