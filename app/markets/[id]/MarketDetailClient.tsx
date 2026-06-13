@@ -186,8 +186,8 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
         const res  = await fetch('/api/status')
         const data = await res.json()
         const mins = data.overall?.minutesAgo ?? 999
-        if (mins < 35)       setPlatformHealth('live')
-        else if (mins < 60)  setPlatformHealth('delayed')
+        if (mins < 90)       setPlatformHealth('live')
+        else if (mins < 240)  setPlatformHealth('delayed')
         else                 setPlatformHealth('offline')
       } catch {}
     }
