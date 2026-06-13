@@ -47,11 +47,26 @@ export default function ProbabilityChart({ marketId, dark = false }: { marketId:
   const minX = Math.min(...xs), maxX = Math.max(...xs)
   const spanX = (maxX - minX) || 1
   const X = (t: number) => padL + ((t - minX) / spanX) * (W - padL - padR)
-  const Y = (p: number) => padT + (1 - Math.max(0, Math.min(1, p))) * (H - padT - padB)
+
+  // Auto-scale the y-axis to this market's own range, with a minimum window
+  // (~15 points) so genuinely-flat markets stay flat and small noise isn't
+  // exaggerated. Clamped to [0,1]; axis is labeled with real percentages.
+  const ys = points.map(p => Math.max(0, Math.min(1, p.p)))
+  const lo = Math.min(...ys), hi = Math.max(...ys)
+  const mid = (lo + hi) / 2
+  const half = Math.max(((hi - lo) / 2) * 1.25, 0.075)
+  let yMin = mid - half, yMax = mid + half
+  if (yMin < 0) { yMax = Math.min(1, yMax - yMin); yMin = 0 }
+  if (yMax > 1) { yMin = Math.max(0, yMin - (yMax - 1)); yMax = 1 }
+  const ySpan = (yMax - yMin) || 1
+  const Y = (p: number) => padT + (1 - (Math.max(0, Math.min(1, p)) - yMin) / ySpan) * (H - padT - padB)
+  const floorY = H - padB
 
   const line = points.map((p, i) => `${i ? 'L' : 'M'} ${X(xs[i]).toFixed(1)} ${Y(p.p).toFixed(1)}`).join(' ')
-  const area = `${line} L ${X(maxX).toFixed(1)} ${Y(0).toFixed(1)} L ${X(minX).toFixed(1)} ${Y(0).toFixed(1)} Z`
+  const area = `${line} L ${X(maxX).toFixed(1)} ${floorY.toFixed(1)} L ${X(minX).toFixed(1)} ${floorY.toFixed(1)} Z`
   const showDots = points.length <= 40
+
+  const gridVals = [yMax, (yMin + yMax) / 2, yMin]
 
   const fmt = (t: number) => new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   const cur = points[points.length - 1].p
@@ -75,8 +90,8 @@ export default function ProbabilityChart({ marketId, dark = false }: { marketId:
             <stop offset="100%" stopColor={purple} stopOpacity={0} />
           </linearGradient>
         </defs>
-        {[0, 0.5, 1].map(r => (
-          <g key={r}>
+        {gridVals.map((r, i) => (
+          <g key={i}>
             <line x1={padL} y1={Y(r)} x2={W - padR} y2={Y(r)} stroke={grid} strokeWidth={1} />
             <text x={padL - 6} y={Y(r) + 3} textAnchor="end" fontSize={10} fill={sub}>{Math.round(r * 100)}%</text>
           </g>
