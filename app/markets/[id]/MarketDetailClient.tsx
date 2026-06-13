@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Suspense } from 'react'
 import Header from '../../components/Header'
 import Footer from '../../components/Footer'
+import ProbabilityChart from '../../components/ProbabilityChart'
 import { affiliateUrl } from '@/lib/affiliate'
 
 export interface Market {
@@ -445,6 +446,9 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
           </button>
         </div>
       </article>
+
+      {/* Probability history */}
+      {pct !== null && <ProbabilityChart marketId={id} dark={dark} />}
 
       {/* Bet Calculator */}
       {pct !== null && (
