@@ -58,7 +58,7 @@ export default function Header() {
         }}
       >
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', height: 56, gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', height: 56, gap: 10 }}>
 
             {/* Logo */}
             <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
@@ -78,7 +78,7 @@ export default function Header() {
             <Link href="/arbitrage" className="divergence-link"
               style={{
                 display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
-                padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 8,
+                padding: '6px 10px', fontSize: 13, fontWeight: 600, borderRadius: 8,
                 textDecoration: 'none', whiteSpace: 'nowrap', color: '#5f5cf0',
                 background: onDivergence ? (dark ? '#1e1b4b' : '#ede9fe') : 'transparent',
                 border: `1px solid ${dark ? '#312e81' : '#ddd6fe'}`,
@@ -92,7 +92,7 @@ export default function Header() {
             <Link href="/lp" className="lp-link"
               style={{
                 display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
-                padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 8,
+                padding: '6px 10px', fontSize: 13, fontWeight: 600, borderRadius: 8,
                 textDecoration: 'none', whiteSpace: 'nowrap', color: '#5f5cf0',
                 background: onLp ? (dark ? '#1e1b4b' : '#ede9fe') : 'transparent',
                 border: `1px solid ${dark ? '#312e81' : '#ddd6fe'}`,
@@ -106,7 +106,7 @@ export default function Header() {
             <Link href="/signals" className="signals-link"
               style={{
                 display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
-                padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 8,
+                padding: '6px 10px', fontSize: 13, fontWeight: 600, borderRadius: 8,
                 textDecoration: 'none', whiteSpace: 'nowrap', color: '#5f5cf0',
                 background: pathname === '/signals' ? (dark ? '#1e1b4b' : '#ede9fe') : 'transparent',
                 border: `1px solid ${dark ? '#312e81' : '#ddd6fe'}`,
@@ -151,7 +151,7 @@ export default function Header() {
             </nav>
 
             {/* Search with autocomplete — desktop */}
-            <div className="desktop-search" style={{ width: 260, flexShrink: 0 }}>
+            <div className="desktop-search" style={{ width: 200, flexShrink: 0 }}>
               <SearchAutocomplete placeholder="Search markets..." />
             </div>
 
