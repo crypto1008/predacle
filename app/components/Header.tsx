@@ -102,6 +102,20 @@ export default function Header() {
               <span style={{ fontSize: 14, lineHeight: 1 }}>💧</span> LP Rewards
             </Link>
 
+            {/* Signals link — desktop */}
+            <Link href="/signals" className="signals-link"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 8,
+                textDecoration: 'none', whiteSpace: 'nowrap', color: '#5f5cf0',
+                background: pathname === '/signals' ? (dark ? '#1e1b4b' : '#ede9fe') : 'transparent',
+                border: `1px solid ${dark ? '#312e81' : '#ddd6fe'}`,
+                transition: 'all 0.15s',
+              }}
+              aria-current={pathname === '/signals' ? 'page' : undefined}>
+              <span style={{ fontSize: 14, lineHeight: 1 }}>⚡</span> Signals
+            </Link>
+
             {/* Pro link - desktop */}
             <Link href="/pro" className="pro-link"
               style={{
@@ -203,6 +217,15 @@ export default function Header() {
                 }}>
                 <span style={{ fontSize: 14, lineHeight: 1 }}>💧</span> LP Rewards
               </Link>
+              <Link href="/signals" onClick={() => setMenuOpen(false)}
+                style={{
+                  padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 20,
+                  textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5,
+                  background: pathname === '/signals' ? '#ede9fe' : (dark ? '#1e1b4b' : '#ede9fe'),
+                  color: '#5f5cf0',
+                }}>
+                <span style={{ fontSize: 14, lineHeight: 1 }}>⚡</span> Signals
+              </Link>
               {CATEGORIES.map(cat => {
                 const isActive = activeCategory === cat.value && !onDivergence && !onLp
                 return (
@@ -229,6 +252,7 @@ export default function Header() {
           .pro-link        { display: none !important; }
           .divergence-link  { display: none !important; }
           .lp-link          { display: none !important; }
+          .signals-link     { display: none !important; }
           nav[aria-label="Market categories"] { display: none !important; }
           .mobile-search    { display: block !important; }
         }
