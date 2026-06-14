@@ -28,8 +28,9 @@ export async function POST(request: NextRequest) {
       : null
     const pctLabel   = pct !== null ? `${pct}%` : 'Unknown'
     const priceLabel = pct !== null ? `${pct}%` : 'the current price'
+    const today      = new Date().toISOString().slice(0, 10)
 
-    const prompt = `You are a sharp prediction-market analyst giving a trader your read. Return ONLY a JSON object.
+    const prompt = `You are a sharp prediction-market analyst giving a trader your read. Today's date is ${today}. Return ONLY a JSON object.
 
 Market: ${market.question}
 Platform: ${market.platform}
@@ -38,18 +39,18 @@ Volume: ${market.volume_label || 'Unknown'}
 Category: ${market.category || 'General'}
 Resolves: ${market.end_date_label || 'Unknown'}
 
-The "signal" is YOUR view on whether the current YES price offers value. Decide it like this:
-1. Form your own rough estimate of the true probability of YES, using base rates, the timeframe, and what you know about the topic.
-2. Compare your estimate to the market's ${priceLabel}.
+The "signal" is YOUR view on whether the current YES price offers value:
+1. Estimate the true probability of YES from base rates and what you concretely know about THIS specific event. The market price already reflects the time left until it resolves — do not add distance-to-resolution back in as fresh uncertainty, and use today's date above to judge how near or far the resolution actually is.
+2. Compare your estimate to the price (${priceLabel}).
 3. Choose the signal:
-   - "BULLISH" = your estimate is meaningfully HIGHER than the price (YES looks underpriced; buying YES has an edge).
-   - "BEARISH" = your estimate is meaningfully LOWER than the price (YES looks overpriced; fading it or buying NO has an edge).
-   - "NEUTRAL" = your estimate is close to the price, or it is genuinely a coin-flip you cannot call.
+   - "BULLISH" = your estimate is meaningfully HIGHER than the price (YES looks underpriced).
+   - "BEARISH" = your estimate is meaningfully LOWER than the price (YES looks overpriced).
+   - "NEUTRAL" = your estimate is close to the price.
 
-Calibration:
-- Be willing to commit. If your fair-value estimate differs from the price by more than roughly 5-10 percentage points, give a BULLISH or BEARISH lean instead of defaulting to NEUTRAL. Reserve NEUTRAL for prices that genuinely look fair.
-- Do NOT be reflexive: a high probability is not automatically BEARISH, and a low probability is not automatically BULLISH. A strong favorite or a longshot can be perfectly fairly priced.
-- Base the call on a real reason (timeframe, base rate, known dynamics, an overreaction), never on the raw size of the probability alone.
+Calibration rules — follow these strictly:
+- A price already at an extreme (above ~90% or below ~10%) is usually there because the outcome is genuinely close to settled. Do NOT fade it just because the number feels too confident or the resolution is far off — the market has already priced that in. Only call a >90% price BEARISH (or a <10% price BULLISH) when you can name a SPECIFIC, concrete reason the crowd is wrong: a known upcoming event, a structural quirk, a fresh development. "It seems overconfident" or "anything can happen given the timeframe" is NOT a valid reason — when that is all you have, the signal is NEUTRAL.
+- For mid-range prices, be willing to commit: if your fair value differs from the price by more than ~5-10 points for a concrete reason, lean BULLISH or BEARISH rather than defaulting to NEUTRAL.
+- A high probability is not automatically BEARISH and a low probability is not automatically BULLISH. Judge the value, never the raw size of the number.
 
 Respond with EXACTLY this JSON (each value max 2 sentences, no text outside the JSON):
 {"summary":"what this market asks and what the current price implies","signal":"NEUTRAL","signal_reason":"your fair-value reasoning and why the price is under, over, or fairly valued","key_insight":"one practical insight for a trader"}
