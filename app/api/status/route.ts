@@ -8,7 +8,10 @@ export async function GET() {
       'myriad', 'limitless', 'azuro',
     ]
 
-    // Count each platform separately — avoids 1000 row limit
+    // Count each platform separately — avoids 1000 row limit.
+    // Mirror the browse feed's filter exactly (status='active' AND ladder_key
+    // is null) so the headline count matches what's actually browsable — ladder
+    // rungs are suppressed from the feed, so they must not inflate the total.
     const platformCounts = await Promise.all(
       expectedPlatforms.map(async (p) => {
         const { count } = await supabaseAdmin
@@ -16,6 +19,7 @@ export async function GET() {
           .select('*', { count: 'exact', head: true })
           .eq('status', 'active')
           .eq('platform', p)
+          .is('ladder_key', null)
         return { platform: p, count: count || 0 }
       })
     )
