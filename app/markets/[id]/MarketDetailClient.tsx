@@ -7,6 +7,7 @@ import Header from '../../components/Header'
 import Footer from '../../components/Footer'
 import ProbabilityChart from '../../components/ProbabilityChart'
 import { affiliateUrl } from '@/lib/affiliate'
+import LadderFamilyPanel from '../../components/LadderFamilyPanel'
 import MarketLpPanel from '../../components/MarketLpPanel'
 
 export interface Market {
@@ -447,6 +448,9 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
           </button>
         </div>
       </article>
+
+      {/* Ladder family distribution — only renders for price-ladder rungs */}
+      <LadderFamilyPanel marketId={id} dark={dark} />
 
       {/* Probability history */}
       {pct !== null && <ProbabilityChart marketId={id} dark={dark} />}
