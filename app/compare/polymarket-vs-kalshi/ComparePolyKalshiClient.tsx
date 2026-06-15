@@ -54,17 +54,32 @@ export default function ComparePolyKalshiClient() {
       .then(r => r.json())
       .then(d => {
         const opps: Opportunity[] = Array.isArray(d.opportunities) ? d.opportunities : []
-        const pk = opps
+        const raw = opps
           .map((o): Pair | null => {
             const poly = o.markets.find(m => m.platform === 'polymarket')
             const kal = o.markets.find(m => m.platform === 'kalshi')
             if (!poly || !kal || poly.probability == null || kal.probability == null) return null
-            return { question: o.question, poly, kal, gap: Math.abs(poly.probability - kal.probability) }
+            const a = poly.probability, b = kal.probability
+            // Skip near-settled legs: a big gap where one side is >=90% or <=10% is
+            // almost always a resolution-timing artifact (e.g. same-day crypto ladders),
+            // not a real edge. Only show divergences both platforms still see as uncertain.
+            if (a >= 90 || a <= 10 || b >= 90 || b <= 10) return null
+            return { question: o.question, poly, kal, gap: Math.abs(a - b) }
           })
           .filter((p): p is Pair => p !== null)
-          .sort((a, b) => b.gap - a.gap)
-          .slice(0, 8)
-        setPairs(pk)
+          .sort((x, y) => y.gap - x.gap)
+
+        // Collapse ladder rungs of the same event (BTC $62k / $64k / $66k…) to one row
+        // so a single market can't dominate the list — keep the widest-gap rung.
+        const seen = new Set<string>()
+        const deduped: Pair[] = []
+        for (const p of raw) {
+          const baseKey = p.question.split(/[—–]/)[0].trim().toLowerCase()
+          if (seen.has(baseKey)) continue
+          seen.add(baseKey)
+          deduped.push(p)
+        }
+        setPairs(deduped.slice(0, 6))
       })
       .catch(() => setPairs([]))
   }, [])
@@ -82,8 +97,36 @@ export default function ComparePolyKalshiClient() {
   const wrap = { maxWidth: 860, margin: '0 auto', padding: '0 20px' } as const
   const h2: React.CSSProperties = { fontSize: 19, fontWeight: 700, color: txt1, letterSpacing: '-0.2px', marginBottom: 12 }
 
+  // CSS custom properties so the responsive <style> block can use dark-aware colors
+  const tableVars = {
+    ['--bd' as any]: border,
+    ['--panel' as any]: panel,
+    ['--soft' as any]: soft,
+    ['--txt1' as any]: txt1,
+    ['--txt2' as any]: txt2,
+    ['--purple' as any]: purple,
+  } as React.CSSProperties
+
   return (
     <div style={{ background: soft }}>
+      <style>{`
+        .cmp-table { border: 1px solid var(--bd); border-radius: 12px; overflow: hidden; background: var(--panel); }
+        .cmp-row { display: grid; grid-template-columns: 0.82fr 1fr 1fr; }
+        .cmp-row:not(:last-child) { border-bottom: 1px solid var(--bd); }
+        .cmp-d { padding: 12px 14px; font-size: 12.5px; font-weight: 600; color: var(--txt2); }
+        .cmp-c { padding: 12px 14px; font-size: 13px; color: var(--txt1); line-height: 1.45; border-left: 1px solid var(--bd); }
+        .cmp-head .cmp-c { font-size: 13px; font-weight: 700; color: var(--purple); }
+        .cmp-mlabel { display: none; }
+        @media (max-width: 640px) {
+          .cmp-row { grid-template-columns: 1fr; }
+          .cmp-head { display: none; }
+          .cmp-d { font-weight: 700; color: var(--txt1); font-size: 13px; background: var(--soft); }
+          .cmp-c { border-left: none; padding-top: 8px; padding-bottom: 8px; }
+          .cmp-c:last-child { padding-bottom: 14px; }
+          .cmp-mlabel { display: block; font-size: 11px; font-weight: 700; color: var(--purple); margin-bottom: 3px; letter-spacing: 0.3px; }
+        }
+      `}</style>
+
       {/* Hero */}
       <div style={{ background: bg, borderBottom: `1px solid ${border}`, padding: '26px 20px 20px' }}>
         <div style={wrap}>
@@ -102,19 +145,19 @@ export default function ComparePolyKalshiClient() {
       <div style={{ padding: '24px 20px 8px' }}>
         <div style={wrap}>
           <h2 style={h2}>At a glance</h2>
-          <div style={{ border: `1px solid ${border}`, borderRadius: 12, overflow: 'hidden', background: panel }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr' }}>
-              <div style={{ padding: '11px 14px', fontSize: 12, fontWeight: 700, color: txt3, textTransform: 'uppercase', letterSpacing: '0.4px', borderBottom: `1px solid ${border}` }} />
-              <div style={{ padding: '11px 14px', fontSize: 13, fontWeight: 700, color: purple, borderBottom: `1px solid ${border}`, borderLeft: `1px solid ${border}` }}>Kalshi</div>
-              <div style={{ padding: '11px 14px', fontSize: 13, fontWeight: 700, color: purple, borderBottom: `1px solid ${border}`, borderLeft: `1px solid ${border}` }}>Polymarket</div>
-              {ROWS.map(([dim, k, p], i) => (
-                <div key={dim} style={{ display: 'contents' }}>
-                  <div style={{ padding: '12px 14px', fontSize: 12.5, fontWeight: 600, color: txt2, borderBottom: i < ROWS.length - 1 ? `1px solid ${border}` : 'none' }}>{dim}</div>
-                  <div style={{ padding: '12px 14px', fontSize: 13, color: txt1, lineHeight: 1.45, borderLeft: `1px solid ${border}`, borderBottom: i < ROWS.length - 1 ? `1px solid ${border}` : 'none' }}>{k}</div>
-                  <div style={{ padding: '12px 14px', fontSize: 13, color: txt1, lineHeight: 1.45, borderLeft: `1px solid ${border}`, borderBottom: i < ROWS.length - 1 ? `1px solid ${border}` : 'none' }}>{p}</div>
-                </div>
-              ))}
+          <div className="cmp-table" style={tableVars}>
+            <div className="cmp-row cmp-head">
+              <div className="cmp-d" />
+              <div className="cmp-c">Kalshi</div>
+              <div className="cmp-c">Polymarket</div>
             </div>
+            {ROWS.map(([dim, k, p]) => (
+              <div className="cmp-row" key={dim}>
+                <div className="cmp-d">{dim}</div>
+                <div className="cmp-c"><span className="cmp-mlabel">Kalshi</span>{k}</div>
+                <div className="cmp-c"><span className="cmp-mlabel">Polymarket</span>{p}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -149,7 +192,7 @@ export default function ComparePolyKalshiClient() {
             <p style={{ fontSize: 13, color: txt3, padding: '20px 0' }}>Loading live prices…</p>
           ) : pairs.length === 0 ? (
             <p style={{ fontSize: 13, color: txt3, padding: '20px 0' }}>
-              No notable Polymarket–Kalshi divergences at the moment — the two are largely in agreement right now.
+              No notable Polymarket–Kalshi divergences on still-uncertain markets at the moment — the two are largely in agreement right now.
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

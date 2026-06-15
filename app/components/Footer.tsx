@@ -131,6 +131,7 @@ export default function Footer() {
               <li><Link href="/markets?category=sports"    style={lnk}>Sports</Link></li>
               <li><Link href="/markets?category=politics"  style={lnk}>Politics</Link></li>
               <li><Link href="/markets?category=economics" style={lnk}>Economics</Link></li>
+              <li><Link href="/compare/polymarket-vs-kalshi" style={lnk}>Polymarket vs Kalshi</Link></li>
             </ul>
           </div>
 
