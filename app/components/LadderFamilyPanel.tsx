@@ -62,14 +62,23 @@ export default function LadderFamilyPanel({ marketId, dark }: { marketId: string
   const minTh = ths[0], maxTh = ths[ths.length - 1]
   const span = maxTh - minTh || 1
 
-  // Implied distribution: probability mass per bucket between consecutive thresholds.
-  const buckets = rungs.slice(0, -1).map((r, i) => ({
-    lo: ths[i], hi: ths[i + 1],
-    mass: Math.max(0, cdf[i] - cdf[i + 1]),
-    rungId: r.id,
-  }))
-  const maxMass = Math.max(...buckets.map((b) => b.mass), 0.0001)
-  const modalIdx = buckets.reduce((best, b, i, arr) => (b.mass > arr[best].mass ? i : best), 0)
+  // Probability mass per threshold gap (raw, uneven spacing).
+  const gaps = rungs.slice(0, -1).map((_, i) => ({ lo: ths[i], hi: ths[i + 1], mass: Math.max(0, cdf[i] - cdf[i + 1]) }))
+
+  // Rebin into uniform-width price bins, splitting each gap's mass proportionally
+  // across the bins it overlaps — so uneven Kalshi strikes render as a clean histogram.
+  const N_BINS = Math.min(30, Math.max(12, gaps.length))
+  const binW = span / N_BINS
+  const bins = Array.from({ length: N_BINS }, (_, i) => ({ lo: minTh + i * binW, hi: minTh + (i + 1) * binW, mass: 0 }))
+  for (const g of gaps) {
+    if (g.mass <= 0 || g.hi <= g.lo) continue
+    for (const bin of bins) {
+      const overlap = Math.max(0, Math.min(g.hi, bin.hi) - Math.max(g.lo, bin.lo))
+      if (overlap > 0) bin.mass += g.mass * (overlap / (g.hi - g.lo))
+    }
+  }
+  const maxMass = Math.max(...bins.map((b) => b.mass), 0.0001)
+  const modalIdx = bins.reduce((best, b, i, arr) => (b.mass > arr[best].mass ? i : best), 0)
 
   const median = priceAtCdf(ths, cdf, 0.5)
   const p25 = priceAtCdf(ths, cdf, 0.75) // 25th pctile of price
@@ -78,9 +87,10 @@ export default function LadderFamilyPanel({ marketId, dark }: { marketId: string
   const platformLabel = PLATFORM_LABELS[data.platform || ''] || data.platform || ''
   const baseLabel = (data.family || '').replace(/\b\w/g, (c) => c.toUpperCase())
   const current = rungs.find((r) => r.id === marketId)
+  const curBinIdx = current ? Math.min(N_BINS - 1, Math.max(0, Math.floor((current.ladder_threshold - minTh) / binW))) : -1
 
   // ---- chart geometry ----
-  const W = 720, H = 240, padL = 42, padR = 10, padT = 14, padB = 30
+  const W = 720, H = 240, padL = 42, padR = 10, padT = 16, padB = 30
   const plotW = W - padL - padR, plotH = H - padT - padB
   const baseY = padT + plotH
   const x = (th: number) => padL + ((th - minTh) / span) * plotW
@@ -97,6 +107,8 @@ export default function LadderFamilyPanel({ marketId, dark }: { marketId: string
       {children}
     </button>
   )
+
+  const medLabelX = xMed != null ? Math.min(Math.max(xMed, padL + 34), W - padR - 34) : 0
 
   return (
     <div style={{ background: cardBg, border: `1px solid ${border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}>
@@ -129,17 +141,16 @@ export default function LadderFamilyPanel({ marketId, dark }: { marketId: string
 
           {/* data */}
           {mode === 'dist'
-            ? buckets.map((b, i) => {
+            ? bins.map((b, i) => {
                 const x0 = x(b.lo), x1 = x(b.hi)
-                const w = Math.max(1, x1 - x0 - 1)
+                const w = Math.max(1, x1 - x0 - 1.5)
                 const h = (b.mass / maxMass) * plotH
                 const isModal = i === modalIdx
-                const isCurrent = current && b.rungId === current.id
+                const isCurrent = i === curBinIdx
                 return (
-                  <rect key={i} x={x0} y={baseY - h} width={w} height={h}
+                  <rect key={i} x={x0} y={baseY - h} width={w} height={Math.max(0, h)}
                     fill={isModal ? purple : barDim}
-                    stroke={isCurrent ? '#d97706' : 'none'} strokeWidth={isCurrent ? 2 : 0}
-                    rx={1}>
+                    stroke={isCurrent ? '#d97706' : 'none'} strokeWidth={isCurrent ? 2 : 0} rx={1.5}>
                     <title>{`${fmtFull(b.lo)}–${fmtFull(b.hi)}: ${(b.mass * 100).toFixed(1)}% chance`}</title>
                   </rect>
                 )
@@ -153,7 +164,8 @@ export default function LadderFamilyPanel({ marketId, dark }: { marketId: string
           {xMed != null && (
             <g>
               <line x1={xMed} y1={padT} x2={xMed} y2={baseY} stroke="#dc2626" strokeWidth={1.25} strokeDasharray="4 3" />
-              <text x={Math.min(Math.max(xMed, padL + 30), W - padR - 30)} y={padT + 9} textAnchor="middle" fontSize={9} fontWeight={700} fill="#dc2626">
+              <rect x={medLabelX - 33} y={padT - 13} width={66} height={13} rx={3} fill={cardBg} opacity={0.9} />
+              <text x={medLabelX} y={padT - 3} textAnchor="middle" fontSize={9} fontWeight={700} fill="#dc2626">
                 median {median != null ? fmtK(median) : ''}
               </text>
             </g>
