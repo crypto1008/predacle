@@ -7,6 +7,7 @@ import Header from '../../components/Header'
 import Footer from '../../components/Footer'
 import ProbabilityChart from '../../components/ProbabilityChart'
 import { affiliateUrl } from '@/lib/affiliate'
+import MarketLpPanel from '../../components/MarketLpPanel'
 
 export interface Market {
   id: string; platform: string; question: string
@@ -506,6 +507,9 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
           </div>
         </div>
       )}
+
+      {/* LP Rewards — only renders for reward-eligible markets */}
+      <MarketLpPanel marketId={id} platform={market.platform} dark={dark} />
 
       {/* AI Summary */}
       <div style={{ background: cardBg, border: `1px solid ${dark ? '#2d1b69' : '#c4b5fd'}`, borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}>
