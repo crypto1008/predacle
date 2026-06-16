@@ -78,12 +78,19 @@ function parseLadder(question: string): { key: string; threshold: number } | nul
 // handler ensures a lone "above $X" market is NOT mistaken for a ladder rung.
 function parseLadderB(question: string): { key: string; threshold: number } | null {
   if (!question) return null
-  const m = question.match(/^(.+?\b(?:above|below|over|under)\b)\s*\$\s*([\d,]+(?:\.\d+)?)\s*\??\s*$/i)
+  const q = question.trim()
+  // A direction word immediately followed by a number (optionally $ and a
+  // (LOW)/(HIGH) marker): "above $3.00", "above 31259.99", "hit (HIGH) $95".
+  // The number is the threshold; the family key is the whole question with that
+  // number blanked to "X", so siblings differing only in threshold group together
+  // while subject/date/time are preserved.
+  const m = q.match(/\b(?:above|below|over|under|exceeds?|reaches?|hits?)\b\s*\(?(?:low|high)?\)?\s*\$?\s*([\d][\d,]*(?:\.\d+)?)/i)
   if (!m) return null
-  const base = m[1].trim()
-  const threshold = parseFloat(m[2].replace(/,/g, ''))
-  if (!base || !isFinite(threshold)) return null
-  return { key: base.toLowerCase().replace(/\s+/g, ' '), threshold }
+  const numStr = m[1]
+  const threshold = parseFloat(numStr.replace(/,/g, ''))
+  if (!isFinite(threshold)) return null
+  const key = q.toLowerCase().replace(/\s+/g, ' ').trim().replace(numStr, 'X')
+  return { key, threshold }
 }
 
 export async function GET(request: NextRequest) {
