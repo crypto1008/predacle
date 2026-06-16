@@ -29,6 +29,7 @@ export interface LpOpportunity {
   openInterest?: number | null // Kalshi: open interest (contracts); omitted for Polymarket
 
   lpScore: number             // 1..100
+  competition?: number | null // 0..1 reward-pool crowding (Polymarket only; null = unmeasurable). Higher = more contested = thinner share.
   factors: LpFactors          // transparency / debugging
   rewardPrecision: 'exact' | 'qualitative'  // Polymarket exact; Kalshi qualitative
 

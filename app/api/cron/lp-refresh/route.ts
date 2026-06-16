@@ -4,20 +4,18 @@ import { supabaseAdmin } from '../../../../lib/supabase'
 import { fetchPolymarketLp } from '../../../../lib/lp/polymarket'
 import { fetchKalshiLp } from '../../../../lib/lp/kalshi'
 import { LpOpportunity } from '../../../../lib/lp/types'
-
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
-
 function toRow(o: LpOpportunity) {
   return {
     id: o.id, platform: o.platform, condition_id: o.conditionId, ticker: o.ticker,
     question: o.question, url: o.url, daily_reward: o.dailyReward, min_size: o.minSize,
     max_spread: o.maxSpread, price: o.price, spread: o.spread, days: o.days,
     volume_24hr: o.volume24hr, open_interest: o.openInterest, lp_score: o.lpScore,
+    competition: o.competition ?? null,
     factors: o.factors, reward_precision: o.rewardPrecision, fetched_at: o.fetchedAt,
   }
 }
-
 async function refresh(platform: 'polymarket' | 'kalshi', fetcher: () => Promise<LpOpportunity[]>) {
   const opps = await fetcher()
   const rows = opps.map(toRow)
@@ -31,7 +29,6 @@ async function refresh(platform: 'polymarket' | 'kalshi', fetcher: () => Promise
   }
   return { scored: opps.length, inserted, topScore: opps[0]?.lpScore ?? null }
 }
-
 export async function GET(req: Request) {
   if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response('Unauthorized', { status: 401 })

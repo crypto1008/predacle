@@ -3,7 +3,7 @@
 // LpOpportunity[]. No DB here — persistence lives in the refresh route.
 
 import { LpOpportunity } from './types'
-import { lpExcludeReason, lpScore, LP_REWARD_FLOOR } from './score'
+import { lpExcludeReason, lpScore, lpCompetition, LP_REWARD_FLOOR } from './score'
 
 const SAMPLING = 'https://clob.polymarket.com/sampling-simplified-markets'
 const GAMMA    = 'https://gamma-api.polymarket.com/markets'
@@ -91,6 +91,7 @@ export async function fetchPolymarketLp(): Promise<LpOpportunity[]> {
     if (lpExcludeReason(input)) continue
 
     const { score, factors } = lpScore(input)
+    const competition = lpCompetition(rw.rate, volume24hr)
     out.push({
       id: `polymarket-${cid}`,
       platform: 'polymarket',
@@ -106,6 +107,7 @@ export async function fetchPolymarketLp(): Promise<LpOpportunity[]> {
       days,
       volume24hr,
       lpScore: score,
+      competition,
       factors,
       rewardPrecision: 'exact',
       fetchedAt: now,

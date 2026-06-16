@@ -92,6 +92,7 @@ export async function fetchKalshiLp(): Promise<LpOpportunity[]> {
         volume24hr: volume,
         openInterest,
         lpScore: score,
+        competition: null,   // no published reward pool -> crowding unmeasurable
         factors,
         rewardPrecision: 'qualitative',
         fetchedAt: now,

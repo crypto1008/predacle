@@ -53,6 +53,25 @@ export function lpScore(o: LpScoreInput): { score: number; factors: LpFactors } 
   return { score: Math.round(100 * s), factors: f }
 }
 
+/* ---------------- Reward-pool competition (Polymarket only) ----------------
+   Polymarket exposes no LP count and no in-band liquidity total, so true
+   dilution is unmeasurable. We proxy crowding by how much 24h trading volume
+   chases each dollar of daily reward (volume / reward). Calibrated to the live
+   distribution (ratio ~29..7800, median ~540): at/below ~100 = underfished,
+   at/above ~2000 = saturated, log-interpolated between. Higher competition
+   means your share of the fixed pool is split thinner. Kalshi has no pool, so
+   competition is null there (the UI shows "n/a — pool not published"). */
+
+export const LP_COMP_FLOOR = 100    // vol/reward at/below -> competition 0 (underfished)
+export const LP_COMP_CEIL  = 2000   // vol/reward at/above -> competition 1 (saturated)
+
+export function lpCompetition(dailyReward: number | null, volume24hr: number | null): number | null {
+  if (!dailyReward || !volume24hr || dailyReward <= 0 || volume24hr <= 0) return null
+  const ratio = volume24hr / dailyReward
+  const lo = Math.log10(LP_COMP_FLOOR), hi = Math.log10(LP_COMP_CEIL)
+  return +clamp01((Math.log10(ratio) - lo) / (hi - lo)).toFixed(3)
+}
+
 /* ---------------- Kalshi (no published reward pool) ----------------
    Kalshi's API exposes no reward field and liquidity_dollars is always 0,
    so we score on book health only: time + price + spread + activity(volume),
