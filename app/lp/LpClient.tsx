@@ -19,6 +19,7 @@ interface LpOpportunity {
   volume_24hr: number | null
   open_interest: number | null
   lp_score: number
+  competition?: number | null
   factors: LpFactors | null
   reward_precision: string
   fetched_at: string
@@ -32,6 +33,15 @@ function tierOf(score: number) {
   if (score >= 60) return { label: 'Good',   color: '#d97706', bgL: '#fffbeb', bgD: '#1c1002', bdL: '#fde68a', bdD: '#78350f' }
   return                   { label: 'Fair',   color: '#64748b', bgL: '#f1f5f9', bgD: '#1e2330', bdL: '#e2e8f0', bdD: '#2d3748' }
 }
+
+// Reward-pool crowding (Polymarket only). Low = underfished (good), High = contested.
+function competitionOf(c: number | null | undefined) {
+  if (c == null) return null
+  if (c < 0.40) return { label: 'Low',      color: '#059669', desc: 'underfished — your share is barely diluted' }
+  if (c < 0.70) return { label: 'Moderate', color: '#d97706', desc: 'a fair number of LPs likely competing' }
+  return                 { label: 'High',     color: '#dc2626', desc: 'heavily contested — your share is split thin' }
+}
+
 const fmtReward = (n: number) => `$${Math.round(n).toLocaleString()}/day`
 const fmtPrice  = (p: number | null) => p == null ? '—' : `${+(p * 100).toFixed(1)}¢`
 const fmtCents  = (s: number | null) => s == null ? '—' : `${+(s * 100).toFixed(1)}¢`
@@ -65,6 +75,7 @@ export default function LpClient() {
   const [longHorizon, setLongHorizon] = useState(false)
   const [sweetSpot, setSweetSpot] = useState(false)
   const [bigPools, setBigPools] = useState(false)
+  const [lowComp, setLowComp] = useState(false)
   const [platform, setPlatform] = useState<'' | 'polymarket' | 'kalshi'>('')
   const dark = useDark()
 
@@ -91,6 +102,8 @@ export default function LpClient() {
   const panelBorder = dark ? '#1e2330' : '#e8ecf0'
 
   const opps = data?.opportunities ?? []
+  // "Low competition" is a client-side filter (Polymarket-only signal; Kalshi rows have no competition value).
+  const shown = lowComp ? opps.filter((o) => o.competition != null && o.competition < 0.40) : opps
   const updated = data?.updatedAt ? new Date(data.updatedAt) : null
 
   const Pill = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
@@ -123,8 +136,9 @@ export default function LpClient() {
           <strong style={{ color: subClr }}>LP Score</strong>. Polymarket shows an exact daily pool;
           Kalshi runs a liquidity-incentive program but doesn&apos;t publish per-market pools, so its
           markets are scored on book health and shown as <em>eligible</em> — verify the pool on Kalshi.
-          The reward is the market&apos;s total pool, not your guaranteed share. Access is region-limited;
-          check eligibility. Always check the live order book first. Not financial advice.
+          The reward is the market&apos;s total pool, not your guaranteed share — a more contested pool
+          means a thinner cut, which is what <strong style={{ color: subClr }}>Competition</strong> flags.
+          Access is region-limited; check eligibility. Always check the live order book first. Not financial advice.
         </p>
       </div>
 
@@ -132,7 +146,7 @@ export default function LpClient() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22, flexWrap: 'wrap' }}>
         {!loading && !err && (
           <span style={{ fontSize: 13, fontWeight: 600, color: headClr }}>
-            {opps.length} opportunit{opps.length === 1 ? 'y' : 'ies'}
+            {shown.length} opportunit{shown.length === 1 ? 'y' : 'ies'}
           </span>
         )}
         <div style={{ flex: 1 }} />
@@ -141,6 +155,7 @@ export default function LpClient() {
         <Pill active={platform === 'kalshi'} onClick={() => setPlatform('kalshi')}>Kalshi</Pill>
         <span style={{ width: 1, height: 22, background: panelBorder, margin: '0 2px' }} />
         <Pill active={bigPools} onClick={() => setBigPools((v) => !v)}>💰 $100+/day</Pill>
+        <Pill active={lowComp} onClick={() => setLowComp((v) => !v)}>🟢 Low competition</Pill>
         <Pill active={sweetSpot} onClick={() => setSweetSpot((v) => !v)}>🎯 15–40¢</Pill>
         <Pill active={longHorizon} onClick={() => setLongHorizon((v) => !v)}>📅 15+ days</Pill>
         <Pill active={false} onClick={load}>↻ Refresh</Pill>
@@ -160,15 +175,17 @@ export default function LpClient() {
           <p style={{ fontSize: 14, color: '#ef4444', margin: '0 0 12px' }}>{err}</p>
           <Pill active={false} onClick={load}>Try again</Pill>
         </div>
-      ) : opps.length === 0 ? (
+      ) : shown.length === 0 ? (
         <div style={{ background: panelBg, border: `1px solid ${panelBorder}`, borderRadius: 12, padding: '40px 20px', textAlign: 'center' }}>
           <div style={{ fontSize: 30, marginBottom: 10 }}>💧</div>
           <p style={{ fontSize: 15, fontWeight: 600, color: headClr, margin: '0 0 6px' }}>No LP opportunities match these filters</p>
-          <p style={{ fontSize: 13, color: subClr, margin: 0 }}>Try loosening the filters above.</p>
+          <p style={{ fontSize: 13, color: subClr, margin: 0 }}>
+            {lowComp ? 'Low-competition is a Polymarket-only signal — try turning off other filters, or switch to Polymarket.' : 'Try loosening the filters above.'}
+          </p>
         </div>
       ) : (
         <div style={gridStyle}>
-          {opps.map((o) => <LpCard key={o.id} opp={o} dark={dark} />)}
+          {shown.map((o) => <LpCard key={o.id} opp={o} dark={dark} />)}
         </div>
       )}
 
@@ -208,6 +225,7 @@ function LpCard({ opp, dark }: { opp: LpOpportunity; dark: boolean }) {
 
   const isKalshi = opp.platform === 'kalshi' || opp.reward_precision === 'qualitative'
   const t = tierOf(opp.lp_score)
+  const comp = isKalshi ? null : competitionOf(opp.competition)
   const closing = closingBadge(opp.days)
   const f = opp.factors
 
@@ -287,7 +305,16 @@ function LpCard({ opp, dark }: { opp: LpOpportunity; dark: boolean }) {
               <span style={{ fontSize: 11, color: metaClr }}>pool not published</span>
             </span>
           ) : (
-            <span style={{ fontSize: 16, fontWeight: 800, color: '#059669', letterSpacing: '-0.3px' }}>{fmtReward(opp.daily_reward)}</span>
+            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, lineHeight: 1.15 }}>
+              <span style={{ fontSize: 16, fontWeight: 800, color: '#059669', letterSpacing: '-0.3px' }}>{fmtReward(opp.daily_reward)}</span>
+              {comp && (
+                <span title={`Competition ${Math.round((opp.competition || 0) * 100)}/100 — ${comp.desc}. Estimated from 24h volume relative to the reward pool, not a live LP count.`}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: comp.color, whiteSpace: 'nowrap' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: comp.color, display: 'inline-block' }} />
+                  {comp.label} competition
+                </span>
+              )}
+            </span>
           )}
         </div>
 

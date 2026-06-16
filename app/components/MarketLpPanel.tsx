@@ -9,7 +9,7 @@ interface LpOpportunity {
   daily_reward: number; min_size: number | null; max_spread: number | null
   price: number | null; spread: number | null; days: number | null
   volume_24hr: number | null; open_interest: number | null
-  lp_score: number; factors: LpFactors | null; reward_precision: string; fetched_at: string
+  lp_score: number; competition?: number | null; factors: LpFactors | null; reward_precision: string; fetched_at: string
 }
 
 const PLATFORM_LABELS: Record<string, string> = { polymarket: 'Polymarket', kalshi: 'Kalshi' }
@@ -19,6 +19,15 @@ function tierOf(score: number) {
   if (score >= 60) return { label: 'Good',   color: '#d97706', bgL: '#fffbeb', bgD: '#1c1002', bdL: '#fde68a', bdD: '#78350f' }
   return                   { label: 'Fair',   color: '#64748b', bgL: '#f1f5f9', bgD: '#1e2330', bdL: '#e2e8f0', bdD: '#2d3748' }
 }
+
+// Reward-pool crowding (Polymarket only). Low = underfished (good), High = contested.
+function competitionOf(c: number | null | undefined) {
+  if (c == null) return null
+  if (c < 0.40) return { label: 'Low',      color: '#059669', desc: 'underfished — your share is barely diluted' }
+  if (c < 0.70) return { label: 'Moderate', color: '#d97706', desc: 'a fair number of LPs likely competing' }
+  return                 { label: 'High',     color: '#dc2626', desc: 'heavily contested — your share is split thin' }
+}
+
 const fmtReward = (n: number) => `$${Math.round(n).toLocaleString()}/day`
 const fmtPrice  = (p: number | null) => p == null ? '—' : `${+(p * 100).toFixed(1)}¢`
 const fmtCents  = (s: number | null) => s == null ? '—' : `${+(s * 100).toFixed(1)}¢`
@@ -64,6 +73,7 @@ export default function MarketLpPanel({ marketId, platform, dark }: { marketId: 
 
   const isKalshi = opp.platform === 'kalshi' || opp.reward_precision === 'qualitative'
   const t = tierOf(opp.lp_score)
+  const comp = isKalshi ? null : competitionOf(opp.competition)
   const f = opp.factors
 
   const stats: [string, string][] = isKalshi
@@ -109,7 +119,16 @@ export default function MarketLpPanel({ marketId, platform, dark }: { marketId: 
               <span style={{ fontSize: 11, color: txt2 }}>pool not published</span>
             </span>
           ) : (
-            <span style={{ fontSize: 18, fontWeight: 800, color: '#059669', letterSpacing: '-0.3px' }}>{fmtReward(opp.daily_reward)}</span>
+            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, lineHeight: 1.15 }}>
+              <span style={{ fontSize: 18, fontWeight: 800, color: '#059669', letterSpacing: '-0.3px' }}>{fmtReward(opp.daily_reward)}</span>
+              {comp && (
+                <span title={`Competition ${Math.round((opp.competition || 0) * 100)}/100 — ${comp.desc}. Estimated from 24h volume relative to the reward pool, not a live LP count.`}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: comp.color, whiteSpace: 'nowrap' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: comp.color, display: 'inline-block' }} />
+                  {comp.label} competition
+                </span>
+              )}
+            </span>
           )}
         </div>
 
@@ -138,7 +157,7 @@ export default function MarketLpPanel({ marketId, platform, dark }: { marketId: 
         <p style={{ fontSize: 11, color: txt2, lineHeight: 1.5, marginBottom: 14 }}>
           {isKalshi
             ? 'Kalshi runs a liquidity-incentive program but doesn’t publish per-market pools — verify the live pool and your region’s eligibility on Kalshi. You earn whether or not your orders fill. Not financial advice.'
-            : 'This is the market’s total daily pool, not your guaranteed share — your earnings depend on your share of resting liquidity near the midpoint. Check the live order book first. Not financial advice.'}
+            : 'This is the market’s total daily pool, not your guaranteed share — your earnings depend on your share of resting liquidity near the midpoint, so a more contested pool means a thinner cut. Check the live order book first. Not financial advice.'}
         </p>
 
         {/* CTA + link */}
