@@ -3,12 +3,12 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
-// Aggregates active price-ladder rungs (which are hidden from the main feed)
-// into ONE summary row per family. No DB change: grouped in-memory.
+// Aggregates active price-ladder rungs (hidden from the main feed) into ONE
+// summary row per family. No DB change: grouped in-memory.
 //
 // Each "above $X" rung's probability = P(value >= threshold), so within a family
 // probability falls as the threshold rises (a CDF). The implied median is the
-// threshold where that crosses 0.5 — a single number summarising the whole ladder.
+// threshold where that crosses 0.5 — a single number summarising the ladder.
 
 interface Rung {
   id: string
@@ -25,20 +25,27 @@ interface Rung {
   fetched_at: string
 }
 
-// median threshold where P(value >= t) crosses 0.5 (rungs sorted by threshold asc)
+// Robust median: anchor on the rung whose probability is CLOSEST to 0.5, then
+// interpolate toward the neighbour that brackets 0.5. Immune to noisy tails /
+// early non-monotonic dips that broke a naive "first crossing" approach.
 function impliedMedian(rungs: Rung[]): number | null {
   const pts = rungs
     .filter(r => r.probability != null && r.ladder_threshold != null)
     .map(r => ({ t: Number(r.ladder_threshold), p: Number(r.probability) }))
+    .sort((a, b) => a.t - b.t)
   if (pts.length < 2) return null
-  for (let i = 0; i < pts.length - 1; i++) {
-    const a = pts[i], b = pts[i + 1]
-    if (a.p >= 0.5 && b.p < 0.5) {
-      const frac = (a.p - 0.5) / (a.p - b.p)         // 0..1 between a and b
-      return +(a.t + frac * (b.t - a.t)).toFixed(2)
-    }
+
+  let ci = 0, cd = Infinity
+  for (let i = 0; i < pts.length; i++) {
+    const d = Math.abs(pts[i].p - 0.5)
+    if (d < cd) { cd = d; ci = i }
   }
-  return null  // no clean crossing (non-conforming family) -> omit median
+  const c = pts[ci]
+  // pick the neighbour on the side that moves probability across 0.5
+  const nb = c.p >= 0.5 ? (pts[ci + 1] ?? pts[ci - 1]) : (pts[ci - 1] ?? pts[ci + 1])
+  if (!nb || nb.p === c.p) return +c.t.toFixed(2)
+  const frac = Math.max(-1, Math.min(2, (c.p - 0.5) / (c.p - nb.p)))
+  return +(c.t + frac * (nb.t - c.t)).toFixed(2)
 }
 
 function pickRepresentative(rungs: Rung[], median: number | null): Rung {
@@ -54,7 +61,7 @@ function pickRepresentative(rungs: Rung[], median: number | null): Rung {
   return rungs[Math.floor(rungs.length / 2)]
 }
 
-// "bitcoin price on jun 19" -> "Bitcoin price on jun 19"
+// "bitcoin price on jun 19, 2026?" -> "Bitcoin price on jun 19, 2026?"
 function prettify(key: string): string {
   if (!key) return key
   return key.charAt(0).toUpperCase() + key.slice(1)
@@ -66,6 +73,8 @@ export async function GET(request: NextRequest) {
     const platform = searchParams.get('platform')
     const category = searchParams.get('category')
     const limit = Math.min(60, Math.max(1, parseInt(searchParams.get('limit') || '24')))
+    // Substantial families only — drops 12-rung hourly-crypto noise. Tunable.
+    const minRungs = Math.max(3, parseInt(searchParams.get('minRungs') || '20'))
 
     let q = supabaseAdmin
       .from('markets')
@@ -89,7 +98,7 @@ export async function GET(request: NextRequest) {
 
     const families = []
     for (const [key, rungs] of groups) {
-      if (rungs.length < 3) continue  // not a meaningful distribution
+      if (rungs.length < minRungs) continue
       rungs.sort((a, b) => (a.ladder_threshold ?? 0) - (b.ladder_threshold ?? 0))
       const median = impliedMedian(rungs)
       const rep = pickRepresentative(rungs, median)
@@ -98,7 +107,7 @@ export async function GET(request: NextRequest) {
       families.push({
         ladderKey: key,
         baseLabel: prettify(key),
-        sampleQuestion: rungs[Math.floor(rungs.length / 2)].question,  // for label QA
+        sampleQuestion: rungs[Math.floor(rungs.length / 2)].question,
         platform: rungs[0].platform,
         category: rungs[0].category,
         rungCount: rungs.length,
