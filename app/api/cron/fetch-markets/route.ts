@@ -73,6 +73,19 @@ function parseLadder(question: string): { key: string; threshold: number } | nul
   return { key: base.toLowerCase().replace(/\s+/g, ' '), threshold }
 }
 
+// Format B: trailing-threshold ladders, e.g. "Will average gas prices be above $3.00?"
+// (a direction word, then "$X" at the very end). The >=3 family-size gate in the
+// handler ensures a lone "above $X" market is NOT mistaken for a ladder rung.
+function parseLadderB(question: string): { key: string; threshold: number } | null {
+  if (!question) return null
+  const m = question.match(/^(.+?\b(?:above|below|over|under)\b)\s*\$\s*([\d,]+(?:\.\d+)?)\s*\??\s*$/i)
+  if (!m) return null
+  const base = m[1].trim()
+  const threshold = parseFloat(m[2].replace(/,/g, ''))
+  if (!base || !isFinite(threshold)) return null
+  return { key: base.toLowerCase().replace(/\s+/g, ' '), threshold }
+}
+
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -99,8 +112,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, message: 'No markets fetched', errors })
   }
 
-  const sanitized = markets.map((m: any) => {
-    const ladder = parseLadder(m.question || '')
+  // Two-pass ladder keying: a market becomes a ladder rung only if >=3 markets
+  // in this fetch share its base key (a real family). Singleton "above $X"
+  // markets keep ladder_key=null so they stay in the main browse feed.
+  const candidates = markets.map((m: any) => parseLadder(m.question || '') || parseLadderB(m.question || ''))
+  const ladderKeyCounts = new Map<string, number>()
+  for (const c of candidates) if (c) ladderKeyCounts.set(c.key, (ladderKeyCounts.get(c.key) || 0) + 1)
+  const LADDER_MIN_RUNGS = 3
+
+  const sanitized = markets.map((m: any, i: number) => {
+    const cand = candidates[i]
+    const ladder = (cand && (ladderKeyCounts.get(cand.key) || 0) >= LADDER_MIN_RUNGS) ? cand : null
     return {
       ...m,
       probability: m.probability !== null && m.probability !== undefined
