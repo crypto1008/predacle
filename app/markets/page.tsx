@@ -8,6 +8,7 @@ import Footer from '../components/Footer'
 import MarketCard from '../components/MarketCard'
 import MarketCardSkeleton from '../components/MarketCardSkeleton'
 import SearchAutocomplete from '../components/SearchAutocomplete'
+import LadderFamilyCard from '../components/LadderFamilyCard'
 
 interface Market {
   id: string; platform: string; question: string
@@ -17,6 +18,12 @@ interface Market {
   category: string | null; url: string; status: string
   created_at?: string; probability_change?: number | null
   image_url?: string | null
+}
+
+interface Family {
+  ladderKey: string; baseLabel: string; platform: string; category: string | null
+  rungCount: number; thresholdMin: number | null; thresholdMax: number | null
+  impliedMedian: number | null; totalVolume: number | null; repId: string; endLabel: string | null
 }
 
 interface SiteStats { totalMarkets: number; minutesAgo: number; platforms: number }
@@ -123,6 +130,7 @@ function MarketsContent() {
   const [page,        setPage]        = useState(1)
   const [loading,     setLoading]     = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [families,    setFamilies]    = useState<Family[]>([])
 
   const category = searchParams?.get('category') || ''
   const platform = searchParams?.get('platform') || ''
@@ -166,6 +174,21 @@ function MarketsContent() {
   }, [category, platform, sort, q, min_prob, max_prob])
 
   useEffect(() => { setPage(1); fetchMarkets(1, false) }, [fetchMarkets])
+
+  // Ladder families (consolidated price-ladder distributions) — shown above the
+  // feed when not searching; adapts to the active platform/category filter.
+  useEffect(() => {
+    if (q) { setFamilies([]); return }
+    const fp = new URLSearchParams()
+    if (platform) fp.set('platform', platform)
+    if (category) fp.set('category', category)
+    let alive = true
+    fetch(`/api/markets/families${fp.toString() ? `?${fp}` : ''}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (alive) setFamilies(d?.families || []) })
+      .catch(() => { if (alive) setFamilies([]) })
+    return () => { alive = false }
+  }, [platform, category, q])
 
   const handleLoadMore = () => { const next = page + 1; setPage(next); fetchMarkets(next, true) }
   const setParam = (key: string, val: string) =>
@@ -315,6 +338,23 @@ function MarketsContent() {
                 <button onClick={() => router.push(buildUrl({ category, platform, sort, q: '', min_prob, max_prob }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5f5cf0', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
               </span>
             )}
+          </div>
+        )}
+
+        {/* Price ladders (consolidated) */}
+        {families.length > 0 && (
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: txt1, margin: 0 }}>📊 Price ladders</h2>
+              <span style={{ fontSize: 12, color: txt3 }}>
+                {families.length} consolidated distribution{families.length === 1 ? '' : 's'}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+              {families.map(f => (
+                <LadderFamilyCard key={f.ladderKey} family={f} onClick={() => router.push(`/markets/${f.repId}`)} />
+              ))}
+            </div>
           </div>
         )}
 
