@@ -13,6 +13,7 @@ interface Family {
   impliedMedian: number | null
   totalVolume: number | null
   repId: string
+  unit?: string
   endLabel: string | null
 }
 
@@ -39,6 +40,15 @@ function fmtUsd(n: number | null): string {
   if (Math.abs(n) >= 1000) return `$${Math.round(n).toLocaleString()}`
   return `$${(+Number(n).toFixed(2)).toLocaleString()}`
 }
+function fmtThreshold(n: number | null, unit?: string): string {
+  if (n == null) return '-'
+  const v = Number(n)
+  if (unit === 'percent')  return `${+v.toFixed(2)}%`
+  if (unit === 'trillion') return `$${+v.toFixed(2)}T`
+  if (unit === 'index')    return v >= 1000 ? Math.round(v).toLocaleString() : String(+v.toFixed(2))
+  return Math.abs(v) >= 1000 ? `$${Math.round(v).toLocaleString()}` : `$${(+v.toFixed(2)).toLocaleString()}`
+}
+
 function fmtVol(v: number | null): string | null {
   if (!v) return null
   return v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M vol` : v >= 1e3 ? `$${Math.round(v / 1e3)}K vol` : `$${Math.round(v)} vol`
@@ -109,12 +119,12 @@ export default function LadderFamilyCard({ family, onClick }: { family: Family; 
         <div style={{ marginTop: 12 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
             <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px', color: '#5f5cf0' }}>
-              {fmtUsd(family.impliedMedian)}
+              {fmtThreshold(family.impliedMedian, family.unit)}
             </span>
             <span style={{ fontSize: 11, fontWeight: 600, color: subClr }}>implied median</span>
           </div>
           <p style={{ fontSize: 11, color: metaClr, margin: 0 }}>
-            {family.rungCount} levels · {fmtUsd(family.thresholdMin)}–{fmtUsd(family.thresholdMax)}
+            {family.rungCount} levels · {fmtThreshold(family.thresholdMin, family.unit)}–{fmtThreshold(family.thresholdMax, family.unit)}
           </p>
         </div>
       </div>

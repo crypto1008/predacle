@@ -67,6 +67,16 @@ function prettify(key: string): string {
   return key.charAt(0).toUpperCase() + key.slice(1)
 }
 
+// Infer the threshold unit from the family key so the card shows %/$T/points
+// instead of always "$". Default = dollar (most ladders are prices: BTC/ETH/gas/oil).
+function inferUnit(key: string): string {
+  const k = (key || '').toLowerCase()
+  if (k.includes('%') || k.includes('inflation') || k.includes('rate of')) return 'percent'
+  if (k.includes('trillion') || k.includes('valuation') || /\$x\s*t\b/.test(k)) return 'trillion'
+  if (/\bnasdaq|s&p|\bdow\b|\brussell\b|\bindex\b/.test(k)) return 'index'
+  return 'dollar'
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -106,6 +116,7 @@ export async function GET(request: NextRequest) {
       const latest = rungs.reduce((m, r) => (r.fetched_at > m ? r.fetched_at : m), rungs[0].fetched_at)
       families.push({
         ladderKey: key,
+        unit: inferUnit(key),
         baseLabel: prettify(key),
         sampleQuestion: rungs[Math.floor(rungs.length / 2)].question,
         platform: rungs[0].platform,
