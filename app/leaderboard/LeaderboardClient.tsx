@@ -78,8 +78,8 @@ export default function LeaderboardClient() {
           Everyone trades on prediction markets; almost nobody checks whether the prices are actually{' '}
           <em>right</em>. We do. For every market that has resolved, Predacle compares its last
           pre-resolution price against what really happened, then scores each platform on two things:{' '}
-          <strong style={{ color: subClr }}>sharpness</strong> (the Brier score — how confidently and
-          correctly it priced outcomes) and <strong style={{ color: subClr }}>calibration</strong> (when
+          <strong style={{ color: subClr }}>sharpness</strong>{' '}(the Brier score — how confidently and
+          correctly it priced outcomes) and <strong style={{ color: subClr }}>calibration</strong>{' '}(when
           a platform says &ldquo;60%&rdquo;, does that happen about 60% of the time?). Lower Brier is
           better. Only platforms with at least {data?.minSample ?? 100} resolved binary markets appear;
           coverage grows as more resolution sources come online. Not financial advice.

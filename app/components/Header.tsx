@@ -116,6 +116,20 @@ export default function Header() {
               <span style={{ fontSize: 14, lineHeight: 1 }}>⚡</span> Signals
             </Link>
 
+            {/* Leaderboard link — desktop */}
+            <Link href="/leaderboard" className="leaderboard-link"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                padding: '6px 10px', fontSize: 13, fontWeight: 600, borderRadius: 8,
+                textDecoration: 'none', whiteSpace: 'nowrap', color: '#5f5cf0',
+                background: pathname === '/leaderboard' ? (dark ? '#1e1b4b' : '#ede9fe') : 'transparent',
+                border: `1px solid ${dark ? '#312e81' : '#ddd6fe'}`,
+                transition: 'all 0.15s',
+              }}
+              aria-current={pathname === '/leaderboard' ? 'page' : undefined}>
+              <span style={{ fontSize: 14, lineHeight: 1 }}>🎯</span> Leaderboard
+            </Link>
+
             {/* Pro link - desktop */}
             <Link href="/pro" className="pro-link"
               style={{
@@ -217,6 +231,15 @@ export default function Header() {
                 }}>
                 <span style={{ fontSize: 14, lineHeight: 1 }}>💧</span> LP Rewards
               </Link>
+              <Link href="/leaderboard" onClick={() => setMenuOpen(false)}
+                style={{
+                  padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 20,
+                  textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5,
+                  background: pathname === '/leaderboard' ? '#ede9fe' : (dark ? '#1e1b4b' : '#ede9fe'),
+                  color: '#5f5cf0',
+                }}>
+                <span style={{ fontSize: 14, lineHeight: 1 }}>🎯</span> Leaderboard
+              </Link>
               <Link href="/signals" onClick={() => setMenuOpen(false)}
                 style={{
                   padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 20,
@@ -247,6 +270,7 @@ export default function Header() {
 
       <style>{`
         @media (max-width: 768px) {
+          .leaderboard-link { display: none !important; }
           .mobile-menu-btn  { display: flex !important; }
           .desktop-search   { display: none !important; }
           .pro-link        { display: none !important; }
