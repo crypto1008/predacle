@@ -61,10 +61,48 @@ function pickRepresentative(rungs: Rung[], median: number | null): Rung {
   return rungs[Math.floor(rungs.length / 2)]
 }
 
-// "bitcoin price on jun 19, 2026?" -> "Bitcoin price on jun 19, 2026?"
+// Prettify a lower-cased family key for display:
+//   - capitalise the first character
+//   - capitalise full month names (the card's cleanLabel only handles 3-letter abbrevs)
+//   - proper-case known acronyms / tickers / timezones
+// e.g. "will the rate of cpi inflation ... ending in july 2026?"
+//   ->  "Will the rate of CPI inflation ... ending in July 2026?"
 function prettify(key: string): string {
   if (!key) return key
-  return key.charAt(0).toUpperCase() + key.slice(1)
+  let s = key.charAt(0).toUpperCase() + key.slice(1)
+  s = s.replace(
+    /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/gi,
+    m => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase(),
+  )
+  s = s
+    .replace(/\bnasdaq-100\b/gi, 'Nasdaq-100')
+    .replace(/\bnasdaq\b/gi, 'Nasdaq')
+    .replace(/\bs&p\s*500\b/gi, 'S&P 500')
+    .replace(/\bs&p\b/gi, 'S&P')
+    .replace(/\bcpi\b/gi, 'CPI')
+    .replace(/\bwti\b/gi, 'WTI')
+    .replace(/\bspacex\b/gi, 'SpaceX')
+    .replace(/\bedt\b/gi, 'EDT')
+    .replace(/\best\b/gi, 'EST')
+    .replace(/\butc\b/gi, 'UTC')
+  return s
+}
+
+// Collapse a family key to its "subject" by stripping the parts that vary between
+// near-duplicate ladders (month names, day numbers, years, clock times). All four
+// "CPI inflation for the year ending in <month> 2026" ladders map to one subject,
+// so the per-subject cap can keep only the highest-volume couple.
+function subjectKey(key: string): string {
+  return (key || '')
+    .toLowerCase()
+    .replace(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/g, '')
+    .replace(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b/g, '')
+    .replace(/\b\d{1,2}\s*(am|pm)\b/g, '')   // clock times: 4pm, 10am
+    .replace(/\b20\d\d\b/g, '')              // years
+    .replace(/\b\d{1,2}\b/g, '')             // day numbers
+    .replace(/,/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 // Infer the threshold unit from the family key so the card shows %/$T/points
@@ -85,6 +123,9 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(60, Math.max(1, parseInt(searchParams.get('limit') || '24')))
     // Substantial families only — drops 12-rung hourly-crypto noise. Tunable.
     const minRungs = Math.max(3, parseInt(searchParams.get('minRungs') || '20'))
+    // Keep at most N families per subject so near-duplicates (e.g. CPI across
+    // several end-months) don't crowd the strip. 0 = no cap.
+    const capPerSubject = Math.max(0, parseInt(searchParams.get('capPerSubject') || '2'))
 
     let q = supabaseAdmin
       .from('markets')
@@ -134,8 +175,22 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Highest-volume first, then trim near-duplicate subjects to the top few.
     families.sort((a, b) => b.totalVolume - a.totalVolume)
-    return NextResponse.json({ families: families.slice(0, limit), total: families.length })
+    let result = families
+    if (capPerSubject > 0) {
+      const seen = new Map<string, number>()
+      result = []
+      for (const f of families) {
+        const sk = subjectKey(f.ladderKey)
+        const n = seen.get(sk) || 0
+        if (n >= capPerSubject) continue
+        seen.set(sk, n + 1)
+        result.push(f)
+      }
+    }
+
+    return NextResponse.json({ families: result.slice(0, limit), total: result.length })
   } catch (error: any) {
     return NextResponse.json({ error: 'Failed to build families', detail: error.message }, { status: 500 })
   }
