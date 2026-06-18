@@ -165,14 +165,14 @@ export default function Header() {
             </nav>
 
             {/* Search with autocomplete — desktop */}
-            <div className="desktop-search" style={{ width: 200, flexShrink: 0 }}>
+            <div className="desktop-search" style={{ width: 200, flexShrink: 0, order: 2 }}>
               <SearchAutocomplete placeholder="Search markets..." />
             </div>
 
             {/* Dark mode toggle */}
             <button onClick={toggleDark}
               aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-              style={{ padding: 8, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'transparent', color: dark ? '#64748b' : '#94a3b8', flexShrink: 0 }}>
+              style={{ padding: 8, border: `1px solid ${dark ? '#312e81' : '#ddd6fe'}`, borderRadius: 8, cursor: 'pointer', background: dark ? '#1e1b4b' : '#ede9fe', color: '#5f5cf0', flexShrink: 0 }}>
               {dark ? (
                 <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="5"/>
