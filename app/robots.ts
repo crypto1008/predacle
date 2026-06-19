@@ -12,6 +12,10 @@ const AI_BOTS = [
   'Google-Extended',
 ]
 
+// Match sitemap.ts: fall back to the production domain if the env var is unset,
+// so robots.txt can never advertise "undefined/sitemap.xml".
+const base = process.env.NEXT_PUBLIC_APP_URL || 'https://predacle.com'
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
@@ -26,6 +30,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/'],
       },
     ],
-    sitemap: `${process.env.NEXT_PUBLIC_APP_URL}/sitemap.xml`,
+    sitemap: `${base}/sitemap.xml`,
   }
 }
