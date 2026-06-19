@@ -148,7 +148,19 @@ export async function GET(request: NextRequest) {
     }
 
     const families = []
-    for (const [key, rungs] of groups) {
+    for (const [key, allRungs] of groups) {
+      // Some platforms list the same strike more than once (e.g. duplicate rows
+      // or above/below framings of one threshold), which inflates the level count
+      // and can distort the CDF. Keep ONE rung per distinct threshold — the most
+      // liquid — so counts, range, volume and the implied median are all honest.
+      const byThreshold = new Map<number, Rung>()
+      for (const r of allRungs) {
+        if (r.ladder_threshold == null) continue
+        const t = Number(r.ladder_threshold)
+        const prev = byThreshold.get(t)
+        if (!prev || (Number(r.volume) || 0) > (Number(prev.volume) || 0)) byThreshold.set(t, r)
+      }
+      const rungs = Array.from(byThreshold.values())
       if (rungs.length < minRungs) continue
       rungs.sort((a, b) => (a.ladder_threshold ?? 0) - (b.ladder_threshold ?? 0))
       const median = impliedMedian(rungs)
