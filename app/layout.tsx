@@ -47,6 +47,9 @@ export const metadata: Metadata = {
     },
   },
   manifest: '/site.webmanifest',
+  icons: {
+    apple: '/apple-touch-icon.png',
+  },
 }
 
 const themeScript = `try{var t=localStorage.getItem('theme'),d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(!t&&d))document.documentElement.classList.add('dark')}catch(e){}`
@@ -66,7 +69,7 @@ const jsonLd = {
       '@id': `${SITE_URL}/#organization`,
       name: 'Predacle',
       url: SITE_URL,
-      logo: `${SITE_URL}/apple-touch-icon.png`,
+      logo: `${SITE_URL}/icon-512.png`,
       description: 'Prediction market aggregator spanning Polymarket, Kalshi, Myriad, Manifold, Limitless and Azuro.',
       sameAs: ['https://x.com/predacle'],
     },
