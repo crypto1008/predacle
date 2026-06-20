@@ -90,9 +90,12 @@ export async function GET(req: Request) {
     .in('platform', POOL_PLATFORMS)
     .not('probability', 'is', null)
     .order('volume', { ascending: false, nullsFirst: false })
-    .limit(CANDIDATE_POOL)
+    .limit(500)
   if (candErr) return NextResponse.json({ error: candErr.message }, { status: 500 })
-  const candidates = cands || []
+  // Drop sports — in-play game markets swing for game reasons, not news.
+  const candidates = (cands || [])
+    .filter((c: any) => (c.category || '').toLowerCase() !== 'sports')
+    .slice(0, CANDIDATE_POOL)
   const ids = candidates.map((c: any) => c.id)
 
   // 2) ~24h-ago snapshot per candidate (closest to 24h within an 18–30h window).
@@ -188,6 +191,7 @@ export async function GET(req: Request) {
 
   // 6) One batched Gemini call for all movers needing a score.
   let scored = 0
+  const debug: any = { hasApiKey: !!apiKey, toScore: toScore.length, geminiStatus: null, finishReason: null, parsed: 0, rawLen: 0 }
   if (toScore.length && apiKey) {
     const list = toScore.map((m, idx) => {
       const dir = m.delta > 0
@@ -213,16 +217,25 @@ Rules: score sign must match stance (positive = bullish for YES, negative = bear
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 4096, temperature: 0.3, responseMimeType: 'application/json' },
+            generationConfig: {
+              maxOutputTokens: 8192,
+              temperature: 0.3,
+              responseMimeType: 'application/json',
+              thinkingConfig: { thinkingBudget: 0 },
+            },
           }),
         }
       )
       if (res.ok) {
         const gem   = await res.json()
+        debug.geminiStatus = res.status
+        debug.finishReason = gem.candidates?.[0]?.finishReason ?? null
         const parts = gem.candidates?.[0]?.content?.parts || []
         const text  = parts.filter((p: any) => !p.thought).map((p: any) => p.text || '').join('').trim()
+        debug.rawLen = text.length
         let arr: any[] = []
         try { arr = JSON.parse(text) } catch { const mm = text.match(/\[[\s\S]*\]/); arr = mm ? JSON.parse(mm[0]) : [] }
+        debug.parsed = arr.length
 
         const rows: any[] = []
         for (const o of arr) {
@@ -248,6 +261,7 @@ Rules: score sign must match stance (positive = bullish for YES, negative = bear
           if (!error) scored = rows.length
         }
       } else {
+        debug.geminiStatus = res.status
         console.error('Gemini sentiment error:', await res.text())
       }
     } catch (e: any) {
@@ -261,6 +275,7 @@ Rules: score sign must match stance (positive = bullish for YES, negative = bear
     movers: movers.length,
     newsFetched,
     scored,
+    debug,
     sample: movers.slice(0, 8).map(m => ({
       move: Math.round(m.delta * 100),
       headlines: headlines[m.id]?.length || 0,
