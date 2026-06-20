@@ -650,7 +650,7 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
 export default function MarketDetailClient({ id, initialMarket }: { id: string; initialMarket: Market | null }) {
   return (
     <>
-      <Suspense fallback={<div style={{ height: 56, background: '#fff', borderBottom: '1px solid #eaecef' }} />}>
+      <Suspense fallback={<div style={{ height: 64, background: '#fff', borderBottom: '1px solid #eaecef' }} />}>
         <Header />
       </Suspense>
       <MarketDetail id={id} initialMarket={initialMarket} />

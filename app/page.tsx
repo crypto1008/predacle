@@ -17,7 +17,7 @@ export default function HomePage() {
   return (
     <>
       <Suspense fallback={
-        <div style={{ height: 56, background: '#fff', borderBottom: '1px solid #eaecef' }} />
+        <div style={{ height: 64, background: '#fff', borderBottom: '1px solid #eaecef' }} />
       }>
         <Header />
       </Suspense>

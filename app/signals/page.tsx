@@ -173,7 +173,7 @@ function SignalsContent() {
 export default function SignalsPage() {
   return (
     <>
-      <Suspense fallback={<div style={{ height: 56 }} />}>
+      <Suspense fallback={<div style={{ height: 64 }} />}>
         <Header />
       </Suspense>
       <SignalsContent />

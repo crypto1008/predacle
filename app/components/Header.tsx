@@ -82,7 +82,7 @@ export default function Header() {
         }}
       >
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', height: 56, gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', height: 64, gap: 14 }}>
 
             {/* Logo */}
             <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
@@ -93,7 +93,7 @@ export default function Header() {
               }}>
                 P
               </div>
-              <span className="font-display" style={{ fontWeight: 800, fontSize: 19, color: dark ? '#f5f6f8' : '#0a0b0d', letterSpacing: '-0.03em' }}>
+              <span className="font-display" style={{ fontWeight: 800, fontSize: 20, color: dark ? '#f5f6f8' : '#0a0b0d', letterSpacing: '-0.03em' }}>
                 Predacle
               </span>
             </Link>
@@ -104,7 +104,7 @@ export default function Header() {
                 aria-haspopup="menu" aria-expanded={toolsOpen}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '6px 10px', fontSize: 13, fontWeight: 600, borderRadius: 8,
+                  padding: '8px 12px', fontSize: 14, fontWeight: 600, borderRadius: 8,
                   cursor: 'pointer', whiteSpace: 'nowrap', color: '#0052ff', fontFamily: 'inherit',
                   background: (onTool || toolsOpen) ? (dark ? '#0f1d3d' : '#eaf0ff') : 'transparent',
                   border: `1px solid ${dark ? '#1d3563' : '#cdddff'}`,
@@ -153,7 +153,7 @@ export default function Header() {
             <Link href="/pro" className="pro-link"
               style={{
                 display: 'flex', alignItems: 'center', flexShrink: 0,
-                padding: '6px 10px', fontSize: 13, fontWeight: 600, borderRadius: 8,
+                padding: '8px 12px', fontSize: 14, fontWeight: 600, borderRadius: 8,
                 textDecoration: 'none', whiteSpace: 'nowrap', color: '#0052ff',
                 background: pathname === '/pro' ? (dark ? '#0f1d3d' : '#eaf0ff') : 'transparent',
                 transition: 'all 0.15s',
@@ -163,19 +163,21 @@ export default function Header() {
             </Link>
 
             {/* Category tabs — desktop */}
-            <nav className="scroll-x" style={{ display: 'flex', gap: 2, flex: 1, overflowX: 'auto' }} aria-label="Market categories">
+            <nav className="scroll-x" style={{ display: 'flex', gap: 6, flex: 1, overflowX: 'auto' }} aria-label="Market categories">
               {CATEGORIES.map(cat => {
                 const isActive = activeCategory === cat.value && !onTool
                 return (
                   <button key={cat.value} onClick={() => handleCategory(cat.value)}
                     style={{
-                      padding: '6px 12px', fontSize: 13,
+                      padding: '8px 14px', fontSize: 14.5,
                       fontWeight: isActive ? 600 : 500,
                       borderRadius: 8, border: 'none', cursor: 'pointer',
                       whiteSpace: 'nowrap', transition: 'all 0.15s',
                       background: isActive ? (dark ? '#0f1d3d' : '#eaf0ff') : 'transparent',
-                      color: isActive ? '#0052ff' : dark ? '#5b616e' : '#5b616e',
+                      color: isActive ? '#0052ff' : (dark ? '#e6e8eb' : '#1a1b1f'),
                     }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = dark ? '#141518' : '#f5f6f8' }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
                     aria-current={isActive ? 'page' : undefined}>
                     {cat.label}
                   </button>

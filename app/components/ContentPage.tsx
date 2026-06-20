@@ -27,7 +27,7 @@ export default function ContentPage(
 
   return (
     <>
-      <Suspense fallback={<div style={{ height: 56 }} />}>
+      <Suspense fallback={<div style={{ height: 64 }} />}>
         <Header />
       </Suspense>
       <main id="main" style={{ background: bg, minHeight: '70vh' }}>
