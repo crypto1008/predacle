@@ -212,18 +212,22 @@ export async function GET(req: Request) {
       return `[${idx}] Question: ${m.question}\nThe YES probability ${dir} over ~24h, now around ${pct ?? '?'}%.\nHeadlines:\n${heads}`
     }).join('\n\n')
 
-    const prompt = `You are a prediction-market analyst. For each market, the YES odds already moved in a known direction. Your ONLY job is to explain WHY they moved that way using the headlines — do not argue the move is wrong.
+    const prompt = `You are a prediction-market analyst. For each market the YES odds already moved a known direction. Explain WHY using the headlines. The direction is already shown to the reader, so do NOT begin with "the market rose/fell because" — lead straight with the news reason.
 
-Be careful:
-- NEGATED questions: if YES means something does NOT happen (e.g. "Will NO meeting occur"), reason in terms of that exact YES outcome.
-- DEADLINE questions: a deal or event can exist yet the market still falls if it likely won't complete by the market's specific date. Say so when that fits.
-- If the headlines do not actually explain the move, say it isn't clearly news-driven.
+Rules:
+- NEGATED questions: if YES means something does NOT happen, reason about that exact YES outcome.
+- DEADLINE questions: a deal or event can exist yet the market still falls if it likely won't complete by the market's specific date — say so when that fits.
+- CONTRADICTION: if the headlines point the OPPOSITE way to the move (e.g. the news looks negative for YES but the odds rose), do NOT invent a reason. Set why to exactly: "Move not clearly explained by recent news — likely repositioning." and leave drivers empty.
+
+Good "why" examples (note the style — reason first, no percentages, no "market rose"):
+- "Framework deal reached, but unlikely to fully halt enrichment before the June 30 deadline."
+- "Burnham's by-election win intensifies pressure on Starmer to name a departure date."
 
 ${list}
 
 Return ONLY a JSON array, one object per market, in the same order:
-[{"i":0,"why":"<=20 words explaining WHY the odds moved this direction; do NOT restate the percentage","drivers":["<=4 word phrase","..."]}]
-drivers = up to 3 short phrases naming the real news drivers behind the move.`
+[{"i":0,"why":"<=20 words, reason first, no percentages","drivers":["<=4 word phrase","..."]}]
+drivers = up to 3 short phrases naming the real news drivers (empty if the contradiction rule applies).`
 
     try {
       const res = await fetch(
