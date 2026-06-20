@@ -204,20 +204,26 @@ export async function GET(req: Request) {
   const debug: any = { hasApiKey: !!apiKey, toScore: toScore.length, geminiStatus: null, finishReason: null, parsed: 0, rawLen: 0 }
   if (toScore.length && apiKey) {
     const list = toScore.map((m, idx) => {
+      const pct = m.probability !== null ? Math.round(Number(m.probability) * 100) : null
       const dir = m.delta > 0
-        ? `up ${Math.round(m.delta * 100)} pts`
-        : `down ${Math.round(Math.abs(m.delta) * 100)} pts`
+        ? `ROSE ${Math.round(m.delta * 100)} points`
+        : `FELL ${Math.round(Math.abs(m.delta) * 100)} points`
       const heads = headlines[m.id].map(h => `- ${h}`).join('\n')
-      return `[${idx}] Q: ${m.question}\nYES odds moved ${dir} over ~24h.\nHeadlines:\n${heads}`
+      return `[${idx}] Question: ${m.question}\nThe YES probability ${dir} over ~24h, now around ${pct ?? '?'}%.\nHeadlines:\n${heads}`
     }).join('\n\n')
 
-    const prompt = `You are a prediction-market analyst. For each market below, read the recent headlines and judge whether the news flow is bullish, bearish, or neutral FOR THE "YES" OUTCOME of that specific question. Ignore headlines that are not actually about the question.
+    const prompt = `You are a prediction-market analyst. For each market, the YES odds already moved in a known direction. Your ONLY job is to explain WHY they moved that way using the headlines — do not argue the move is wrong.
+
+Be careful:
+- NEGATED questions: if YES means something does NOT happen (e.g. "Will NO meeting occur"), reason in terms of that exact YES outcome.
+- DEADLINE questions: a deal or event can exist yet the market still falls if it likely won't complete by the market's specific date. Say so when that fits.
+- If the headlines do not actually explain the move, say it isn't clearly news-driven.
 
 ${list}
 
 Return ONLY a JSON array, one object per market, in the same order:
-[{"i":0,"stance":"bullish|bearish|neutral","score":-100..100,"why":"<=18 words, plain English, do NOT restate the odds","drivers":["<=4 word phrase","..."]}]
-Rules: score sign must match stance (positive = bullish for YES, negative = bearish for YES). drivers = up to 3 short phrases naming the real news drivers. If headlines are off-topic or thin, use "neutral" with score near 0.`
+[{"i":0,"why":"<=20 words explaining WHY the odds moved this direction; do NOT restate the percentage","drivers":["<=4 word phrase","..."]}]
+drivers = up to 3 short phrases naming the real news drivers behind the move.`
 
     try {
       const res = await fetch(
@@ -248,11 +254,15 @@ Rules: score sign must match stance (positive = bullish for YES, negative = bear
         debug.parsed = arr.length
 
         const rows: any[] = []
-        for (const o of arr) {
-          const m = toScore[Number(o.i)]
-          if (!m) continue
-          const stance = ['bullish', 'bearish', 'neutral'].includes(o.stance) ? o.stance : 'neutral'
-          const score  = Math.max(-100, Math.min(100, Math.round(Number(o.score) || 0)))
+        const whyById: Record<string, any> = {}
+        for (const o of arr) whyById[Number(o.i)] = o
+        toScore.forEach((m, idx) => {
+          const o = whyById[idx]
+          if (!o) return
+          // Stance + score come from the OBJECTIVE move, never from the model —
+          // so the label can never contradict the price action.
+          const stance = m.delta > 0 ? 'bullish' : 'bearish'
+          const score  = Math.max(-100, Math.min(100, Math.round(m.delta * 100)))
           rows.push({
             market_id: m.id,
             stance,
@@ -263,7 +273,7 @@ Rules: score sign must match stance (positive = bullish for YES, negative = bear
             headline_count: headlines[m.id].length,
             generated_at: new Date().toISOString(),
           })
-        }
+        })
         if (rows.length) {
           const { error } = await supabaseAdmin
             .from('market_sentiment')

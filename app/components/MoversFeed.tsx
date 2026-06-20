@@ -62,12 +62,6 @@ export default function MoversFeed() {
   const up     = dark ? '#2bd97c' : '#05a66b'
   const down   = dark ? '#ff6b6b' : '#e5484d'
 
-  const stanceStyle = (s: string) => {
-    if (s === 'bullish') return { label: 'Bullish', c: up,   bg: dark ? '#04291b' : '#e7f8f0', bd: dark ? '#0a5235' : '#bfeed8' }
-    if (s === 'bearish') return { label: 'Bearish', c: down, bg: dark ? '#3a0d0d' : '#fdecec', bd: dark ? '#5c1a1a' : '#f6c9cb' }
-    return { label: 'Neutral', c: txt2, bg: dark ? '#16171a' : '#f5f6f8', bd: border }
-  }
-
   return (
     <section style={{ marginBottom: 52 }}>
       <style>{`
@@ -98,7 +92,6 @@ export default function MoversFeed() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
         {movers.map(m => {
-          const st = stanceStyle(m.stance)
           const moveUp = m.move > 0
           const pct = m.probability !== null ? Math.round(m.probability * 100) : null
           const topNews = m.headlines[0]
@@ -125,13 +118,6 @@ export default function MoversFeed() {
                   borderRadius: 6, padding: '3px 8px',
                 }}>
                   {moveUp ? '↑' : '↓'} {Math.abs(m.move)} pts
-                </span>
-                <span style={{
-                  fontSize: 11, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase',
-                  color: st.c, background: st.bg, border: `1px solid ${st.bd}`,
-                  borderRadius: 6, padding: '3px 8px',
-                }}>
-                  {st.label}
                 </span>
               </div>
 
