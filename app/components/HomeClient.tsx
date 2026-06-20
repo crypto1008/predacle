@@ -7,6 +7,7 @@ import MarketCard from './MarketCard'
 import MarketCardSkeleton from './MarketCardSkeleton'
 import SearchAutocomplete from './SearchAutocomplete'
 import MarketBrief from './MarketBrief'
+import MoversFeed from './MoversFeed'
 
 interface Market {
   id: string; platform: string; question: string
@@ -336,6 +337,8 @@ export default function HomeClient() {
 
       {/* ───────── Main ───────── */}
       <main id="main" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 20px 56px' }}>
+
+        <MoversFeed />
 
         <MarketBrief />
 
