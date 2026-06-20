@@ -47,3 +47,16 @@ jobs:
             echo "Verify resolutions failed with status $http_code"
             exit 1
           fi
+      - name: News and sentiment
+        run: |
+          response=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/news-sentiment")
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+          echo "News/Sentiment Response: $body"
+          echo "HTTP Status: $http_code"
+          # Non-blocking: enrichment only. A news/Gemini hiccup must not fail the run.
+          if [ "$http_code" != "200" ]; then
+            echo "News/sentiment returned $http_code (non-fatal, continuing)"
+          fi

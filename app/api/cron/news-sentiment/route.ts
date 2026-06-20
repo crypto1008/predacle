@@ -61,6 +61,16 @@ function newsQuery(question: string): string {
     .split(' ').slice(0, 10).join(' ')
 }
 
+// Game/match markets (sports, esports) swing for game reasons, not news —
+// catch the ones the category field misses ("win on DATE", "X vs Y", spreads).
+function looksLikeGame(q: string): boolean {
+  return /\bvs\.?\b/i.test(q)
+    || /\bwin on \d{4}-\d{2}-\d{2}/i.test(q)
+    || /^\s*spread:/i.test(q)
+    || /\(bo\d\)/i.test(q)
+    || /\bto (score|assist)\b/i.test(q)
+}
+
 async function fetchNews(question: string): Promise<NewsItem[]> {
   const q = newsQuery(question)
   if (!q) return []
@@ -94,7 +104,7 @@ export async function GET(req: Request) {
   if (candErr) return NextResponse.json({ error: candErr.message }, { status: 500 })
   // Drop sports — in-play game markets swing for game reasons, not news.
   const candidates = (cands || [])
-    .filter((c: any) => (c.category || '').toLowerCase() !== 'sports')
+    .filter((c: any) => (c.category || '').toLowerCase() !== 'sports' && !looksLikeGame(c.question))
     .slice(0, CANDIDATE_POOL)
   const ids = candidates.map((c: any) => c.id)
 
