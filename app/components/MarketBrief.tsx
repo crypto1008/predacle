@@ -20,23 +20,17 @@ function useDark() {
 function relTime(iso: string | null) {
   if (!iso) return ''
   const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3600000)
-  if (h < 1) return 'updated just now'
-  if (h === 1) return 'updated 1h ago'
-  if (h < 24) return `updated ${h}h ago`
+  if (h < 1) return 'Updated just now'
+  if (h === 1) return 'Updated 1h ago'
+  if (h < 24) return `Updated ${h}h ago`
   const d = Math.floor(h / 24)
-  return `updated ${d}d ago`
+  return `Updated ${d}d ago`
 }
 
-// Per-kind pill + metric colors (light / dark).
-const KIND_TAG: Record<string, {
-  label: string
-  color: string; colorD: string
-  bgL: string; bgD: string
-  bdL: string; bdD: string
-  metricL: string; metricD: string
-}> = {
-  divergence: { label: 'Divergence',  color: '#5f5cf0', colorD: '#a5b4fc', bgL: '#ede9fe', bgD: '#1e1b4b', bdL: '#ddd6fe', bdD: '#312e81', metricL: '#dc2626', metricD: '#f87171' },
-  volume:     { label: 'High volume', color: '#059669', colorD: '#34d399', bgL: '#ecfdf5', bgD: '#052e16', bdL: '#a7f3d0', bdD: '#065f46', metricL: '#059669', metricD: '#34d399' },
+// Per-kind accent (light / dark).
+const KIND: Record<string, { label: string; aL: string; aD: string; bgL: string; bgD: string; bdL: string; bdD: string }> = {
+  divergence: { label: 'Price divergence', aL: '#0052ff', aD: '#6b9bff', bgL: '#eaf0ff', bgD: '#0f1d3d', bdL: '#cdddff', bdD: '#1d3563' },
+  volume:     { label: 'High volume',      aL: '#05a66b', aD: '#2bd97c', bgL: '#e7f8f0', bgD: '#04291b', bdL: '#bfeed8', bdD: '#0a5235' },
 }
 
 export default function MarketBrief() {
@@ -54,81 +48,99 @@ export default function MarketBrief() {
 
   if (!brief || !brief.items || brief.items.length === 0) return null
 
-  const panelBg    = dark ? '#111318' : '#ffffff'
-  const border     = dark ? '#1e2330' : '#e8ecf0'
-  const itemBorder = dark ? '#1e2330' : '#f1f5f9'
-  const hoverBg    = dark ? '#15171d' : '#f6f7fb'
-  const txt1       = dark ? '#f1f5f9' : '#0f172a'
-  const txt2       = dark ? '#94a3b8' : '#64748b'
-  const txt3       = dark ? '#475569' : '#94a3b8'
-  const ledeBg     = dark ? '#15132e' : '#f5f3ff'
-  const ledeBorder = dark ? '#2a2550' : '#ece9fd'
-  const ledeText   = dark ? '#c7d2fe' : '#4338ca'
-  const dotRing    = dark ? '#1e1b4b' : '#ede9fe'
+  const cardBg = dark ? '#16171a' : '#ffffff'
+  const border = dark ? '#26282d' : '#eaecef'
+  const txt1   = dark ? '#f5f6f8' : '#0a0b0d'
+  const txt2   = dark ? '#8a919e' : '#5b616e'
+  const txt3   = dark ? '#5b616e' : '#8a919e'
+  const ledeBg = dark ? '#0f1d3d' : '#eef4ff'
+  const ledeBd = dark ? '#1d3563' : '#d8e6ff'
+  const ledeTx = dark ? '#c9dcff' : '#0a3aaf'
 
   return (
-    <section style={{ marginBottom: 44 }}>
+    <section style={{ marginBottom: 52 }}>
       <style>{`
-        .mb-chev{transition:transform .12s ease,opacity .12s ease;opacity:.4;}
-        .mb-row:hover .mb-chev{transform:translateX(3px);opacity:1;}
+        .brief-card { transition: border-color .15s, transform .12s; }
+        .brief-card:hover { border-color: #0052ff !important; transform: translateY(-2px); }
+        .brief-card:hover .brief-arrow { transform: translateX(3px); opacity: 1; }
+        .brief-arrow { transition: transform .12s, opacity .12s; opacity: .45; }
       `}</style>
 
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 13 }}>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, letterSpacing: '-0.3px', color: txt1, margin: 0 }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#5f5cf0', boxShadow: `0 0 0 3px ${dotRing}` }} />
-          Market Brief
-        </h2>
-        {brief.generatedAt && <span style={{ fontSize: 11, color: txt3 }}>{relTime(brief.generatedAt)}</span>}
+      {/* Section header */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+            <span style={{
+              fontSize: 10.5, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase',
+              color: '#0052ff', background: dark ? '#0f1d3d' : '#eaf0ff',
+              border: `1px solid ${dark ? '#1d3563' : '#cdddff'}`, borderRadius: 100, padding: '3px 10px',
+            }}>
+              AI · Auto-generated
+            </span>
+          </div>
+          <h2 className="font-display" style={{ fontSize: 26, fontWeight: 800, color: txt1, letterSpacing: '-0.02em', margin: 0 }}>
+            Market Brief
+          </h2>
+        </div>
+        {brief.generatedAt && <span style={{ fontSize: 12.5, color: txt3 }}>{relTime(brief.generatedAt)}</span>}
       </div>
 
-      {/* Card */}
-      <div style={{ background: panelBg, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px' }}>
+      {/* Lead summary strip */}
+      {brief.lede && (
+        <div style={{
+          background: ledeBg, border: `1px solid ${ledeBd}`, borderRadius: 16,
+          padding: '16px 18px', marginBottom: 16,
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+        }}>
+          <span style={{ fontSize: 18, lineHeight: 1.3, flexShrink: 0 }}>📊</span>
+          <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.55, fontWeight: 600, color: ledeTx }}>{brief.lede}</p>
+        </div>
+      )}
 
-        {/* Lead summary — slim tinted strip */}
-        {brief.lede && (
-          <div style={{ background: ledeBg, border: `1px solid ${ledeBorder}`, borderRadius: 9, padding: '10px 12px', marginBottom: 12 }}>
-            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, fontWeight: 600, color: ledeText }}>{brief.lede}</p>
-          </div>
-        )}
-
-        {/* Items */}
+      {/* Item cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
         {brief.items.map((it, i) => {
-          const tag = KIND_TAG[it.kind] || { label: it.kind, color: txt2, colorD: txt2, bgL: '#f1f5f9', bgD: '#1e2330', bdL: '#e2e8f0', bdD: '#2d3748', metricL: txt2, metricD: txt2 }
+          const k = KIND[it.kind] || { label: it.kind, aL: txt2, aD: txt2, bgL: '#f5f6f8', bgD: '#16171a', bdL: border, bdD: border }
+          const accent = dark ? k.aD : k.aL
           const parts = (it.meta || '').split('·').map((s) => s.trim()).filter(Boolean)
           const metric = parts[0] || ''
           const rest = parts.slice(1).join(' · ')
           return (
-            <div key={i}>
-              {i > 0 && <div style={{ height: 1, background: itemBorder, margin: '0 -8px' }} />}
-              <a
-                className="mb-row"
-                href={it.href}
-                style={{ display: 'block', textDecoration: 'none', padding: '11px 8px', margin: '0 -8px', borderRadius: 8, transition: 'background 0.12s' }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = hoverBg }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.4px', textTransform: 'uppercase', color: dark ? tag.colorD : tag.color, background: dark ? tag.bgD : tag.bgL, border: `1px solid ${dark ? tag.bdD : tag.bdL}`, borderRadius: 4, padding: '1px 6px' }}>
-                    {tag.label}
-                  </span>
-                  {metric && <span style={{ fontSize: 11, fontWeight: 700, color: dark ? tag.metricD : tag.metricL }}>{metric}</span>}
-                  {rest && <span style={{ fontSize: 11, color: txt3 }}>{rest}</span>}
-                  <span style={{ flex: 1 }} />
-                  <span className="mb-chev" style={{ fontSize: 14, color: '#5f5cf0', lineHeight: 1 }}>→</span>
+            <a key={i} href={it.href} className="brief-card"
+              style={{
+                display: 'block', textDecoration: 'none',
+                background: cardBg, border: `1px solid ${border}`,
+                borderRadius: 16, padding: '16px 18px',
+              }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.4px', textTransform: 'uppercase',
+                  color: accent, background: dark ? k.bgD : k.bgL,
+                  border: `1px solid ${dark ? k.bdD : k.bdL}`, borderRadius: 6, padding: '3px 9px',
+                }}>
+                  {k.label}
+                </span>
+                <span style={{ flex: 1 }} />
+                <span className="brief-arrow" style={{ fontSize: 16, color: '#0052ff', lineHeight: 1 }}>→</span>
+              </div>
+
+              {(metric || rest) && (
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                  {metric && <span className="font-display" style={{ fontSize: 22, fontWeight: 800, color: accent, letterSpacing: '-0.02em' }}>{metric}</span>}
+                  {rest && <span style={{ fontSize: 12.5, color: txt3 }}>{rest}</span>}
                 </div>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: txt1, lineHeight: 1.4, marginBottom: 2 }}>{it.headline}</div>
-                <div style={{ fontSize: 12, color: txt2, lineHeight: 1.45 }}>{it.line}</div>
-              </a>
-            </div>
+              )}
+
+              <div style={{ fontSize: 15, fontWeight: 700, color: txt1, lineHeight: 1.35, marginBottom: 5 }}>{it.headline}</div>
+              <div style={{ fontSize: 13, color: txt2, lineHeight: 1.5 }}>{it.line}</div>
+            </a>
           )
         })}
-
-        {/* Footer */}
-        <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${itemBorder}`, fontSize: 10.5, color: txt3 }}>
-          Auto-generated from live market data. Not financial advice.
-        </div>
       </div>
+
+      <p style={{ marginTop: 14, fontSize: 11.5, color: txt3 }}>
+        Generated from live market data. Not financial advice.
+      </p>
     </section>
   )
 }

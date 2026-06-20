@@ -1,11 +1,20 @@
 import type { Metadata } from 'next'
-import { Plus_Jakarta_Sans } from 'next/font/google'
+import { Inter, Sora } from 'next/font/google'
 import './globals.css'
 
-const jakarta = Plus_Jakarta_Sans({
+// Inter — workhorse UI/body font (close match to Coinbase Sans).
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-jakarta',
-  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-inter',
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+})
+
+// Sora — geometric display font for big hero headlines (Coinbase Display vibe).
+const sora = Sora({
+  subsets: ['latin'],
+  variable: '--font-sora',
+  weight: ['600', '700', '800'],
   display: 'swap',
 })
 
@@ -94,7 +103,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className={jakarta.variable}>
+      <body className={`${inter.variable} ${sora.variable}`}>
         <a href="#main" className="sr-only">
           Skip to main content
         </a>

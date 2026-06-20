@@ -121,8 +121,8 @@ export default function MarketCard({ market, onClick }: {
   const catBg       = dark ? '#1e2330'  : '#f8fafc'
   const catBorder   = dark ? '#2d3748'  : '#e2e8f0'
   const catClr      = dark ? '#94a3b8'  : '#94a3b8'
-  const tradeBg     = trading ? (dark ? '#1e2330' : '#f1f5f9') : (dark ? '#1e1b4b' : '#ede9fe')
-  const tradeClr    = trading ? '#94a3b8' : '#5f5cf0'
+  const tradeBg     = trading ? (dark ? '#1e2330' : '#f1f5f9') : (dark ? '#0f1d3d' : '#eaf0ff')
+  const tradeClr    = trading ? '#94a3b8' : '#0052ff'
 
   const pColor  = getProbColor(market.probability)
   const probLbl = getProbLabel(market.probability)
@@ -163,8 +163,8 @@ export default function MarketCard({ market, onClick }: {
         position: 'relative',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.borderColor = '#c4b5fd'
-        e.currentTarget.style.boxShadow   = '0 4px 16px rgba(95,92,240,0.12)'
+        e.currentTarget.style.borderColor = '#99b9ff'
+        e.currentTarget.style.boxShadow   = '0 4px 16px rgba(0,82,255,0.12)'
         e.currentTarget.style.transform   = 'translateY(-1px)'
       }}
       onMouseLeave={e => {
@@ -177,7 +177,7 @@ export default function MarketCard({ market, onClick }: {
       {isNew && (
         <div style={{
           position: 'absolute', top: 10, right: -1,
-          background: '#5f5cf0', color: '#fff',
+          background: '#0052ff', color: '#fff',
           fontSize: 9, fontWeight: 700, letterSpacing: '0.4px',
           padding: '2px 8px 2px 6px', borderRadius: '4px 0 0 4px',
           zIndex: 1,

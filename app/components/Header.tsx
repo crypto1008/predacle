@@ -87,7 +87,7 @@ export default function Header() {
             {/* Logo */}
             <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
               <div style={{
-                width: 26, height: 26, background: '#5f5cf0', borderRadius: 7,
+                width: 26, height: 26, background: '#0052ff', borderRadius: 7,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: '#fff', fontSize: 13, fontWeight: 700,
               }}>
@@ -105,9 +105,9 @@ export default function Header() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
                   padding: '6px 10px', fontSize: 13, fontWeight: 600, borderRadius: 8,
-                  cursor: 'pointer', whiteSpace: 'nowrap', color: '#5f5cf0', fontFamily: 'inherit',
-                  background: (onTool || toolsOpen) ? (dark ? '#1e1b4b' : '#ede9fe') : 'transparent',
-                  border: `1px solid ${dark ? '#312e81' : '#ddd6fe'}`,
+                  cursor: 'pointer', whiteSpace: 'nowrap', color: '#0052ff', fontFamily: 'inherit',
+                  background: (onTool || toolsOpen) ? (dark ? '#0f1d3d' : '#eaf0ff') : 'transparent',
+                  border: `1px solid ${dark ? '#1d3563' : '#cdddff'}`,
                   transition: 'all 0.15s',
                 }}>
                 <span style={{ fontSize: 14, lineHeight: 1 }}>🛠️</span> Tools
@@ -132,14 +132,14 @@ export default function Header() {
                         style={{
                           display: 'flex', alignItems: 'flex-start', gap: 10,
                           padding: '9px 10px', borderRadius: 8, textDecoration: 'none',
-                          background: active ? (dark ? '#1e1b4b' : '#ede9fe') : 'transparent',
+                          background: active ? (dark ? '#0f1d3d' : '#eaf0ff') : 'transparent',
                           transition: 'background 0.12s',
                         }}
                         onMouseEnter={e => { if (!active) e.currentTarget.style.background = dark ? '#1a1d24' : '#f5f7fa' }}
                         onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
                         <span style={{ fontSize: 16, lineHeight: 1.3, flexShrink: 0 }}>{t.icon}</span>
                         <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: active ? '#5f5cf0' : (dark ? '#f1f5f9' : '#0f172a') }}>{t.label}</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: active ? '#0052ff' : (dark ? '#f1f5f9' : '#0f172a') }}>{t.label}</span>
                           <span style={{ fontSize: 11, color: dark ? '#64748b' : '#94a3b8', lineHeight: 1.3 }}>{t.desc}</span>
                         </span>
                       </Link>
@@ -154,8 +154,8 @@ export default function Header() {
               style={{
                 display: 'flex', alignItems: 'center', flexShrink: 0,
                 padding: '6px 10px', fontSize: 13, fontWeight: 600, borderRadius: 8,
-                textDecoration: 'none', whiteSpace: 'nowrap', color: '#5f5cf0',
-                background: pathname === '/pro' ? (dark ? '#1e1b4b' : '#ede9fe') : 'transparent',
+                textDecoration: 'none', whiteSpace: 'nowrap', color: '#0052ff',
+                background: pathname === '/pro' ? (dark ? '#0f1d3d' : '#eaf0ff') : 'transparent',
                 transition: 'all 0.15s',
               }}
               aria-current={pathname === '/pro' ? 'page' : undefined}>
@@ -173,8 +173,8 @@ export default function Header() {
                       fontWeight: isActive ? 600 : 500,
                       borderRadius: 8, border: 'none', cursor: 'pointer',
                       whiteSpace: 'nowrap', transition: 'all 0.15s',
-                      background: isActive ? (dark ? '#1e1b4b' : '#ede9fe') : 'transparent',
-                      color: isActive ? '#5f5cf0' : dark ? '#64748b' : '#64748b',
+                      background: isActive ? (dark ? '#0f1d3d' : '#eaf0ff') : 'transparent',
+                      color: isActive ? '#0052ff' : dark ? '#64748b' : '#64748b',
                     }}
                     aria-current={isActive ? 'page' : undefined}>
                     {cat.label}
@@ -186,7 +186,7 @@ export default function Header() {
             {/* Dark mode toggle */}
             <button onClick={toggleDark}
               aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-              style={{ padding: 8, border: `1px solid ${dark ? '#312e81' : '#ddd6fe'}`, borderRadius: 8, cursor: 'pointer', background: dark ? '#1e1b4b' : '#ede9fe', color: '#5f5cf0', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              style={{ padding: 8, border: `1px solid ${dark ? '#1d3563' : '#cdddff'}`, borderRadius: 8, cursor: 'pointer', background: dark ? '#0f1d3d' : '#eaf0ff', color: '#0052ff', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {dark ? (
                 <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="5"/>
@@ -228,7 +228,7 @@ export default function Header() {
                 style={{
                   padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 20,
                   textDecoration: 'none', display: 'flex', alignItems: 'center',
-                  background: dark ? '#1e1b4b' : '#ede9fe', color: '#5f5cf0',
+                  background: dark ? '#0f1d3d' : '#eaf0ff', color: '#0052ff',
                 }}>
                 Pro
               </Link>
@@ -237,7 +237,7 @@ export default function Header() {
                   style={{
                     padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 20,
                     textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5,
-                    background: dark ? '#1e1b4b' : '#ede9fe', color: '#5f5cf0',
+                    background: dark ? '#0f1d3d' : '#eaf0ff', color: '#0052ff',
                   }}>
                   <span style={{ fontSize: 14, lineHeight: 1 }}>{t.icon}</span> {t.label}
                 </Link>
@@ -249,8 +249,8 @@ export default function Header() {
                     style={{
                       padding: '6px 12px', fontSize: 13, fontWeight: isActive ? 600 : 500,
                       borderRadius: 20, border: 'none', cursor: 'pointer',
-                      background: isActive ? '#ede9fe' : dark ? '#111318' : '#f5f7fa',
-                      color: isActive ? '#5f5cf0' : dark ? '#64748b' : '#64748b',
+                      background: isActive ? '#eaf0ff' : dark ? '#111318' : '#f5f7fa',
+                      color: isActive ? '#0052ff' : dark ? '#64748b' : '#64748b',
                     }}>
                     {cat.label}
                   </button>
