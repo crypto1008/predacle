@@ -59,7 +59,7 @@ const CATEGORIES = [
 
 const PLATFORM_COLORS: Record<string, string> = {
   polymarket: '#4f46e5', kalshi: '#00b16a', myriad: '#7e22ce',
-  manifold: '#dc2626', limitless: '#d97706', azuro: '#0891b2',
+  manifold: '#cf202f', limitless: '#d97706', azuro: '#0891b2',
 }
 
 const PLATFORM_DISPLAY: Record<string, string> = {

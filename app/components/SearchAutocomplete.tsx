@@ -9,8 +9,8 @@ interface SearchResult {
 }
 
 const PLATFORM_COLORS: Record<string, string> = {
-  polymarket: '#6d28d9', kalshi: '#059669', myriad: '#7e22ce',
-  manifold:   '#dc2626', limitless: '#d97706', azuro: '#0891b2',
+  polymarket: '#4f46e5', kalshi: '#04794e', myriad: '#7e22ce',
+  manifold:   '#cf202f', limitless: '#d97706', azuro: '#0891b2',
 }
 
 const PLATFORM_SHORT: Record<string, string> = {
@@ -19,10 +19,10 @@ const PLATFORM_SHORT: Record<string, string> = {
 }
 
 function getProbColor(p: number | null) {
-  if (p === null) return '#94a3b8'
-  if (p >= 0.65) return '#10b981'
+  if (p === null) return '#8a919e'
+  if (p >= 0.65) return '#05a66b'
   if (p >= 0.35) return '#f59e0b'
-  return '#ef4444'
+  return '#e5484d'
 }
 
 function useDark() {
@@ -63,14 +63,14 @@ export default function SearchAutocomplete({
   const debounceRef  = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   // Dark palette
-  const bg      = dark ? '#111318' : '#ffffff'
-  const inputBg = dark ? '#1e2330' : '#f8fafc'
-  const border  = dark ? '#1e2330' : '#e8ecf0'
-  const divider = dark ? '#1e2330' : '#f1f5f9'
-  const txt1    = dark ? '#f1f5f9' : '#0f172a'
-  const txt2    = dark ? '#64748b' : '#94a3b8'
-  const hoverBg = dark ? '#1a1f2e' : '#f8fafc'
-  const footBg  = dark ? '#0d1117' : '#f8fafc'
+  const bg      = dark ? '#16171a' : '#ffffff'
+  const inputBg = dark ? '#26282d' : '#f5f6f8'
+  const border  = dark ? '#26282d' : '#eaecef'
+  const divider = dark ? '#26282d' : '#f5f6f8'
+  const txt1    = dark ? '#f5f6f8' : '#0a0b0d'
+  const txt2    = dark ? '#5b616e' : '#8a919e'
+  const hoverBg = dark ? '#1a1f2e' : '#f5f6f8'
+  const footBg  = dark ? '#0d0e10' : '#f5f6f8'
 
   const isLarge = size === 'large'
 
@@ -146,7 +146,7 @@ export default function SearchAutocomplete({
           {loading ? (
             <div style={{
               width: 14, height: 14, border: `2px solid ${border}`,
-              borderTopColor: '#5f5cf0', borderRadius: '50%',
+              borderTopColor: '#0052ff', borderRadius: '50%',
               animation: 'ac-spin 0.8s linear infinite', flexShrink: 0,
             }} />
           ) : (
@@ -178,7 +178,7 @@ export default function SearchAutocomplete({
         {/* Button */}
         <button type="submit" style={{
           padding: isLarge ? '10px 20px' : '7px 16px',
-          background: '#5f5cf0', color: '#fff', border: 'none',
+          background: '#0052ff', color: '#fff', border: 'none',
           borderRadius: isLarge ? '0 12px 12px 0' : '0 8px 8px 0',
           fontSize: isLarge ? 14 : 13, fontWeight: 600,
           cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
@@ -197,7 +197,7 @@ export default function SearchAutocomplete({
           {results.map((m, i) => {
             const pct    = m.probability !== null ? Math.round(m.probability * 100) : null
             const pColor = getProbColor(m.probability)
-            const dotClr = PLATFORM_COLORS[m.platform] || '#94a3b8'
+            const dotClr = PLATFORM_COLORS[m.platform] || '#8a919e'
             const isActive = focused === i
 
             return (
@@ -243,7 +243,7 @@ export default function SearchAutocomplete({
               padding: '10px 14px', border: 'none',
               background: focused === results.length ? hoverBg : footBg,
               cursor: 'pointer', fontFamily: 'inherit',
-              color: '#5f5cf0', fontSize: 12, fontWeight: 600,
+              color: '#0052ff', fontSize: 12, fontWeight: 600,
               transition: 'background 0.1s',
             }}
           >

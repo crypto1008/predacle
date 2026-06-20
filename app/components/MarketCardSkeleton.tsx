@@ -19,8 +19,8 @@ export default function MarketCardSkeleton() {
   const dark = useDark()
   return (
     <div style={{
-      background:   dark ? '#111318' : '#fff',
-      border:       `1px solid ${dark ? '#1e2330' : '#e8ecf0'}`,
+      background:   dark ? '#16171a' : '#fff',
+      border:       `1px solid ${dark ? '#26282d' : '#eaecef'}`,
       borderRadius: 12, overflow: 'hidden',
     }}>
       <div style={{ padding: '14px 14px 12px' }}>
@@ -36,8 +36,8 @@ export default function MarketCardSkeleton() {
       </div>
       <div style={{
         padding: '9px 14px',
-        background:  dark ? '#0d1117' : '#fafbfc',
-        borderTop:   `1px solid ${dark ? '#1e2330' : '#f1f5f9'}`,
+        background:  dark ? '#0d0e10' : '#fafbfc',
+        borderTop:   `1px solid ${dark ? '#26282d' : '#f5f6f8'}`,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <div className="skeleton" style={{ width: 60, height: 13, borderRadius: 4 }} />

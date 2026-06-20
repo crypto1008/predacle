@@ -29,17 +29,17 @@ interface ApiResponse { ok: boolean; count: number; updatedAt: string | null; op
 const PLATFORM_LABELS: Record<string, string> = { polymarket: 'Polymarket', kalshi: 'Kalshi' }
 
 function tierOf(score: number) {
-  if (score >= 75) return { label: 'Strong', color: '#5f5cf0', bgL: '#ede9fe', bgD: '#1e1b4b', bdL: '#c7d2fe', bdD: '#312e81' }
+  if (score >= 75) return { label: 'Strong', color: '#0052ff', bgL: '#eaf0ff', bgD: '#0f1d3d', bdL: '#c9dcff', bdD: '#1d3563' }
   if (score >= 60) return { label: 'Good',   color: '#d97706', bgL: '#fffbeb', bgD: '#1c1002', bdL: '#fde68a', bdD: '#78350f' }
-  return                   { label: 'Fair',   color: '#64748b', bgL: '#f1f5f9', bgD: '#1e2330', bdL: '#e2e8f0', bdD: '#2d3748' }
+  return                   { label: 'Fair',   color: '#5b616e', bgL: '#f5f6f8', bgD: '#26282d', bdL: '#eaecef', bdD: '#303338' }
 }
 
 // Reward-pool crowding (Polymarket only). Low = underfished (good), High = contested.
 function competitionOf(c: number | null | undefined) {
   if (c == null) return null
-  if (c < 0.40) return { label: 'Low',      color: '#059669', desc: 'underfished — your share is barely diluted' }
+  if (c < 0.40) return { label: 'Low',      color: '#04794e', desc: 'underfished — your share is barely diluted' }
   if (c < 0.70) return { label: 'Moderate', color: '#d97706', desc: 'a fair number of LPs likely competing' }
-  return                 { label: 'High',     color: '#dc2626', desc: 'heavily contested — your share is split thin' }
+  return                 { label: 'High',     color: '#cf202f', desc: 'heavily contested — your share is split thin' }
 }
 
 const fmtReward = (n: number) => `$${Math.round(n).toLocaleString()}/day`
@@ -50,7 +50,7 @@ const fmtCount  = (v: number | null) => v == null ? '—' : v >= 1e6 ? `${(v / 1
 
 function closingBadge(days: number | null) {
   if (days == null || days < 0) return null
-  if (days <= 3) return { label: `⏰ ${days}d left`, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' }
+  if (days <= 3) return { label: `⏰ ${days}d left`, color: '#cf202f', bg: '#fdecec', border: '#f6c9cb' }
   if (days <= 7) return { label: `⏰ ${days}d left`, color: '#d97706', bg: '#fffbeb', border: '#fde68a' }
   return null
 }
@@ -95,11 +95,11 @@ export default function LpClient() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load() }, [longHorizon, sweetSpot, bigPools, platform])
 
-  const headClr = dark ? '#f1f5f9' : '#0f172a'
-  const subClr = dark ? '#94a3b8' : '#64748b'
-  const metaClr = dark ? '#64748b' : '#94a3b8'
-  const panelBg = dark ? '#111318' : '#ffffff'
-  const panelBorder = dark ? '#1e2330' : '#e8ecf0'
+  const headClr = dark ? '#f5f6f8' : '#0a0b0d'
+  const subClr = dark ? '#8a919e' : '#5b616e'
+  const metaClr = dark ? '#5b616e' : '#8a919e'
+  const panelBg = dark ? '#16171a' : '#ffffff'
+  const panelBorder = dark ? '#26282d' : '#eaecef'
 
   const opps = data?.opportunities ?? []
   // "Low competition" is a client-side filter (Polymarket-only signal; Kalshi rows have no competition value).
@@ -112,9 +112,9 @@ export default function LpClient() {
       style={{
         fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
         fontFamily: 'inherit', transition: 'all 0.15s',
-        border: `1px solid ${active ? '#5f5cf0' : panelBorder}`,
-        background: active ? (dark ? '#1e1b4b' : '#ede9fe') : panelBg,
-        color: active ? '#5f5cf0' : metaClr,
+        border: `1px solid ${active ? '#0052ff' : panelBorder}`,
+        background: active ? (dark ? '#0f1d3d' : '#eaf0ff') : panelBg,
+        color: active ? '#0052ff' : metaClr,
       }}
     >
       {children}
@@ -172,7 +172,7 @@ export default function LpClient() {
         </div>
       ) : err ? (
         <div style={{ background: panelBg, border: `1px solid ${panelBorder}`, borderRadius: 12, padding: '28px 20px', textAlign: 'center' }}>
-          <p style={{ fontSize: 14, color: '#ef4444', margin: '0 0 12px' }}>{err}</p>
+          <p style={{ fontSize: 14, color: '#e5484d', margin: '0 0 12px' }}>{err}</p>
           <Pill active={false} onClick={load}>Try again</Pill>
         </div>
       ) : shown.length === 0 ? (
@@ -206,22 +206,22 @@ function FactorBar({ label, value, dark, title }: { label: string; value: number
   const h = 26
   return (
     <div title={title} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-      <div style={{ width: 9, height: h, background: dark ? '#1e2330' : '#f1f5f9', borderRadius: 3, display: 'flex', alignItems: 'flex-end', overflow: 'hidden' }}>
-        <div style={{ width: '100%', height: Math.max(2, Math.round((value || 0) * h)), background: '#5f5cf0', borderRadius: 3 }} />
+      <div style={{ width: 9, height: h, background: dark ? '#26282d' : '#f5f6f8', borderRadius: 3, display: 'flex', alignItems: 'flex-end', overflow: 'hidden' }}>
+        <div style={{ width: '100%', height: Math.max(2, Math.round((value || 0) * h)), background: '#0052ff', borderRadius: 3 }} />
       </div>
-      <span style={{ fontSize: 8, fontWeight: 700, color: dark ? '#64748b' : '#94a3b8' }}>{label}</span>
+      <span style={{ fontSize: 8, fontWeight: 700, color: dark ? '#5b616e' : '#8a919e' }}>{label}</span>
     </div>
   )
 }
 
 function LpCard({ opp, dark }: { opp: LpOpportunity; dark: boolean }) {
-  const cardBg = dark ? '#111318' : '#ffffff'
-  const cardBorder = dark ? '#1e2330' : '#e8ecf0'
-  const footerBg = dark ? '#0d1117' : '#fafbfc'
-  const footerBorder = dark ? '#1e2330' : '#f1f5f9'
-  const questionClr = dark ? '#f1f5f9' : '#1e293b'
-  const metaClr = dark ? '#64748b' : '#94a3b8'
-  const statClr = dark ? '#cbd5e1' : '#475569'
+  const cardBg = dark ? '#16171a' : '#ffffff'
+  const cardBorder = dark ? '#26282d' : '#eaecef'
+  const footerBg = dark ? '#0d0e10' : '#fafbfc'
+  const footerBorder = dark ? '#26282d' : '#f5f6f8'
+  const questionClr = dark ? '#f5f6f8' : '#16181c'
+  const metaClr = dark ? '#5b616e' : '#8a919e'
+  const statClr = dark ? '#dfe1e6' : '#5b616e'
 
   const isKalshi = opp.platform === 'kalshi' || opp.reward_precision === 'qualitative'
   const t = tierOf(opp.lp_score)
@@ -259,7 +259,7 @@ function LpCard({ opp, dark }: { opp: LpOpportunity; dark: boolean }) {
   return (
     <article
       style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.1s' }}
-      onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#c4b5fd'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(95,92,240,0.12)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#99b9ff'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,82,255,0.12)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
       onMouseLeave={(e) => { e.currentTarget.style.borderColor = cardBorder; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
     >
       <div style={{ padding: '14px 14px 12px', flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -276,7 +276,7 @@ function LpCard({ opp, dark }: { opp: LpOpportunity; dark: boolean }) {
               🪙 Rewards eligible
             </span>
           ) : (
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: '#059669', background: dark ? '#052e16' : '#ecfdf5', border: `1px solid ${dark ? '#065f46' : '#a7f3d0'}`, borderRadius: 4, padding: '1px 6px' }}>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: '#04794e', background: dark ? '#04291b' : '#e7f8f0', border: `1px solid ${dark ? '#0a5235' : '#bfeed8'}`, borderRadius: 4, padding: '1px 6px' }}>
               💰 Exact reward
             </span>
           )}
@@ -294,7 +294,7 @@ function LpCard({ opp, dark }: { opp: LpOpportunity; dark: boolean }) {
 
         {/* Headline: LP Score + reward */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 14 }}>
-          <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.5px', color: '#5f5cf0', lineHeight: 1 }}>
+          <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.5px', color: '#0052ff', lineHeight: 1 }}>
             {opp.lp_score}<span style={{ fontSize: 12, fontWeight: 700, marginLeft: 1, color: metaClr }}>/100</span>
           </span>
           <span style={{ fontSize: 11, color: metaClr }}>LP Score</span>
@@ -306,7 +306,7 @@ function LpCard({ opp, dark }: { opp: LpOpportunity; dark: boolean }) {
             </span>
           ) : (
             <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, lineHeight: 1.15 }}>
-              <span style={{ fontSize: 16, fontWeight: 800, color: '#059669', letterSpacing: '-0.3px' }}>{fmtReward(opp.daily_reward)}</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: '#04794e', letterSpacing: '-0.3px' }}>{fmtReward(opp.daily_reward)}</span>
               {comp && (
                 <span title={`Competition ${Math.round((opp.competition || 0) * 100)}/100 — ${comp.desc}. Estimated from 24h volume relative to the reward pool, not a live LP count.`}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: comp.color, whiteSpace: 'nowrap' }}>
@@ -342,7 +342,7 @@ function LpCard({ opp, dark }: { opp: LpOpportunity; dark: boolean }) {
       {/* CTA */}
       <button
         onClick={handleOpen}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 14px', background: footerBg, borderTop: `1px solid ${footerBorder}`, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: '#5f5cf0', width: '100%' }}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 14px', background: footerBg, borderTop: `1px solid ${footerBorder}`, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: '#0052ff', width: '100%' }}
       >
         Provide liquidity on {PLATFORM_LABELS[opp.platform] || opp.platform} →
       </button>

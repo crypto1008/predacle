@@ -51,21 +51,21 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 /* Quality grade styling (light/dark) */
 const QUALITY: Record<string, { label: string; color: string; bgL: string; bgD: string; bdL: string; bdD: string }> = {
-  high:   { label: '🎯 High signal',   color: '#5f5cf0', bgL: '#ede9fe', bgD: '#1e1b4b', bdL: '#c7d2fe', bdD: '#312e81' },
+  high:   { label: '🎯 High signal',   color: '#0052ff', bgL: '#eaf0ff', bgD: '#0f1d3d', bdL: '#c9dcff', bdD: '#1d3563' },
   medium: { label: 'Medium signal',    color: '#d97706', bgL: '#fffbeb', bgD: '#1c1002', bdL: '#fde68a', bdD: '#78350f' },
-  low:    { label: 'Low signal',       color: '#94a3b8', bgL: '#f1f5f9', bgD: '#1e2330', bdL: '#e2e8f0', bdD: '#2d3748' },
+  low:    { label: 'Low signal',       color: '#8a919e', bgL: '#f5f6f8', bgD: '#26282d', bdL: '#eaecef', bdD: '#303338' },
 }
 
 function confColor(c: string) {
-  if (c === 'high') return '#10b981'
+  if (c === 'high') return '#05a66b'
   if (c === 'medium') return '#f59e0b'
-  return '#94a3b8'
+  return '#8a919e'
 }
 
 function probColor(pct: number) {
-  if (pct >= 65) return '#10b981'
+  if (pct >= 65) return '#05a66b'
   if (pct >= 35) return '#f59e0b'
-  return '#ef4444'
+  return '#e5484d'
 }
 
 function fmtDate(iso: string | null) {
@@ -79,8 +79,8 @@ function getClosingBadge(end_date: string | null) {
   if (!end_date) return null
   const days = Math.ceil((new Date(end_date).getTime() - Date.now()) / 86400000)
   if (isNaN(days) || days < 0) return null
-  if (days === 0) return { label: 'Closes today', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' }
-  if (days <= 3) return { label: `⏰ ${days}d left`, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' }
+  if (days === 0) return { label: 'Closes today', color: '#cf202f', bg: '#fdecec', border: '#f6c9cb' }
+  if (days <= 3) return { label: `⏰ ${days}d left`, color: '#cf202f', bg: '#fdecec', border: '#f6c9cb' }
   if (days <= 7) return { label: `⏰ ${days}d left`, color: '#d97706', bg: '#fffbeb', border: '#fde68a' }
   return null
 }
@@ -122,11 +122,11 @@ export default function DivergenceClient() {
   }
   useEffect(() => { load() }, [])
 
-  const headClr = dark ? '#f1f5f9' : '#0f172a'
-  const subClr = dark ? '#94a3b8' : '#64748b'
-  const metaClr = dark ? '#64748b' : '#94a3b8'
-  const panelBg = dark ? '#111318' : '#ffffff'
-  const panelBorder = dark ? '#1e2330' : '#e8ecf0'
+  const headClr = dark ? '#f5f6f8' : '#0a0b0d'
+  const subClr = dark ? '#8a919e' : '#5b616e'
+  const metaClr = dark ? '#5b616e' : '#8a919e'
+  const panelBg = dark ? '#16171a' : '#ffffff'
+  const panelBorder = dark ? '#26282d' : '#eaecef'
 
   const opps = data?.opportunities ?? []
   const shown = (realOnly ? opps.filter((o) => o.realMoney) : opps)
@@ -146,9 +146,9 @@ export default function DivergenceClient() {
       style={{
         fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 8,
         cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-        border: `1px solid ${active ? '#5f5cf0' : panelBorder}`,
-        background: active ? (dark ? '#1e1b4b' : '#ede9fe') : panelBg,
-        color: active ? '#5f5cf0' : metaClr,
+        border: `1px solid ${active ? '#0052ff' : panelBorder}`,
+        background: active ? (dark ? '#0f1d3d' : '#eaf0ff') : panelBg,
+        color: active ? '#0052ff' : metaClr,
       }}
     >
       {children}
@@ -206,7 +206,7 @@ export default function DivergenceClient() {
           background: panelBg, border: `1px solid ${panelBorder}`, borderRadius: 12,
           padding: '28px 20px', textAlign: 'center',
         }}>
-          <p style={{ fontSize: 14, color: '#ef4444', margin: '0 0 12px' }}>{err}</p>
+          <p style={{ fontSize: 14, color: '#e5484d', margin: '0 0 12px' }}>{err}</p>
           <Pill active={false} onClick={load}>Try again</Pill>
         </div>
       ) : shown.length === 0 ? (
@@ -250,15 +250,15 @@ const gridStyle: React.CSSProperties = {
 /* =================================================================== */
 
 function OppCard({ opp, dark, showAi }: { opp: Opportunity; dark: boolean; showAi: boolean }) {
-  const cardBg = dark ? '#111318' : '#ffffff'
-  const cardBorder = dark ? '#1e2330' : '#e8ecf0'
-  const footerBg = dark ? '#0d1117' : '#fafbfc'
-  const footerBorder = dark ? '#1e2330' : '#f1f5f9'
-  const trackBg = dark ? '#1e2330' : '#f1f5f9'
-  const questionClr = dark ? '#f1f5f9' : '#1e293b'
-  const metaClr = dark ? '#64748b' : '#94a3b8'
-  const catBg = dark ? '#1e2330' : '#f8fafc'
-  const catBorder = dark ? '#2d3748' : '#e2e8f0'
+  const cardBg = dark ? '#16171a' : '#ffffff'
+  const cardBorder = dark ? '#26282d' : '#eaecef'
+  const footerBg = dark ? '#0d0e10' : '#fafbfc'
+  const footerBorder = dark ? '#26282d' : '#f5f6f8'
+  const trackBg = dark ? '#26282d' : '#f5f6f8'
+  const questionClr = dark ? '#f5f6f8' : '#16181c'
+  const metaClr = dark ? '#5b616e' : '#8a919e'
+  const catBg = dark ? '#26282d' : '#f5f6f8'
+  const catBorder = dark ? '#303338' : '#eaecef'
 
   const cLabel = opp.category ? (CATEGORY_LABELS[opp.category] || opp.category) : null
   const cIcon = opp.category ? (CATEGORY_ICONS[opp.category] || '') : ''
@@ -306,8 +306,8 @@ function OppCard({ opp, dark, showAi }: { opp: Opportunity; dark: boolean; showA
         transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.1s',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = '#c4b5fd'
-        e.currentTarget.style.boxShadow = '0 4px 16px rgba(95,92,240,0.12)'
+        e.currentTarget.style.borderColor = '#99b9ff'
+        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,82,255,0.12)'
         e.currentTarget.style.transform = 'translateY(-1px)'
       }}
       onMouseLeave={(e) => {
@@ -339,8 +339,8 @@ function OppCard({ opp, dark, showAi }: { opp: Opportunity; dark: boolean; showA
           )}
           {opp.threshold && (
             <span style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: '0.2px', color: dark ? '#a5b4fc' : '#4f46e5',
-              background: dark ? '#1e1b4b' : '#eef2ff', border: `1px solid ${dark ? '#312e81' : '#c7d2fe'}`,
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.2px', color: dark ? '#6b9bff' : '#4f46e5',
+              background: dark ? '#0f1d3d' : '#eef2ff', border: `1px solid ${dark ? '#1d3563' : '#c9dcff'}`,
               padding: '2px 7px', borderRadius: 5,
             }}>
               {opp.threshold}
@@ -348,9 +348,9 @@ function OppCard({ opp, dark, showAi }: { opp: Opportunity; dark: boolean; showA
           )}
           <span style={{
             fontSize: 9, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase',
-            color: opp.realMoney ? '#059669' : (dark ? '#94a3b8' : '#64748b'),
-            background: opp.realMoney ? (dark ? '#052e16' : '#ecfdf5') : (dark ? '#1e2330' : '#f1f5f9'),
-            border: `1px solid ${opp.realMoney ? (dark ? '#065f46' : '#a7f3d0') : (dark ? '#2d3748' : '#e2e8f0')}`,
+            color: opp.realMoney ? '#04794e' : (dark ? '#8a919e' : '#5b616e'),
+            background: opp.realMoney ? (dark ? '#04291b' : '#e7f8f0') : (dark ? '#26282d' : '#f5f6f8'),
+            border: `1px solid ${opp.realMoney ? (dark ? '#0a5235' : '#bfeed8') : (dark ? '#303338' : '#eaecef')}`,
             borderRadius: 4, padding: '1px 6px',
           }}>
             {opp.realMoney ? '💰 Real money' : 'Play money'}
@@ -384,7 +384,7 @@ function OppCard({ opp, dark, showAi }: { opp: Opportunity; dark: boolean; showA
 
         {/* Gap headline */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 14 }}>
-          <span style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.5px', color: '#5f5cf0', lineHeight: 1 }}>
+          <span style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.5px', color: '#0052ff', lineHeight: 1 }}>
             {opp.gapPercent}<span style={{ fontSize: 13, fontWeight: 700, marginLeft: 1 }}>pt</span>
           </span>
           <span style={{ fontSize: 11, color: metaClr }}>
@@ -396,11 +396,11 @@ function OppCard({ opp, dark, showAi }: { opp: Opportunity; dark: boolean; showA
         {play && (
           <div style={{
             marginBottom: 14, padding: '9px 10px', borderRadius: 8,
-            background: dark ? '#15131f' : '#faf9ff',
-            border: `1px solid ${dark ? '#312e81' : '#e9e7fb'}`,
+            background: dark ? '#15131f' : '#f5f8ff',
+            border: `1px solid ${dark ? '#1d3563' : '#e9e7fb'}`,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: '#5f5cf0' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: '#0052ff' }}>
                 🤖 The play
               </span>
               {conf && (
@@ -409,7 +409,7 @@ function OppCard({ opp, dark, showAi }: { opp: Opportunity; dark: boolean; showA
                 </span>
               )}
             </div>
-            <p style={{ fontSize: 12, lineHeight: 1.5, color: dark ? '#cbd5e1' : '#475569', margin: 0 }}>
+            <p style={{ fontSize: 12, lineHeight: 1.5, color: dark ? '#dfe1e6' : '#5b616e', margin: 0 }}>
               {play}
             </p>
           </div>
@@ -439,8 +439,8 @@ function OppCard({ opp, dark, showAi }: { opp: Opportunity; dark: boolean; showA
                   onClick={handleOpen(m)}
                   aria-label={`Open on ${PLATFORM_LABELS[m.platform] || m.platform}`}
                   style={{
-                    fontSize: 10, fontWeight: 600, color: '#5f5cf0',
-                    background: dark ? '#1e1b4b' : '#ede9fe', border: 'none',
+                    fontSize: 10, fontWeight: 600, color: '#0052ff',
+                    background: dark ? '#0f1d3d' : '#eaf0ff', border: 'none',
                     padding: '4px 8px', borderRadius: 6, cursor: 'pointer',
                     fontFamily: 'inherit', whiteSpace: 'nowrap',
                   }}

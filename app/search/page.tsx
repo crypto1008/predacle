@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function SearchPage() {
   return (
     <>
-      <Suspense fallback={<div style={{ height: 56, borderBottom: '1px solid #e8ecf0' }} />}>
+      <Suspense fallback={<div style={{ height: 56, borderBottom: '1px solid #eaecef' }} />}>
         <Header />
       </Suspense>
       <Suspense fallback={null}>

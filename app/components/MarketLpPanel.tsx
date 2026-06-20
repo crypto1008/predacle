@@ -15,17 +15,17 @@ interface LpOpportunity {
 const PLATFORM_LABELS: Record<string, string> = { polymarket: 'Polymarket', kalshi: 'Kalshi' }
 
 function tierOf(score: number) {
-  if (score >= 75) return { label: 'Strong', color: '#5f5cf0', bgL: '#ede9fe', bgD: '#1e1b4b', bdL: '#c7d2fe', bdD: '#312e81' }
+  if (score >= 75) return { label: 'Strong', color: '#0052ff', bgL: '#eaf0ff', bgD: '#0f1d3d', bdL: '#c9dcff', bdD: '#1d3563' }
   if (score >= 60) return { label: 'Good',   color: '#d97706', bgL: '#fffbeb', bgD: '#1c1002', bdL: '#fde68a', bdD: '#78350f' }
-  return                   { label: 'Fair',   color: '#64748b', bgL: '#f1f5f9', bgD: '#1e2330', bdL: '#e2e8f0', bdD: '#2d3748' }
+  return                   { label: 'Fair',   color: '#5b616e', bgL: '#f5f6f8', bgD: '#26282d', bdL: '#eaecef', bdD: '#303338' }
 }
 
 // Reward-pool crowding (Polymarket only). Low = underfished (good), High = contested.
 function competitionOf(c: number | null | undefined) {
   if (c == null) return null
-  if (c < 0.40) return { label: 'Low',      color: '#059669', desc: 'underfished — your share is barely diluted' }
+  if (c < 0.40) return { label: 'Low',      color: '#04794e', desc: 'underfished — your share is barely diluted' }
   if (c < 0.70) return { label: 'Moderate', color: '#d97706', desc: 'a fair number of LPs likely competing' }
-  return                 { label: 'High',     color: '#dc2626', desc: 'heavily contested — your share is split thin' }
+  return                 { label: 'High',     color: '#cf202f', desc: 'heavily contested — your share is split thin' }
 }
 
 const fmtReward = (n: number) => `$${Math.round(n).toLocaleString()}/day`
@@ -38,10 +38,10 @@ function FactorBar({ label, value, dark, title }: { label: string; value: number
   const h = 28
   return (
     <div title={title} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-      <div style={{ width: 10, height: h, background: dark ? '#1e2330' : '#f1f5f9', borderRadius: 3, display: 'flex', alignItems: 'flex-end', overflow: 'hidden' }}>
-        <div style={{ width: '100%', height: Math.max(2, Math.round((value || 0) * h)), background: '#5f5cf0', borderRadius: 3 }} />
+      <div style={{ width: 10, height: h, background: dark ? '#26282d' : '#f5f6f8', borderRadius: 3, display: 'flex', alignItems: 'flex-end', overflow: 'hidden' }}>
+        <div style={{ width: '100%', height: Math.max(2, Math.round((value || 0) * h)), background: '#0052ff', borderRadius: 3 }} />
       </div>
-      <span style={{ fontSize: 9, fontWeight: 700, color: dark ? '#64748b' : '#94a3b8' }}>{label}</span>
+      <span style={{ fontSize: 9, fontWeight: 700, color: dark ? '#5b616e' : '#8a919e' }}>{label}</span>
     </div>
   )
 }
@@ -64,12 +64,12 @@ export default function MarketLpPanel({ marketId, platform, dark }: { marketId: 
   // Invisible until we confirm this market is reward-eligible (most markets aren't).
   if (!loaded || !opp) return null
 
-  const cardBg  = dark ? '#111318' : '#ffffff'
-  const border  = dark ? '#1e2330' : '#e8ecf0'
-  const divider = dark ? '#1e2330' : '#f1f5f9'
-  const txt1    = dark ? '#f1f5f9' : '#0f172a'
-  const txt2    = dark ? '#64748b' : '#94a3b8'
-  const statClr = dark ? '#cbd5e1' : '#475569'
+  const cardBg  = dark ? '#16171a' : '#ffffff'
+  const border  = dark ? '#26282d' : '#eaecef'
+  const divider = dark ? '#26282d' : '#f5f6f8'
+  const txt1    = dark ? '#f5f6f8' : '#0a0b0d'
+  const txt2    = dark ? '#5b616e' : '#8a919e'
+  const statClr = dark ? '#dfe1e6' : '#5b616e'
 
   const isKalshi = opp.platform === 'kalshi' || opp.reward_precision === 'qualitative'
   const t = tierOf(opp.lp_score)
@@ -108,7 +108,7 @@ export default function MarketLpPanel({ marketId, platform, dark }: { marketId: 
       <div style={{ padding: '20px 24px' }}>
         {/* Score + reward */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-0.5px', color: '#5f5cf0', lineHeight: 1 }}>
+          <span style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-0.5px', color: '#0052ff', lineHeight: 1 }}>
             {opp.lp_score}<span style={{ fontSize: 13, fontWeight: 700, marginLeft: 1, color: txt2 }}>/100</span>
           </span>
           <span style={{ fontSize: 12, color: txt2 }}>LP Score</span>
@@ -120,7 +120,7 @@ export default function MarketLpPanel({ marketId, platform, dark }: { marketId: 
             </span>
           ) : (
             <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, lineHeight: 1.15 }}>
-              <span style={{ fontSize: 18, fontWeight: 800, color: '#059669', letterSpacing: '-0.3px' }}>{fmtReward(opp.daily_reward)}</span>
+              <span style={{ fontSize: 18, fontWeight: 800, color: '#04794e', letterSpacing: '-0.3px' }}>{fmtReward(opp.daily_reward)}</span>
               {comp && (
                 <span title={`Competition ${Math.round((opp.competition || 0) * 100)}/100 — ${comp.desc}. Estimated from 24h volume relative to the reward pool, not a live LP count.`}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: comp.color, whiteSpace: 'nowrap' }}>
@@ -163,10 +163,10 @@ export default function MarketLpPanel({ marketId, platform, dark }: { marketId: 
         {/* CTA + link */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <button onClick={handleOpen}
-            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 20px', background: '#5f5cf0', border: 'none', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: '#fff' }}>
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 20px', background: '#0052ff', border: 'none', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: '#fff' }}>
             Provide liquidity on {label} →
           </button>
-          <a href="/lp" style={{ fontSize: 12, fontWeight: 600, color: '#5f5cf0', textDecoration: 'none' }}>See all LP opportunities →</a>
+          <a href="/lp" style={{ fontSize: 12, fontWeight: 600, color: '#0052ff', textDecoration: 'none' }}>See all LP opportunities →</a>
         </div>
       </div>
     </div>

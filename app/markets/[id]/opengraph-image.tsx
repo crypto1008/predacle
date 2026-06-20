@@ -27,33 +27,33 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   const question = market?.question ?? 'Prediction Market'
   const pct = market?.probability != null ? Math.round(market.probability * 100) : null
   const platform = market ? (PLATFORM_LABELS[market.platform] || market.platform) : ''
-  const probColor = pct == null ? '#94a3b8'
-    : pct >= 65 ? '#10b981' : pct >= 35 ? '#f59e0b' : '#ef4444'
+  const probColor = pct == null ? '#8a919e'
+    : pct >= 65 ? '#05a66b' : pct >= 35 ? '#f59e0b' : '#e5484d'
 
   return new ImageResponse(
     (
       <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-        background: '#0b0d12', padding: 64, justifyContent: 'space-between', fontFamily: 'sans-serif' }}>
+        background: '#0a0b0d', padding: 64, justifyContent: 'space-between', fontFamily: 'sans-serif' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', fontSize: 34, fontWeight: 700, color: '#a78bfa' }}>◆ Predacle</div>
-          <div style={{ display: 'flex', fontSize: 24, color: '#64748b', letterSpacing: 2,
+          <div style={{ display: 'flex', fontSize: 24, color: '#5b616e', letterSpacing: 2,
             textTransform: 'uppercase' }}>{platform}</div>
         </div>
-        <div style={{ display: 'flex', fontSize: 58, fontWeight: 700, color: '#f1f5f9', lineHeight: 1.2 }}>
+        <div style={{ display: 'flex', fontSize: 58, fontWeight: 700, color: '#f5f6f8', lineHeight: 1.2 }}>
           {question.length > 100 ? question.slice(0, 100) + '…' : question}
         </div>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
           {pct !== null ? (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', fontSize: 26, color: '#64748b', letterSpacing: 2,
+              <div style={{ display: 'flex', fontSize: 26, color: '#5b616e', letterSpacing: 2,
                 textTransform: 'uppercase' }}>Current probability</div>
               <div style={{ display: 'flex', fontSize: 150, fontWeight: 800, color: probColor,
                 lineHeight: 1 }}>{pct}%</div>
             </div>
           ) : (
-            <div style={{ display: 'flex', fontSize: 44, color: '#94a3b8' }}>Live odds</div>
+            <div style={{ display: 'flex', fontSize: 44, color: '#8a919e' }}>Live odds</div>
           )}
-          <div style={{ display: 'flex', fontSize: 24, color: '#64748b' }}>Odds across 6 platforms</div>
+          <div style={{ display: 'flex', fontSize: 24, color: '#5b616e' }}>Odds across 6 platforms</div>
         </div>
       </div>
     ),

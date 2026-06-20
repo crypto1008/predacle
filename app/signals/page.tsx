@@ -35,14 +35,14 @@ function useDarkMode() {
 }
 
 function SignalRow({ s, dark }: { s: Signal; dark: boolean }) {
-  const card   = dark ? '#111318' : '#ffffff'
-  const border = dark ? '#1e2330' : '#e8ecf0'
-  const txt1   = dark ? '#f1f5f9' : '#0f172a'
-  const txt2   = dark ? '#94a3b8' : '#64748b'
-  const txt3   = dark ? '#475569' : '#94a3b8'
+  const card   = dark ? '#16171a' : '#ffffff'
+  const border = dark ? '#26282d' : '#eaecef'
+  const txt1   = dark ? '#f5f6f8' : '#0a0b0d'
+  const txt2   = dark ? '#8a919e' : '#5b616e'
+  const txt3   = dark ? '#5b616e' : '#8a919e'
   const up = s.move >= 0
-  const moveColor = up ? '#059669' : '#dc2626'
-  const pillBg = dark ? '#1e1b4b' : '#ede9fe'
+  const moveColor = up ? '#04794e' : '#cf202f'
+  const pillBg = dark ? '#0f1d3d' : '#eaf0ff'
 
   return (
     <Link href={`/markets/${s.id}`} className="signal-row" style={{ textDecoration: 'none' }}>
@@ -53,11 +53,11 @@ function SignalRow({ s, dark }: { s: Signal; dark: boolean }) {
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#5f5cf0', background: pillBg, padding: '2px 8px', borderRadius: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#0052ff', background: pillBg, padding: '2px 8px', borderRadius: 6 }}>
               {PLATFORM_LABEL[s.platform] || s.platform}
             </span>
             {s.tag === 'settling' && (
-              <span style={{ fontSize: 11, fontWeight: 600, color: txt3, background: dark ? '#15171d' : '#f1f5f9', padding: '2px 8px', borderRadius: 6 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: txt3, background: dark ? '#141518' : '#f5f6f8', padding: '2px 8px', borderRadius: 6 }}>
                 settling
               </span>
             )}
@@ -99,12 +99,12 @@ function SignalsContent() {
       .catch(() => setFailed(true))
   }, [])
 
-  const bg     = dark ? '#0b0d12' : '#ffffff'
-  const listBg = dark ? '#0b0d12' : '#f8fafc'
-  const border = dark ? '#1e2330' : '#e8ecf0'
-  const txt1   = dark ? '#f1f5f9' : '#0f172a'
-  const txt2   = dark ? '#94a3b8' : '#64748b'
-  const txt3   = dark ? '#475569' : '#94a3b8'
+  const bg     = dark ? '#0a0b0d' : '#ffffff'
+  const listBg = dark ? '#0a0b0d' : '#f5f6f8'
+  const border = dark ? '#26282d' : '#eaecef'
+  const txt1   = dark ? '#f5f6f8' : '#0a0b0d'
+  const txt2   = dark ? '#8a919e' : '#5b616e'
+  const txt3   = dark ? '#5b616e' : '#8a919e'
 
   const live     = (signals || []).filter(s => s.tag === 'live')
   const settling = (signals || []).filter(s => s.tag === 'settling')
@@ -164,7 +164,7 @@ function SignalsContent() {
 
       <style>{`
         .signal-row > div { transition: border-color 0.15s, transform 0.15s; }
-        .signal-row:hover > div { border-color: #5f5cf0; transform: translateY(-1px); }
+        .signal-row:hover > div { border-color: #0052ff; transform: translateY(-1px); }
       `}</style>
     </div>
   )

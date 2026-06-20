@@ -77,8 +77,8 @@ export default function Header() {
       <header
         className={`sticky top-0 z-50 border-b transition-shadow ${scrolled ? 'shadow-sm' : ''}`}
         style={{
-          background: dark ? '#0b0d12' : '#ffffff',
-          borderColor: dark ? '#1e2330' : '#e8ecf0',
+          background: dark ? '#0a0b0d' : '#ffffff',
+          borderColor: dark ? '#26282d' : '#eaecef',
         }}
       >
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 20px' }}>
@@ -93,7 +93,7 @@ export default function Header() {
               }}>
                 P
               </div>
-              <span style={{ fontWeight: 700, fontSize: 15, color: dark ? '#f1f5f9' : '#0f172a', letterSpacing: '-0.3px' }}>
+              <span className="font-display" style={{ fontWeight: 800, fontSize: 19, color: dark ? '#f5f6f8' : '#0a0b0d', letterSpacing: '-0.03em' }}>
                 Predacle
               </span>
             </Link>
@@ -119,8 +119,8 @@ export default function Header() {
                   style={{
                     position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 60,
                     minWidth: 232, padding: 6, borderRadius: 12,
-                    background: dark ? '#111318' : '#ffffff',
-                    border: `1px solid ${dark ? '#1e2330' : '#e8ecf0'}`,
+                    background: dark ? '#16171a' : '#ffffff',
+                    border: `1px solid ${dark ? '#26282d' : '#eaecef'}`,
                     boxShadow: dark ? '0 10px 30px rgba(0,0,0,0.5)' : '0 10px 30px rgba(15,23,42,0.12)',
                     display: 'flex', flexDirection: 'column', gap: 2,
                   }}>
@@ -135,12 +135,12 @@ export default function Header() {
                           background: active ? (dark ? '#0f1d3d' : '#eaf0ff') : 'transparent',
                           transition: 'background 0.12s',
                         }}
-                        onMouseEnter={e => { if (!active) e.currentTarget.style.background = dark ? '#1a1d24' : '#f5f7fa' }}
+                        onMouseEnter={e => { if (!active) e.currentTarget.style.background = dark ? '#141518' : '#f5f6f8' }}
                         onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
                         <span style={{ fontSize: 16, lineHeight: 1.3, flexShrink: 0 }}>{t.icon}</span>
                         <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: active ? '#0052ff' : (dark ? '#f1f5f9' : '#0f172a') }}>{t.label}</span>
-                          <span style={{ fontSize: 11, color: dark ? '#64748b' : '#94a3b8', lineHeight: 1.3 }}>{t.desc}</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: active ? '#0052ff' : (dark ? '#f5f6f8' : '#0a0b0d') }}>{t.label}</span>
+                          <span style={{ fontSize: 11, color: dark ? '#5b616e' : '#8a919e', lineHeight: 1.3 }}>{t.desc}</span>
                         </span>
                       </Link>
                     )
@@ -174,7 +174,7 @@ export default function Header() {
                       borderRadius: 8, border: 'none', cursor: 'pointer',
                       whiteSpace: 'nowrap', transition: 'all 0.15s',
                       background: isActive ? (dark ? '#0f1d3d' : '#eaf0ff') : 'transparent',
-                      color: isActive ? '#0052ff' : dark ? '#64748b' : '#64748b',
+                      color: isActive ? '#0052ff' : dark ? '#5b616e' : '#5b616e',
                     }}
                     aria-current={isActive ? 'page' : undefined}>
                     {cat.label}
@@ -208,7 +208,7 @@ export default function Header() {
             <button onClick={() => setMenuOpen(!menuOpen)}
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={menuOpen}
-              style={{ display: 'none', padding: 8, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'transparent', color: dark ? '#64748b' : '#94a3b8' }}
+              style={{ display: 'none', padding: 8, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'transparent', color: dark ? '#5b616e' : '#8a919e' }}
               className="mobile-menu-btn">
               <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path d={menuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}/>
@@ -223,7 +223,7 @@ export default function Header() {
 
           {/* Mobile menu */}
           {menuOpen && (
-            <div style={{ borderTop: `1px solid ${dark ? '#1e2330' : '#e8ecf0'}`, padding: '12px 0', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ borderTop: `1px solid ${dark ? '#26282d' : '#eaecef'}`, padding: '12px 0', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               <Link href="/pro" onClick={() => setMenuOpen(false)}
                 style={{
                   padding: '6px 12px', fontSize: 13, fontWeight: 600, borderRadius: 20,
@@ -249,8 +249,8 @@ export default function Header() {
                     style={{
                       padding: '6px 12px', fontSize: 13, fontWeight: isActive ? 600 : 500,
                       borderRadius: 20, border: 'none', cursor: 'pointer',
-                      background: isActive ? '#eaf0ff' : dark ? '#111318' : '#f5f7fa',
-                      color: isActive ? '#0052ff' : dark ? '#64748b' : '#64748b',
+                      background: isActive ? '#eaf0ff' : dark ? '#16171a' : '#f5f6f8',
+                      color: isActive ? '#0052ff' : dark ? '#5b616e' : '#5b616e',
                     }}>
                     {cat.label}
                   </button>

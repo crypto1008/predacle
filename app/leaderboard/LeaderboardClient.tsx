@@ -24,7 +24,7 @@ interface ApiResponse {
 }
 
 const PLATFORM_LABELS: Record<string, string> = { polymarket: 'Polymarket', kalshi: 'Kalshi' }
-const PALETTE = ['#5f5cf0', '#0d9488', '#d97706', '#dc2626', '#7c3aed', '#0891b2']
+const PALETTE = ['#0052ff', '#0d9488', '#d97706', '#cf202f', '#7c3aed', '#0891b2']
 
 function useDark() {
   const [dark, setDark] = useState(false)
@@ -56,12 +56,12 @@ export default function LeaderboardClient() {
       .finally(() => setLoading(false))
   }, [])
 
-  const headClr = dark ? '#f1f5f9' : '#0f172a'
-  const subClr = dark ? '#94a3b8' : '#64748b'
-  const metaClr = dark ? '#64748b' : '#94a3b8'
-  const panelBg = dark ? '#111318' : '#ffffff'
-  const panelBorder = dark ? '#1e2330' : '#e8ecf0'
-  const statClr = dark ? '#cbd5e1' : '#475569'
+  const headClr = dark ? '#f5f6f8' : '#0a0b0d'
+  const subClr = dark ? '#8a919e' : '#5b616e'
+  const metaClr = dark ? '#5b616e' : '#8a919e'
+  const panelBg = dark ? '#16171a' : '#ffffff'
+  const panelBorder = dark ? '#26282d' : '#eaecef'
+  const statClr = dark ? '#dfe1e6' : '#5b616e'
 
   const platforms = data?.platforms ?? []
   const updated = data?.generatedAt ? new Date(data.generatedAt) : null
@@ -93,7 +93,7 @@ export default function LeaderboardClient() {
         </div>
       ) : err ? (
         <div style={{ background: panelBg, border: `1px solid ${panelBorder}`, borderRadius: 12, padding: '28px 20px', textAlign: 'center' }}>
-          <p style={{ fontSize: 14, color: '#ef4444', margin: 0 }}>{err}</p>
+          <p style={{ fontSize: 14, color: '#e5484d', margin: 0 }}>{err}</p>
         </div>
       ) : platforms.length === 0 ? (
         <div style={{ background: panelBg, border: `1px solid ${panelBorder}`, borderRadius: 12, padding: '40px 20px', textAlign: 'center' }}>
@@ -108,7 +108,7 @@ export default function LeaderboardClient() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 560 }}>
                 <thead>
-                  <tr style={{ background: dark ? '#0d1117' : '#fafbfc', borderBottom: `1px solid ${panelBorder}` }}>
+                  <tr style={{ background: dark ? '#0d0e10' : '#fafbfc', borderBottom: `1px solid ${panelBorder}` }}>
                     {[
                       ['#', 'Rank by Brier score', 'left', 48],
                       ['Platform', '', 'left', 0],
@@ -129,8 +129,8 @@ export default function LeaderboardClient() {
                     const col = PALETTE[i % PALETTE.length]
                     const top = i === 0
                     return (
-                      <tr key={p.platform} style={{ borderBottom: i < platforms.length - 1 ? `1px solid ${panelBorder}` : 'none', background: top ? (dark ? 'rgba(95,92,240,0.06)' : 'rgba(95,92,240,0.04)') : 'transparent' }}>
-                        <td style={{ padding: '13px 14px', textAlign: 'left', fontWeight: 700, color: top ? '#5f5cf0' : metaClr }}>
+                      <tr key={p.platform} style={{ borderBottom: i < platforms.length - 1 ? `1px solid ${panelBorder}` : 'none', background: top ? (dark ? 'rgba(0,82,255,0.06)' : 'rgba(0,82,255,0.04)') : 'transparent' }}>
+                        <td style={{ padding: '13px 14px', textAlign: 'left', fontWeight: 700, color: top ? '#0052ff' : metaClr }}>
                           {top ? '🏆' : i + 1}
                         </td>
                         <td style={{ padding: '13px 14px', textAlign: 'left' }}>
@@ -143,7 +143,7 @@ export default function LeaderboardClient() {
                           </span>
                         </td>
                         <td style={{ padding: '13px 14px', textAlign: 'right', color: statClr, fontVariantNumeric: 'tabular-nums' }}>{p.n.toLocaleString()}</td>
-                        <td style={{ padding: '13px 14px', textAlign: 'right', fontWeight: 800, color: top ? '#5f5cf0' : headClr, fontVariantNumeric: 'tabular-nums' }}>{p.brier.toFixed(4)}</td>
+                        <td style={{ padding: '13px 14px', textAlign: 'right', fontWeight: 800, color: top ? '#0052ff' : headClr, fontVariantNumeric: 'tabular-nums' }}>{p.brier.toFixed(4)}</td>
                         <td style={{ padding: '13px 14px', textAlign: 'right', color: statClr, fontVariantNumeric: 'tabular-nums' }}>±{pct(p.calibrationError)}</td>
                         <td style={{ padding: '13px 14px', textAlign: 'right', color: metaClr, fontVariantNumeric: 'tabular-nums' }}>{pct(p.accuracy)}</td>
                       </tr>
@@ -182,7 +182,7 @@ export default function LeaderboardClient() {
           </div>
 
           {/* ---------- methodology ---------- */}
-          <div style={{ background: dark ? '#0d1117' : '#fafbfc', border: `1px solid ${panelBorder}`, borderRadius: 12, padding: '18px 20px' }}>
+          <div style={{ background: dark ? '#0d0e10' : '#fafbfc', border: `1px solid ${panelBorder}`, borderRadius: 12, padding: '18px 20px' }}>
             <h2 style={{ fontSize: 14, fontWeight: 700, color: headClr, margin: '0 0 8px' }}>How this is measured</h2>
             <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.7, color: subClr }}>
               <li>We use each market&apos;s <strong style={{ color: subClr }}>last price before resolution</strong> as the forecast, and its real settlement as the truth.</li>
@@ -213,10 +213,10 @@ function CalibrationChart({ platforms, dark }: { platforms: Platform[]; dark: bo
   const plotH = H - padT - padB
   const X = (p: number) => padL + p * plotW
   const Y = (a: number) => padT + (1 - a) * plotH
-  const grid = dark ? '#1e2330' : '#eef1f5'
-  const axisClr = dark ? '#64748b' : '#94a3b8'
-  const labelClr = dark ? '#94a3b8' : '#64748b'
-  const dotStroke = dark ? '#0b0d12' : '#ffffff'
+  const grid = dark ? '#26282d' : '#eef1f5'
+  const axisClr = dark ? '#5b616e' : '#8a919e'
+  const labelClr = dark ? '#8a919e' : '#5b616e'
+  const dotStroke = dark ? '#0a0b0d' : '#ffffff'
 
   const maxN = Math.max(1, ...platforms.flatMap((p) => p.curve.map((b) => b.n)))
   const rOf = (n: number) => 2.5 + 5.5 * Math.sqrt(n / maxN)

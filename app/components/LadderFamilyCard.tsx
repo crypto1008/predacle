@@ -67,15 +67,15 @@ function useDark() {
 
 export default function LadderFamilyCard({ family, onClick }: { family: Family; onClick?: () => void }) {
   const dark = useDark()
-  const cardBg       = dark ? '#111318' : '#ffffff'
-  const cardBorder   = dark ? '#1e2330' : '#e8ecf0'
-  const footerBg     = dark ? '#0d1117' : '#fafbfc'
-  const footerBorder = dark ? '#1e2330' : '#f1f5f9'
-  const questionClr  = dark ? '#f1f5f9' : '#1e293b'
-  const metaClr      = dark ? '#64748b' : '#94a3b8'
-  const catBg        = dark ? '#1e2330' : '#f8fafc'
-  const catBorder    = dark ? '#2d3748' : '#e2e8f0'
-  const subClr       = dark ? '#94a3b8' : '#64748b'
+  const cardBg       = dark ? '#16171a' : '#ffffff'
+  const cardBorder   = dark ? '#26282d' : '#eaecef'
+  const footerBg     = dark ? '#0d0e10' : '#fafbfc'
+  const footerBorder = dark ? '#26282d' : '#f5f6f8'
+  const questionClr  = dark ? '#f5f6f8' : '#16181c'
+  const metaClr      = dark ? '#5b616e' : '#8a919e'
+  const catBg        = dark ? '#26282d' : '#f5f6f8'
+  const catBorder    = dark ? '#303338' : '#eaecef'
+  const subClr       = dark ? '#8a919e' : '#5b616e'
 
   const pLabel = PLATFORM_LABELS[family.platform] || family.platform
   const cLabel = family.category ? (CATEGORY_LABELS[family.category] || family.category) : null
@@ -91,7 +91,7 @@ export default function LadderFamilyCard({ family, onClick }: { family: Family; 
         cursor: onClick ? 'pointer' : 'default', display: 'flex', flexDirection: 'column',
         transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.1s', position: 'relative',
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = '#c4b5fd'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(95,92,240,0.12)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = '#99b9ff'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,82,255,0.12)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = cardBorder; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
     >
       <div style={{ padding: '14px 14px 12px', flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -100,7 +100,7 @@ export default function LadderFamilyCard({ family, onClick }: { family: Family; 
           <span className={`badge-${family.platform}`} style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.3px', padding: '2px 7px', borderRadius: 5, textTransform: 'uppercase' }}>
             {pLabel}
           </span>
-          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: '#5f5cf0', background: dark ? '#1e1b4b' : '#ede9fe', border: `1px solid ${dark ? '#312e81' : '#c7d2fe'}`, borderRadius: 4, padding: '1px 6px' }}>
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: '#0052ff', background: dark ? '#0f1d3d' : '#eaf0ff', border: `1px solid ${dark ? '#1d3563' : '#c9dcff'}`, borderRadius: 4, padding: '1px 6px' }}>
             📊 {family.rungCount} levels
           </span>
           {cLabel && (
@@ -118,7 +118,7 @@ export default function LadderFamilyCard({ family, onClick }: { family: Family; 
         {/* Implied median headline */}
         <div style={{ marginTop: 12 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
-            <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px', color: '#5f5cf0' }}>
+            <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px', color: '#0052ff' }}>
               {fmtThreshold(family.impliedMedian, family.unit)}
             </span>
             <span style={{ fontSize: 11, fontWeight: 600, color: subClr }}>implied median</span>
@@ -135,7 +135,7 @@ export default function LadderFamilyCard({ family, onClick }: { family: Family; 
           {vol && <span style={{ fontSize: 11, color: metaClr }}>{vol}</span>}
           {family.endLabel && <span style={{ fontSize: 11, color: metaClr }}>{vol ? '·' : ''} {family.endLabel}</span>}
         </div>
-        <span style={{ fontSize: 11, fontWeight: 600, color: '#5f5cf0', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: '#0052ff', whiteSpace: 'nowrap' }}>
           View distribution →
         </span>
       </div>

@@ -46,15 +46,15 @@ export default function LadderFamilyPanel({ marketId, dark }: { marketId: string
   // Need a real ladder with enough rungs to be worth a chart.
   if (!loaded || !data || !data.family || data.rungs.length < 5) return null
 
-  const cardBg  = dark ? '#111318' : '#ffffff'
-  const border  = dark ? '#1e2330' : '#e8ecf0'
-  const divider = dark ? '#1e2330' : '#f1f5f9'
-  const txt1    = dark ? '#f1f5f9' : '#0f172a'
-  const txt2    = dark ? '#64748b' : '#94a3b8'
-  const statClr = dark ? '#cbd5e1' : '#475569'
-  const grid    = dark ? '#1e2330' : '#eef1f5'
-  const barDim  = dark ? '#312e81' : '#c7d2fe'
-  const purple  = '#5f5cf0'
+  const cardBg  = dark ? '#16171a' : '#ffffff'
+  const border  = dark ? '#26282d' : '#eaecef'
+  const divider = dark ? '#26282d' : '#f5f6f8'
+  const txt1    = dark ? '#f5f6f8' : '#0a0b0d'
+  const txt2    = dark ? '#5b616e' : '#8a919e'
+  const statClr = dark ? '#dfe1e6' : '#5b616e'
+  const grid    = dark ? '#26282d' : '#eef1f5'
+  const barDim  = dark ? '#1d3563' : '#c9dcff'
+  const purple  = '#0052ff'
 
   const rungs = data.rungs
   const ths = rungs.map((r) => r.ladder_threshold)
@@ -103,7 +103,7 @@ export default function LadderFamilyPanel({ marketId, dark }: { marketId: string
   const Pill = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
     <button onClick={onClick}
       style={{ fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
-        border: `1px solid ${active ? purple : border}`, background: active ? (dark ? '#1e1b4b' : '#ede9fe') : cardBg, color: active ? purple : txt2 }}>
+        border: `1px solid ${active ? purple : border}`, background: active ? (dark ? '#0f1d3d' : '#eaf0ff') : cardBg, color: active ? purple : txt2 }}>
       {children}
     </button>
   )
@@ -156,16 +156,16 @@ export default function LadderFamilyPanel({ marketId, dark }: { marketId: string
                 )
               })
             : (<>
-                <path d={cdfArea} fill={dark ? 'rgba(95,92,240,0.16)' : 'rgba(95,92,240,0.10)'} stroke="none" />
+                <path d={cdfArea} fill={dark ? 'rgba(0,82,255,0.16)' : 'rgba(0,82,255,0.10)'} stroke="none" />
                 <polyline points={cdfPts} fill="none" stroke={purple} strokeWidth={2} strokeLinejoin="round" />
               </>)}
 
           {/* median marker */}
           {xMed != null && (
             <g>
-              <line x1={xMed} y1={padT} x2={xMed} y2={baseY} stroke="#dc2626" strokeWidth={1.25} strokeDasharray="4 3" />
+              <line x1={xMed} y1={padT} x2={xMed} y2={baseY} stroke="#cf202f" strokeWidth={1.25} strokeDasharray="4 3" />
               <rect x={medLabelX - 33} y={padT - 13} width={66} height={13} rx={3} fill={cardBg} opacity={0.9} />
-              <text x={medLabelX} y={padT - 3} textAnchor="middle" fontSize={9} fontWeight={700} fill="#dc2626">
+              <text x={medLabelX} y={padT - 3} textAnchor="middle" fontSize={9} fontWeight={700} fill="#cf202f">
                 median {median != null ? fmtK(median) : ''}
               </text>
             </g>

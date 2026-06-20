@@ -38,27 +38,27 @@ const CATEGORY_ICONS: Record<string, string> = {
 }
 
 function getProbColor(p: number | null) {
-  if (p === null) return '#94a3b8'
-  if (p >= 0.65) return '#10b981'
+  if (p === null) return '#8a919e'
+  if (p >= 0.65) return '#05a66b'
   if (p >= 0.35) return '#f59e0b'
-  return '#ef4444'
+  return '#e5484d'
 }
 
 function getProbLabel(p: number | null): { text: string; color: string; bg: string; darkBg: string } | null {
   if (p === null) return null
-  if (p >= 0.80) return { text: 'Strong YES', color: '#059669', bg: '#ecfdf5', darkBg: '#052e16' }
-  if (p >= 0.65) return { text: 'Likely YES', color: '#10b981', bg: '#d1fae5', darkBg: '#052e16' }
+  if (p >= 0.80) return { text: 'Strong YES', color: '#04794e', bg: '#e7f8f0', darkBg: '#04291b' }
+  if (p >= 0.65) return { text: 'Likely YES', color: '#05a66b', bg: '#cdeede', darkBg: '#04291b' }
   if (p >= 0.45) return { text: 'Toss-up',    color: '#d97706', bg: '#fffbeb', darkBg: '#1c1002' }
-  if (p >= 0.20) return { text: 'Unlikely',   color: '#ef4444', bg: '#fef2f2', darkBg: '#1c0202' }
-  return              { text: 'Long shot',  color: '#dc2626', bg: '#fef2f2', darkBg: '#1c0202' }
+  if (p >= 0.20) return { text: 'Unlikely',   color: '#e5484d', bg: '#fdecec', darkBg: '#1c0202' }
+  return              { text: 'Long shot',  color: '#cf202f', bg: '#fdecec', darkBg: '#1c0202' }
 }
 
 function getClosingBadge(end_date: string | null) {
   if (!end_date) return null
   const days = Math.ceil((new Date(end_date).getTime() - Date.now()) / 86400000)
   if (days < 0)   return null
-  if (days === 0) return { label: 'Closes today', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' }
-  if (days <= 3)  return { label: `⏰ ${days}d left`, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' }
+  if (days === 0) return { label: 'Closes today', color: '#cf202f', bg: '#fdecec', border: '#f6c9cb' }
+  if (days <= 3)  return { label: `⏰ ${days}d left`, color: '#cf202f', bg: '#fdecec', border: '#f6c9cb' }
   if (days <= 7)  return { label: `⏰ ${days}d left`, color: '#d97706', bg: '#fffbeb', border: '#fde68a' }
   return null
 }
@@ -72,8 +72,8 @@ function getTrendLabel(change: number | null | undefined) {
   if (!change || Math.abs(change) < 0.005) return null
   const pct = Math.round(Math.abs(change) * 100)
   return change > 0
-    ? { label: `↑${pct}%`, color: '#10b981' }
-    : { label: `↓${pct}%`, color: '#ef4444' }
+    ? { label: `↑${pct}%`, color: '#05a66b' }
+    : { label: `↓${pct}%`, color: '#e5484d' }
 }
 
 function useDark() {
@@ -111,18 +111,18 @@ export default function MarketCard({ market, onClick }: {
   }
 
   // Dark-aware colours
-  const cardBg      = dark ? '#111318'  : '#ffffff'
-  const cardBorder  = dark ? '#1e2330'  : '#e8ecf0'
-  const footerBg    = dark ? '#0d1117'  : '#fafbfc'
-  const footerBorder = dark ? '#1e2330' : '#f1f5f9'
-  const trackBg     = dark ? '#1e2330'  : '#f1f5f9'
-  const questionClr = dark ? '#f1f5f9'  : '#1e293b'
-  const metaClr     = dark ? '#64748b'  : '#94a3b8'
-  const catBg       = dark ? '#1e2330'  : '#f8fafc'
-  const catBorder   = dark ? '#2d3748'  : '#e2e8f0'
-  const catClr      = dark ? '#94a3b8'  : '#94a3b8'
-  const tradeBg     = trading ? (dark ? '#1e2330' : '#f1f5f9') : (dark ? '#0f1d3d' : '#eaf0ff')
-  const tradeClr    = trading ? '#94a3b8' : '#0052ff'
+  const cardBg      = dark ? '#16171a'  : '#ffffff'
+  const cardBorder  = dark ? '#26282d'  : '#eaecef'
+  const footerBg    = dark ? '#0d0e10'  : '#fafbfc'
+  const footerBorder = dark ? '#26282d' : '#f5f6f8'
+  const trackBg     = dark ? '#26282d'  : '#f5f6f8'
+  const questionClr = dark ? '#f5f6f8'  : '#16181c'
+  const metaClr     = dark ? '#5b616e'  : '#8a919e'
+  const catBg       = dark ? '#26282d'  : '#f5f6f8'
+  const catBorder   = dark ? '#303338'  : '#eaecef'
+  const catClr      = dark ? '#8a919e'  : '#8a919e'
+  const tradeBg     = trading ? (dark ? '#26282d' : '#f5f6f8') : (dark ? '#0f1d3d' : '#eaf0ff')
+  const tradeClr    = trading ? '#8a919e' : '#0052ff'
 
   const pColor  = getProbColor(market.probability)
   const probLbl = getProbLabel(market.probability)
@@ -210,9 +210,9 @@ export default function MarketCard({ market, onClick }: {
           {isKalshiCombo && (
             <span style={{
               fontSize: 9, fontWeight: 700, letterSpacing: '0.4px',
-              textTransform: 'uppercase', color: '#059669',
-              background: dark ? '#052e16' : '#ecfdf5',
-              border: `1px solid ${dark ? '#065f46' : '#a7f3d0'}`,
+              textTransform: 'uppercase', color: '#04794e',
+              background: dark ? '#04291b' : '#e7f8f0',
+              border: `1px solid ${dark ? '#0a5235' : '#bfeed8'}`,
               borderRadius: 4, padding: '1px 6px',
             }}>
               Combo
@@ -312,7 +312,7 @@ export default function MarketCard({ market, onClick }: {
             <span style={{ fontSize: 11, color: metaClr }}>{market.volume_label}</span>
           )}
           {avgBetLabel && (
-            <span style={{ fontSize: 10, color: dark ? '#475569' : '#cbd5e1' }}>
+            <span style={{ fontSize: 10, color: dark ? '#5b616e' : '#dfe1e6' }}>
               · {avgBetLabel}
             </span>
           )}

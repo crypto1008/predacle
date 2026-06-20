@@ -84,15 +84,15 @@ export default function ComparePolyKalshiClient() {
       .catch(() => setPairs([]))
   }, [])
 
-  const bg      = dark ? '#0b0d12' : '#ffffff'
-  const panel   = dark ? '#111318' : '#ffffff'
-  const soft    = dark ? '#0b0d12' : '#f8fafc'
-  const border  = dark ? '#1e2330' : '#e8ecf0'
-  const txt1    = dark ? '#f1f5f9' : '#0f172a'
-  const txt2    = dark ? '#94a3b8' : '#64748b'
-  const txt3    = dark ? '#475569' : '#94a3b8'
-  const purple  = '#5f5cf0'
-  const pillBg  = dark ? '#1e1b4b' : '#ede9fe'
+  const bg      = dark ? '#0a0b0d' : '#ffffff'
+  const panel   = dark ? '#16171a' : '#ffffff'
+  const soft    = dark ? '#0a0b0d' : '#f5f6f8'
+  const border  = dark ? '#26282d' : '#eaecef'
+  const txt1    = dark ? '#f5f6f8' : '#0a0b0d'
+  const txt2    = dark ? '#8a919e' : '#5b616e'
+  const txt3    = dark ? '#5b616e' : '#8a919e'
+  const purple  = '#0052ff'
+  const pillBg  = dark ? '#0f1d3d' : '#eaf0ff'
 
   const wrap = { maxWidth: 860, margin: '0 auto', padding: '0 20px' } as const
   const h2: React.CSSProperties = { fontSize: 19, fontWeight: 700, color: txt1, letterSpacing: '-0.2px', marginBottom: 12 }
@@ -211,7 +211,7 @@ export default function ComparePolyKalshiClient() {
                       <span style={{ fontSize: 11, fontWeight: 600, color: purple, background: pillBg, padding: '2px 8px', borderRadius: 6 }}>Kalshi</span>
                       <strong style={{ color: txt1, fontVariantNumeric: 'tabular-nums' }}>{p.kal.probability}%</strong>
                     </a>
-                    <span style={{ marginLeft: 'auto', fontSize: 14, fontWeight: 700, color: '#059669', fontVariantNumeric: 'tabular-nums' }}>
+                    <span style={{ marginLeft: 'auto', fontSize: 14, fontWeight: 700, color: '#04794e', fontVariantNumeric: 'tabular-nums' }}>
                       {p.gap} pt gap
                     </span>
                   </div>

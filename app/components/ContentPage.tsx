@@ -21,9 +21,9 @@ export default function ContentPage(
   { title, intro, children }: { title: string; intro?: string; children: ReactNode }
 ) {
   const dark = useDark()
-  const bg   = dark ? '#0b0d12' : '#ffffff'
-  const txt1 = dark ? '#f1f5f9' : '#0f172a'
-  const txt2 = dark ? '#94a3b8' : '#475569'
+  const bg   = dark ? '#0a0b0d' : '#ffffff'
+  const txt1 = dark ? '#f5f6f8' : '#0a0b0d'
+  const txt2 = dark ? '#8a919e' : '#5b616e'
 
   return (
     <>

@@ -30,11 +30,11 @@ export default function ProWaitlist() {
   const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [msg, setMsg] = useState('')
 
-  const headClr = dark ? '#f1f5f9' : '#0f172a'
-  const subClr = dark ? '#94a3b8' : '#64748b'
-  const cardBg = dark ? '#111318' : '#ffffff'
-  const border = dark ? '#1e2330' : '#e8ecf0'
-  const inputBg = dark ? '#1e2330' : '#f5f7fa'
+  const headClr = dark ? '#f5f6f8' : '#0a0b0d'
+  const subClr = dark ? '#8a919e' : '#5b616e'
+  const cardBg = dark ? '#16171a' : '#ffffff'
+  const border = dark ? '#26282d' : '#eaecef'
+  const inputBg = dark ? '#26282d' : '#f5f6f8'
 
   const submit = async () => {
     const clean = email.trim()
@@ -72,16 +72,16 @@ export default function ProWaitlist() {
         <span
           style={{
             display: 'inline-block', fontSize: 11, fontWeight: 700, letterSpacing: '0.5px',
-            textTransform: 'uppercase', color: '#5f5cf0',
-            background: dark ? '#1e1b4b' : '#ede9fe',
-            border: `1px solid ${dark ? '#312e81' : '#ddd6fe'}`,
+            textTransform: 'uppercase', color: '#0052ff',
+            background: dark ? '#0f1d3d' : '#eaf0ff',
+            border: `1px solid ${dark ? '#1d3563' : '#cdddff'}`,
             padding: '4px 12px', borderRadius: 999, marginBottom: 16,
           }}
         >
           Coming soon
         </span>
         <h1 style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-0.6px', color: headClr, margin: '0 0 12px' }}>
-          Predacle <span style={{ color: '#5f5cf0' }}>Pro</span>
+          Predacle <span style={{ color: '#0052ff' }}>Pro</span>
         </h1>
         <p style={{ fontSize: 15, lineHeight: 1.7, color: subClr, maxWidth: 560, margin: '0 auto' }}>
           The aggregator stays free, forever. Pro adds the power tools for people who trade across
@@ -94,7 +94,7 @@ export default function ProWaitlist() {
       <div style={{ background: cardBg, border: `1px solid ${border}`, borderRadius: 16, padding: 24, marginBottom: 36 }}>
         {state === 'done' ? (
           <div style={{ textAlign: 'center', padding: '8px 0' }}>
-            <div style={{ fontSize: 30, marginBottom: 8, color: '#10b981' }}>✓</div>
+            <div style={{ fontSize: 30, marginBottom: 8, color: '#05a66b' }}>✓</div>
             <p style={{ fontSize: 15, fontWeight: 600, color: headClr, margin: 0 }}>{msg}</p>
           </div>
         ) : (
@@ -111,7 +111,7 @@ export default function ProWaitlist() {
                 placeholder="you@example.com"
                 style={{
                   flex: 1, minWidth: 200, padding: '12px 14px', fontSize: 15,
-                  border: `1px solid ${state === 'error' ? '#ef4444' : border}`, borderRadius: 10,
+                  border: `1px solid ${state === 'error' ? '#e5484d' : border}`, borderRadius: 10,
                   background: inputBg, color: headClr, outline: 'none', fontFamily: 'inherit',
                   boxSizing: 'border-box',
                 }}
@@ -121,7 +121,7 @@ export default function ProWaitlist() {
                 disabled={state === 'loading'}
                 style={{
                   padding: '12px 24px', fontSize: 14, fontWeight: 700,
-                  background: state === 'loading' ? (dark ? '#1e2330' : '#94a3b8') : '#5f5cf0',
+                  background: state === 'loading' ? (dark ? '#26282d' : '#8a919e') : '#0052ff',
                   color: '#fff', border: 'none', borderRadius: 10,
                   cursor: state === 'loading' ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit', whiteSpace: 'nowrap',
@@ -131,7 +131,7 @@ export default function ProWaitlist() {
               </button>
             </div>
             {state === 'error' && (
-              <p style={{ fontSize: 13, color: '#ef4444', margin: '10px 0 0' }}>{msg}</p>
+              <p style={{ fontSize: 13, color: '#e5484d', margin: '10px 0 0' }}>{msg}</p>
             )}
             <p style={{ fontSize: 12, color: subClr, margin: '12px 0 0' }}>
               No spam — just one email when Pro is ready.

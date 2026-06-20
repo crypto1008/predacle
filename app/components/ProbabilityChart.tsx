@@ -18,7 +18,7 @@ export default function ProbabilityChart({ marketId, dark = false }: { marketId:
     return () => { cancelled = true }
   }, [marketId])
 
-  const purple = '#5f5cf0'
+  const purple = '#0052ff'
   const sub = dark ? '#9ca3af' : '#6b7280'
   const grid = dark ? '#2a2a37' : '#eef0f4'
   const border = dark ? '#262633' : '#ececf1'
@@ -71,7 +71,7 @@ export default function ProbabilityChart({ marketId, dark = false }: { marketId:
   const fmt = (t: number) => new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   const cur = points[points.length - 1].p
   const delta = cur - points[0].p
-  const deltaColor = delta > 0.001 ? '#059669' : delta < -0.001 ? '#dc2626' : sub
+  const deltaColor = delta > 0.001 ? '#04794e' : delta < -0.001 ? '#cf202f' : sub
   const deltaTxt = `${delta >= 0 ? '+' : ''}${Math.round(delta * 100)} pts`
 
   return (

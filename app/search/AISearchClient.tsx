@@ -50,13 +50,13 @@ export default function AISearchClient() {
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
-  const bg      = dark ? '#0b0d12' : '#ffffff'
-  const txt1    = dark ? '#f1f5f9' : '#0f172a'
-  const txt2    = dark ? '#94a3b8' : '#64748b'
-  const txt3    = dark ? '#475569' : '#94a3b8'
-  const border  = dark ? '#1e2330' : '#e8ecf0'
-  const inputBg = dark ? '#111318' : '#ffffff'
-  const chipBg  = dark ? '#1e1b4b' : '#ede9fe'
+  const bg      = dark ? '#0a0b0d' : '#ffffff'
+  const txt1    = dark ? '#f5f6f8' : '#0a0b0d'
+  const txt2    = dark ? '#8a919e' : '#5b616e'
+  const txt3    = dark ? '#5b616e' : '#8a919e'
+  const border  = dark ? '#26282d' : '#eaecef'
+  const inputBg = dark ? '#16171a' : '#ffffff'
+  const chipBg  = dark ? '#0f1d3d' : '#eaf0ff'
 
   const run = useCallback((q: string) => {
     const query = q.trim()
@@ -119,7 +119,7 @@ export default function AISearchClient() {
             onClick={submit}
             style={{
               fontSize: 14, fontWeight: 600, padding: '12px 20px', borderRadius: 10,
-              border: 'none', background: '#5f5cf0', color: '#fff',
+              border: 'none', background: '#0052ff', color: '#fff',
               cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
             }}
           >
@@ -134,7 +134,7 @@ export default function AISearchClient() {
               key={ex}
               onClick={() => { setInput(ex); router.replace(`/search?q=${encodeURIComponent(ex)}`); run(ex) }}
               style={{
-                fontSize: 12, color: txt2, background: dark ? '#1e2330' : '#f1f5f9',
+                fontSize: 12, color: txt2, background: dark ? '#26282d' : '#f5f6f8',
                 border: `1px solid ${border}`, padding: '5px 11px', borderRadius: 20,
                 cursor: 'pointer', fontFamily: 'inherit',
               }}
@@ -152,8 +152,8 @@ export default function AISearchClient() {
             </span>
             {data.chips.map((c, i) => (
               <span key={i} style={{
-                fontSize: 12, fontWeight: 600, color: '#5f5cf0', background: chipBg,
-                border: `1px solid ${dark ? '#312e81' : '#c7d2fe'}`, padding: '3px 10px', borderRadius: 20,
+                fontSize: 12, fontWeight: 600, color: '#0052ff', background: chipBg,
+                border: `1px solid ${dark ? '#1d3563' : '#c9dcff'}`, padding: '3px 10px', borderRadius: 20,
               }}>
                 {c}
               </span>
@@ -170,7 +170,7 @@ export default function AISearchClient() {
             {Array.from({ length: 6 }).map((_, i) => <MarketCardSkeleton key={i} />)}
           </div>
         ) : err ? (
-          <p style={{ fontSize: 14, color: '#ef4444' }}>{err}</p>
+          <p style={{ fontSize: 14, color: '#e5484d' }}>{err}</p>
         ) : data && markets.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 20px', color: txt3 }}>
             <div style={{ fontSize: 30, marginBottom: 10 }}>🔍</div>
