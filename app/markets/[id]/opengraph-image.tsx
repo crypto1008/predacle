@@ -35,7 +35,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
       <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
         background: '#0a0b0d', padding: 64, justifyContent: 'space-between', fontFamily: 'sans-serif' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', fontSize: 34, fontWeight: 700, color: '#a78bfa' }}>◆ Predacle</div>
+          <div style={{ display: 'flex', fontSize: 34, fontWeight: 700, color: '#0052ff' }}>◆ Predacle</div>
           <div style={{ display: 'flex', fontSize: 24, color: '#5b616e', letterSpacing: 2,
             textTransform: 'uppercase' }}>{platform}</div>
         </div>

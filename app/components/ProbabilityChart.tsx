@@ -19,11 +19,11 @@ export default function ProbabilityChart({ marketId, dark = false }: { marketId:
   }, [marketId])
 
   const purple = '#0052ff'
-  const sub = dark ? '#9ca3af' : '#6b7280'
-  const grid = dark ? '#2a2a37' : '#eef0f4'
-  const border = dark ? '#262633' : '#ececf1'
-  const bg = dark ? '#15151d' : '#ffffff'
-  const label = dark ? '#e5e7eb' : '#1f2937'
+  const sub = dark ? '#8a919e' : '#5b616e'
+  const grid = dark ? '#26282d' : '#eaecef'
+  const border = dark ? '#26282d' : '#eaecef'
+  const bg = dark ? '#16171a' : '#ffffff'
+  const label = dark ? '#f5f6f8' : '#0a0b0d'
 
   const wrap: CSSProperties = { border: `1px solid ${border}`, borderRadius: 12, background: bg, padding: 16, marginTop: 16 }
   const title: CSSProperties = { fontSize: 13, fontWeight: 600, color: label }

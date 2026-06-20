@@ -340,7 +340,7 @@ function OppCard({ opp, dark, showAi }: { opp: Opportunity; dark: boolean; showA
           {opp.threshold && (
             <span style={{
               fontSize: 10, fontWeight: 700, letterSpacing: '0.2px', color: dark ? '#6b9bff' : '#4f46e5',
-              background: dark ? '#0f1d3d' : '#eef2ff', border: `1px solid ${dark ? '#1d3563' : '#c9dcff'}`,
+              background: dark ? '#0f1d3d' : '#eaf0ff', border: `1px solid ${dark ? '#1d3563' : '#c9dcff'}`,
               padding: '2px 7px', borderRadius: 5,
             }}>
               {opp.threshold}
@@ -396,8 +396,8 @@ function OppCard({ opp, dark, showAi }: { opp: Opportunity; dark: boolean; showA
         {play && (
           <div style={{
             marginBottom: 14, padding: '9px 10px', borderRadius: 8,
-            background: dark ? '#15131f' : '#f5f8ff',
-            border: `1px solid ${dark ? '#1d3563' : '#e9e7fb'}`,
+            background: dark ? '#0f1d3d' : '#f5f8ff',
+            border: `1px solid ${dark ? '#1d3563' : '#dbe7ff'}`,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: '#0052ff' }}>

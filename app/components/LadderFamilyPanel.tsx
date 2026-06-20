@@ -52,7 +52,7 @@ export default function LadderFamilyPanel({ marketId, dark }: { marketId: string
   const txt1    = dark ? '#f5f6f8' : '#0a0b0d'
   const txt2    = dark ? '#5b616e' : '#8a919e'
   const statClr = dark ? '#dfe1e6' : '#5b616e'
-  const grid    = dark ? '#26282d' : '#eef1f5'
+  const grid    = dark ? '#26282d' : '#f5f6f8'
   const barDim  = dark ? '#1d3563' : '#c9dcff'
   const purple  = '#0052ff'
 

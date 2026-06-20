@@ -401,18 +401,18 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
                     <span>Closes {market.end_date_label}</span>
                   </div>
                   <div style={{ height: 4, background: dark ? '#26282d' : '#f5f6f8', borderRadius: 4, position: 'relative' }}>
-                    <div style={{ height: 4, background: 'linear-gradient(90deg, #0052ff, #a78bfa)', borderRadius: 4, width: `${timelinePct}%` }} />
+                    <div style={{ height: 4, background: 'linear-gradient(90deg, #0052ff, #6b9bff)', borderRadius: 4, width: `${timelinePct}%` }} />
                     <div style={{ position: 'absolute', top: '50%', left: `${timelinePct}%`, transform: 'translate(-50%, -50%)', width: 10, height: 10, borderRadius: '50%', background: '#0052ff', border: `2px solid ${cardBg}` }} />
                   </div>
                 </div>
               )}
             </>
           ) : (
-            <div style={{ background: dark ? '#04291b' : '#f0fdf4', border: `1px solid ${dark ? '#0a5235' : '#bbf7d0'}`, borderRadius: 10, padding: '16px 18px' }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: '#15803d', marginBottom: 6 }}>
+            <div style={{ background: dark ? '#04291b' : '#e7f8f0', border: `1px solid ${dark ? '#0a5235' : '#bfeed8'}`, borderRadius: 10, padding: '16px 18px' }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: '#04794e', marginBottom: 6 }}>
                 {isKalshi ? 'No current offers in order book' : isAzuro ? 'On-chain odds available' : 'Probability not available'}
               </p>
-              <p style={{ fontSize: 13, color: '#16a34a', lineHeight: 1.5 }}>
+              <p style={{ fontSize: 13, color: '#05a66b', lineHeight: 1.5 }}>
                 {isKalshi ? 'No active sell orders right now. You can place your own offer on Kalshi.'
                  : isAzuro ? 'Live betting odds available directly on the Azuro platform.'
                  : 'This market does not currently report probability data.'}
@@ -516,8 +516,8 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
       <MarketLpPanel marketId={id} platform={market.platform} dark={dark} />
 
       {/* AI Summary */}
-      <div style={{ background: cardBg, border: `1px solid ${dark ? '#2d1b69' : '#99b9ff'}`, borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}>
-        <div style={{ padding: '18px 24px', borderBottom: `1px solid ${divider}`, background: dark ? '#1a0f4a' : '#f5f8ff', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: cardBg, border: `1px solid ${dark ? '#1d3563' : '#99b9ff'}`, borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}>
+        <div style={{ padding: '18px 24px', borderBottom: `1px solid ${divider}`, background: dark ? '#0f1d3d' : '#f5f8ff', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <h2 style={{ fontSize: 15, fontWeight: 700, color: txt1 }}>🤖 AI Market Analysis</h2>
             <p style={{ fontSize: 12, color: txt2, marginTop: 2 }}>Powered by Gemini AI</p>
@@ -544,8 +544,8 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
                 <p style={{ fontSize: 11, color: txt2, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Signal Reasoning</p>
                 <p style={{ fontSize: 13, color: txt1, lineHeight: 1.6 }}>{aiSummary.signal_reason}</p>
               </div>
-              <div style={{ background: dark ? '#1a0f4a' : '#f5f8ff', border: `1px solid ${dark ? '#2d1b69' : '#99b9ff'}`, borderRadius: 10, padding: '14px 16px' }}>
-                <p style={{ fontSize: 11, color: '#7c3aed', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>💡 Key Insight</p>
+              <div style={{ background: dark ? '#0f1d3d' : '#f5f8ff', border: `1px solid ${dark ? '#1d3563' : '#99b9ff'}`, borderRadius: 10, padding: '14px 16px' }}>
+                <p style={{ fontSize: 11, color: '#0052ff', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>💡 Key Insight</p>
                 <p style={{ fontSize: 13, color: txt1, lineHeight: 1.6 }}>{aiSummary.key_insight}</p>
               </div>
             </div>
@@ -561,11 +561,11 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
             <p style={{ fontSize: 12, color: txt2, marginTop: 2 }}>Same market, different platform probabilities</p>
           </div>
           <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 10, background: dark ? '#0f1d3d' : '#eaf0ff', border: `1px solid ${dark ? '#3730a3' : '#99b9ff'}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 10, background: dark ? '#0f1d3d' : '#eaf0ff', border: `1px solid ${dark ? '#1d3563' : '#99b9ff'}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: PLATFORM_COLORS[market.platform] || '#0052ff', display: 'inline-block' }} />
                 <span style={{ fontSize: 13, fontWeight: 600, color: txt1 }}>{pLabel}</span>
-                <span style={{ fontSize: 10, color: '#0052ff', fontWeight: 600, background: dark ? '#1d3563' : '#e0e7ff', padding: '1px 6px', borderRadius: 4 }}>Current</span>
+                <span style={{ fontSize: 10, color: '#0052ff', fontWeight: 600, background: dark ? '#1d3563' : '#dbe7ff', padding: '1px 6px', borderRadius: 4 }}>Current</span>
               </div>
               <span style={{ fontSize: 15, fontWeight: 700, color: pColor }}>{pct !== null ? `${pct}%` : '—'}</span>
             </div>

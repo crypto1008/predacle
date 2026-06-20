@@ -213,7 +213,7 @@ function CalibrationChart({ platforms, dark }: { platforms: Platform[]; dark: bo
   const plotH = H - padT - padB
   const X = (p: number) => padL + p * plotW
   const Y = (a: number) => padT + (1 - a) * plotH
-  const grid = dark ? '#26282d' : '#eef1f5'
+  const grid = dark ? '#26282d' : '#f5f6f8'
   const axisClr = dark ? '#5b616e' : '#8a919e'
   const labelClr = dark ? '#8a919e' : '#5b616e'
   const dotStroke = dark ? '#0a0b0d' : '#ffffff'

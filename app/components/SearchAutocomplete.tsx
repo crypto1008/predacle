@@ -69,7 +69,7 @@ export default function SearchAutocomplete({
   const divider = dark ? '#26282d' : '#f5f6f8'
   const txt1    = dark ? '#f5f6f8' : '#0a0b0d'
   const txt2    = dark ? '#5b616e' : '#8a919e'
-  const hoverBg = dark ? '#1a1f2e' : '#f5f6f8'
+  const hoverBg = dark ? '#141518' : '#f5f6f8'
   const footBg  = dark ? '#0d0e10' : '#f5f6f8'
 
   const isLarge = size === 'large'
