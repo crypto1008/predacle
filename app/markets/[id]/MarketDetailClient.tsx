@@ -9,6 +9,7 @@ import ProbabilityChart from '../../components/ProbabilityChart'
 import { affiliateUrl } from '@/lib/affiliate'
 import LadderFamilyPanel from '../../components/LadderFamilyPanel'
 import MarketLpPanel from '../../components/MarketLpPanel'
+import MarketSentimentPanel from '../../components/MarketSentimentPanel'
 
 export interface Market {
   id: string; platform: string; question: string
@@ -454,6 +455,9 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
 
       {/* Probability history */}
       {pct !== null && <ProbabilityChart marketId={id} dark={dark} />}
+
+      {/* Why it moved — AI sentiment + news (only renders for recent news-driven movers) */}
+      <MarketSentimentPanel marketId={id} dark={dark} probability={market.probability} />
 
       {/* Bet Calculator */}
       {pct !== null && (
