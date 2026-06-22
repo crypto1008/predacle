@@ -7,6 +7,8 @@ export const maxDuration = 60
 
 // ─── Tunables ───
 const MOVE_THRESHOLD = 0.07                 // a >=7pt probability move over ~24h = a "mover"
+const LIVE_MIN = 0.02                       // skip near-resolved markets (≤2% or ≥98%) —
+const LIVE_MAX = 0.98                       // they've effectively settled, not "in play"
 const CANDIDATE_POOL = 300                  // top active markets by volume to consider
 const MAX_MOVERS     = 20                   // cap sentiment work per run
 const NEWS_PER_MARKET = 5
@@ -136,7 +138,9 @@ export async function GET(req: Request) {
     .map((c: any) => {
       const p0 = past[c.id]?.p
       if (p0 == null) return null
-      return { ...c, delta: Number(c.probability) - p0 }
+      const p1 = Number(c.probability)
+      if (p1 <= LIVE_MIN || p1 >= LIVE_MAX) return null   // already settled — skip
+      return { ...c, delta: p1 - p0 }
     })
     .filter((m: any) => m && Math.abs(m.delta) >= MOVE_THRESHOLD)
     .sort((a: any, b: any) => Math.abs(b.delta) - Math.abs(a.delta))

@@ -75,6 +75,10 @@ export async function GET() {
       const m = mById[s.market_id]
       if (!m) return null
       if ((m.category || '').toLowerCase() === 'sports' || looksLikeGame(m.question)) return null
+      // Skip markets that have effectively resolved (≤2% / ≥98%) — they show big "moves"
+      // only because they settled, and produce weak or contradictory explanations.
+      const p = m.probability == null ? null : Number(m.probability)
+      if (p !== null && (p <= 0.02 || p >= 0.98)) return null
       return {
         id: s.market_id,
         platform: m.platform,
