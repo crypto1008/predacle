@@ -141,21 +141,18 @@ export default function Footer() {
               <p style={{ fontSize: 12.5, color: '#e5484d', marginTop: 8 }}>{msg}</p>
             )}
 
-            {/* Social icons */}
+            {/* Social icons — unlinked for now (handles not live yet) */}
             <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
               {SOCIALS.map(s => (
-                <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
-                  aria-label={s.label} title={s.label}
+                <span key={s.label} aria-label={s.label} title={s.label}
                   style={{
                     width: 38, height: 38, borderRadius: '50%',
                     background: socialBg, border: `1px solid ${socialBd}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: txt2, transition: 'all 0.15s',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#0052ff'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#0052ff' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = socialBg; e.currentTarget.style.color = txt2; e.currentTarget.style.borderColor = socialBd }}>
+                    color: txt2,
+                  }}>
                   {s.icon}
-                </a>
+                </span>
               ))}
             </div>
           </div>
