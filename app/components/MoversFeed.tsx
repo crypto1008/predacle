@@ -95,6 +95,9 @@ export default function MoversFeed() {
           const moveUp = m.move > 0
           const pct = m.probability !== null ? Math.round(m.probability * 100) : null
           const topNews = m.headlines[0]
+          // "Repositioning" cards (news contradicts the move) come back with no drivers —
+          // don't show a headline under them, or it reads as self-contradictory.
+          const showNews = !!topNews && m.drivers.length > 0
           return (
             <a key={m.id} href={`/markets/${m.id}`} className="mover-card"
               style={{
@@ -131,14 +134,14 @@ export default function MoversFeed() {
 
               {/* the "why" */}
               {m.why && (
-                <div style={{ fontSize: 13.5, color: txt2, lineHeight: 1.5, marginBottom: m.drivers.length || topNews ? 10 : 0 }}>
+                <div style={{ fontSize: 13.5, color: txt2, lineHeight: 1.5, marginBottom: m.drivers.length ? 10 : 0 }}>
                   {m.why}
                 </div>
               )}
 
               {/* drivers */}
               {m.drivers.length > 0 && (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: topNews ? 10 : 0 }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: showNews ? 10 : 0 }}>
                   {m.drivers.slice(0, 3).map((d, i) => (
                     <span key={i} style={{
                       fontSize: 11, fontWeight: 500, color: txt2,
@@ -150,11 +153,11 @@ export default function MoversFeed() {
               )}
 
               {/* top headline source */}
-              {topNews && (
+              {showNews && (
                 <div style={{ fontSize: 11.5, color: txt3, borderTop: `1px solid ${border}`, paddingTop: 9, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontWeight: 600, color: txt2 }}>{topNews.source}</span>
-                  <span>·</span>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{topNews.title}</span>
+                  <span style={{ fontWeight: 600, color: txt2, whiteSpace: 'nowrap', flexShrink: 0 }}>{topNews.source}</span>
+                  <span style={{ flexShrink: 0 }}>·</span>
+                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{topNews.title}</span>
                 </div>
               )}
             </a>
