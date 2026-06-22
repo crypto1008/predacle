@@ -1,7 +1,7 @@
 export function inferCategory(question: string): string {
   const q = question.toLowerCase()
   // Crypto
-  if (/bitcoin|btc|ethereum|eth|crypto|blockchain|solana|doge|dogecoin|token|usdc|usdt|defi|nft|web3|binance|coinbase|altcoin|memecoin|xrp|ripple|cardano|avalanche|polygon|matic|chainlink|uniswap|bnb|tron|litecoin|polkadot|shiba|pepe|sui|aptos|injective/.test(q))
+  if (/bitcoin|\bbtc\b|ethereum|\beth\b|crypto|blockchain|solana|\bdoge\b|dogecoin|token|usdc|usdt|\bdefi\b|\bnft\b|web3|binance|coinbase|altcoin|memecoin|\bxrp\b|ripple|cardano|avalanche|polygon|\bmatic\b|chainlink|uniswap|\bbnb\b|\btron\b|litecoin|polkadot|shiba|pepe|\bsui\b|aptos|injective/.test(q))
     return 'crypto'
   // Politics — greatly expanded
   if (/trump|biden|harris|election|president|congress|senate|democrat|republican|vote|ballot|parliament|minister|government|legislation|iran|russia|ukraine|china|taiwan|israel|gaza|hamas|war|conflict|ceasefire|peace deal|peace agreement|sanctions|nato|united nations|prime minister|\bpm\b|chancellor|cabinet|foreign policy|diplomatic|regime|military|treaty|geopolit|starmer|macron|modi|putin|zelenskyy|netanyahu|erdogan|xi jinping|kim jong|supreme court|judiciary|referendum|impeach|coalition|immigration|border|inauguration|political|partisan|governor|mayor|ballot measure|wealth tax|tax reform|tax bill|freedom|liberty|constitution|democracy|authoritarian|dictatorship|coup|\bfbi\b|\bcia\b|leader of/.test(q))
