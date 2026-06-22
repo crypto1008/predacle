@@ -40,10 +40,11 @@ export const metadata: Metadata = {
     description: 'Browse prediction markets across 6 platforms. Live probabilities, real trading volumes.',
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
+    site: '@PredacleHQ',
+    creator: '@PredacleHQ',
     title: 'Predacle — Prediction Market Aggregator',
     description: 'Browse prediction markets across Polymarket, Kalshi, Myriad and more.',
-    creator: '@predacle',
   },
   robots: {
     index: true,
