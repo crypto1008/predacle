@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, Sora } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 // Inter — workhorse UI/body font (close match to Coinbase Sans).
@@ -108,6 +109,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to main content
         </a>
         {children}
+        <Analytics />
       </body>
     </html>
   )

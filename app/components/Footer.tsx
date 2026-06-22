@@ -40,9 +40,9 @@ export default function Footer() {
   const [marketCount, setMarketCount] = useState<number | null>(null)
 
   useEffect(() => {
-    fetch('/api/status')
+    fetch('/api/categories')
       .then(r => r.json())
-      .then(d => setMarketCount(d.overall?.totalMarkets ?? null))
+      .then(d => setMarketCount(d.totalMarkets ?? null))
       .catch(() => {})
   }, [])
 
