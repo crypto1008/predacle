@@ -15,7 +15,13 @@ export default function Image() {
 
         {/* top row: wordmark + live badge */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', fontSize: 40, fontWeight: 800, color: '#0052ff' }}>◆ Predacle</div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 56, height: 56, borderRadius: 14, background: '#0052ff', marginRight: 18 }}>
+              <div style={{ display: 'flex', fontSize: 34, fontWeight: 800, color: '#ffffff' }}>P</div>
+            </div>
+            <div style={{ display: 'flex', fontSize: 44, fontWeight: 800, color: '#f5f6f8' }}>Predacle</div>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', fontSize: 24, color: '#9aa0ab',
             background: '#16171a', border: '1px solid #26282d', borderRadius: 100, padding: '10px 22px' }}>
             <div style={{ display: 'flex', width: 12, height: 12, borderRadius: 6, background: '#05a66b', marginRight: 12 }} />
