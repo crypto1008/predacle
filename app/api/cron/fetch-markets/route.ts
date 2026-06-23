@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { fetchAllMarkets } from '@/lib/fetchers'
 
 export const runtime = 'nodejs'
-export const maxDuration = 30
+export const maxDuration = 60
 
 function getFingerprint(question: string): string {
   const stopwords = new Set([

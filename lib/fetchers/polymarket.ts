@@ -3,20 +3,42 @@ import { Market } from '../types'
 
 export async function fetchPolymarket(): Promise<Market[]> {
   try {
-    const response = await fetch(
-      'https://gamma-api.polymarket.com/events?active=true&closed=false&limit=200&order=volume24hr&ascending=false',
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-          'Accept': 'application/json',
-        },
-        cache: 'no-store',
+    // Paginate by TOTAL volume (not 24h) so high-value markets that aren't
+    // trading right now (e.g. long-dated geopolitical/crypto questions) are
+    // always covered and re-categorized — not just whatever is hot today.
+    // Defensive: page 0 failing is a real error (throws → surfaced upstream);
+    // a later page failing just stops pagination and keeps what we have.
+    const PV_HEADERS = {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+      'Accept': 'application/json',
+    }
+    const PV_PAGE = 200
+    const PV_MAX_PAGES = 6 // up to 1200 events per run
+    const pvSleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+    const list: any[] = []
+    for (let page = 0; page < PV_MAX_PAGES; page++) {
+      const offset = page * PV_PAGE
+      const url = `https://gamma-api.polymarket.com/events?active=true&closed=false&limit=${PV_PAGE}&offset=${offset}&order=volume&ascending=false`
+      let resp: Response
+      try {
+        resp = await fetch(url, { headers: PV_HEADERS, cache: 'no-store' })
+      } catch (e: any) {
+        if (page === 0) throw new Error(`Polymarket fetch failed: ${e?.message || 'network error'}`)
+        console.error(`Polymarket page ${page} fetch threw, stopping pagination:`, e?.message)
+        break
       }
-    )
-    console.log(`Polymarket events status: ${response.status}`)
-    if (!response.ok) throw new Error(`Polymarket error: ${response.status}`)
-    const events = await response.json()
-    const list   = Array.isArray(events) ? events : events.data || []
+      if (page === 0) console.log(`Polymarket events status: ${resp.status}`)
+      if (!resp.ok) {
+        if (page === 0) throw new Error(`Polymarket error: ${resp.status}`)
+        console.error(`Polymarket page ${page} status ${resp.status}, stopping pagination`)
+        break
+      }
+      const json  = await resp.json()
+      const chunk = Array.isArray(json) ? json : json.data || []
+      list.push(...chunk)
+      if (chunk.length < PV_PAGE) break // reached the end of the list
+      await pvSleep(150)                // be gentle on the API between pages
+    }
     console.log(`Polymarket events: ${list.length} events`)
     const markets: Market[] = []
     for (const ev of list) {
@@ -123,7 +145,7 @@ export async function fetchPolymarket(): Promise<Market[]> {
       if (seen.has(m.id)) return false
       seen.add(m.id)
       return true
-    }).slice(0, 2000)
+    }).slice(0, 4000)
     console.log(`Polymarket: ${deduped.length} markets after prop bet filter`)
     return deduped
   } catch (error: any) {
