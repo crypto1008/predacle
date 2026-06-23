@@ -21,8 +21,27 @@ export const dynamic = 'force-dynamic'
 
 const MIN_SAMPLE = 100                                  // floor before a category is shown
 const SCOPE = ['crypto', 'sports', 'politics'] as const // categories with enough resolved history
+// Within crypto we keep genuine event markets ("will BTC hit $100k in 2026")
+// but drop automated short-term price markets — intraday "ETH price at 9pm EDT?",
+// strike rungs ("≥ $X" / "$X or above"), and up/down direction bets — which
+// resolve near-deterministically and would measure price feeds, not forecasting.
 const NB = 10                                           // calibration buckets (deciles)
 const EPS = 1e-6
+
+const CRYPTO_ASSET = /\b(bitcoin|btc|ethereum|eth|ether|solana|sol|xrp|ripple|dogecoin|doge|cardano|ada|bnb|litecoin|ltc|avalanche|avax|polkadot|dot|chainlink|link|toncoin|ton|tron|trx|shiba|pepe)\b/i
+
+// True for automated short-term crypto price markets we want to exclude.
+function isShortTermCryptoPrice(question: string): boolean {
+  const q = String(question || '')
+  const hasIntraday = /\bat\s+\d{1,2}(:\d{2})?\s?(am|pm)\b/i.test(q) || /\b(edt|est|utc|gmt)\b/i.test(q)
+  const hasStrike =
+    /\bor\s+(above|below|higher|lower|more|less)\b/i.test(q) ||
+    /[\u2265\u2264]\s?\$/.test(q) ||           // ≥ $ / ≤ $
+    /(>=|<=)\s?\$/.test(q)
+  const hasDirection = /\b(up or down|higher or lower|above or below)\b/i.test(q)
+  const isCryptoPrice = CRYPTO_ASSET.test(q) && /\bprice\b/i.test(q)
+  return (isCryptoPrice && (hasIntraday || hasStrike)) || (hasDirection && CRYPTO_ASSET.test(q))
+}
 
 interface Row { category: string; p: number; y: number }
 
@@ -96,18 +115,20 @@ export async function GET() {
     for (let from = 0; ; from += PAGE) {
       const { data, error } = await supabaseAdmin
         .from('market_resolutions')
-        .select('id, category, final_probability, resolved_outcome')
+        .select('id, category, question, final_probability, resolved_outcome')
         .in('resolved_outcome', ['YES', 'NO'])
         .not('final_probability', 'is', null)
         .range(from, from + PAGE - 1)
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
       if (!data || data.length === 0) break
       for (const r of data as any[]) {
-        if (ladderIds.has(r.id)) continue                 // skip price-ladder rungs
+        if (ladderIds.has(r.id)) continue                 // skip tagged price-ladder rungs
+        const cat = (r.category || 'other').toLowerCase()
+        if (cat === 'crypto' && isShortTermCryptoPrice(r.question || '')) continue  // skip automated short-term crypto
         const p = Number(r.final_probability)
         if (!isFinite(p)) continue
         rows.push({
-          category: (r.category || 'other').toLowerCase(),
+          category: cat,
           p,
           y: r.resolved_outcome === 'YES' ? 1 : 0,
         })
@@ -126,17 +147,20 @@ export async function GET() {
       .filter((c) => (byCat.get(c)?.length || 0) >= MIN_SAMPLE)
       .map((c) => ({ category: c, ...score(byCat.get(c)!) }))
 
-    // Headline aggregate across everything calibratable (all categories).
-    const overall = rows.length >= MIN_SAMPLE ? score(rows) : null
+    // Headline aggregate over exactly what the page shows (not the raw pool),
+    // so it can't be skewed by categories we deliberately exclude.
+    const shownRows: Row[] = []
+    for (const c of categories) shownRows.push(...byCat.get(c.category)!)
+    const overall = shownRows.length >= MIN_SAMPLE ? score(shownRows) : null
 
     return NextResponse.json({
       categories,
       overall,
-      totalCalibratable: rows.length,
+      totalCalibratable: shownRows.length,
       excludedLadders: ladderIds.size,
       minSample: MIN_SAMPLE,
       method:
-        'final_probability (last pre-resolution price) vs resolved_outcome; binary markets only (SCALAR/UNCLEAR excluded); automated price-ladder rungs excluded; calibration error = mean gap between priced probability and observed frequency across deciles',
+        'final_probability (last pre-resolution price) vs resolved_outcome; binary markets only (SCALAR/UNCLEAR excluded); automated short-term crypto price markets (intraday, strike-ladder, up/down) excluded; calibration error = mean gap between priced probability and observed frequency across deciles',
       generatedAt: new Date().toISOString(),
     })
   } catch (error: any) {
