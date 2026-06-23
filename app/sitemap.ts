@@ -54,6 +54,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/resolved/economics`, lastModified: now, changeFrequency: 'daily', priority: 0.6 },
     { url: `${base}/resolved/tech`, lastModified: now, changeFrequency: 'daily', priority: 0.6 },
     { url: `${base}/compare/polymarket-vs-kalshi`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${base}/track-record`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
     { url: `${base}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${base}/how-it-works`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${base}/faq`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
