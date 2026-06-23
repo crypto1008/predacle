@@ -82,7 +82,7 @@ const jsonLd = {
       url: SITE_URL,
       logo: `${SITE_URL}/icon-512.png`,
       description: 'Prediction market aggregator spanning Polymarket, Kalshi, Myriad, Manifold, Limitless and Azuro.',
-      sameAs: ['https://x.com/predacle'],
+      sameAs: ['https://x.com/PredacleHQ'],
     },
     {
       '@type': 'WebSite',
