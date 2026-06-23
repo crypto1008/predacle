@@ -212,7 +212,7 @@ export default function TrackRecordClient() {
               <ul style={{ margin: 0, paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: metaClr }}>
                 <li><strong style={{ color: subClr }}>Calibration error</strong> is the average distance between the price and the real frequency across the buckets in each chart.</li>
                 <li><strong style={{ color: subClr }}>Brier score</strong> is the mean squared error between price and outcome &mdash; lower is sharper.</li>
-                <li>Only Yes/No markets with a recorded final price are scored; non-binary settlements are excluded.</li>
+                <li>Only Yes/No markets with a recorded final price are scored; non-binary settlements and automated short-term price-ladder markets are excluded.</li>
                 <li>History here is recent, so these reflect the current mix of markets rather than a long-run average. Categories with too few resolutions are not shown.</li>
               </ul>
               {data.generatedAt && (

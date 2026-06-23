@@ -71,18 +71,39 @@ function score(arr: Row[]) {
 
 export async function GET() {
   try {
+    // Price-ladder rungs (e.g. Kalshi/Limitless hourly "ETH $X or above") are
+    // near-deterministic and dominate crypto, distorting calibration. They are
+    // marked with ladder_key on the markets table; resolved markets persist
+    // there, so we pull the ladder id set and exclude those resolutions.
+    const ladderIds = new Set<string>()
+    {
+      const PAGE = 1000
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabaseAdmin
+          .from('markets')
+          .select('id')
+          .not('ladder_key', 'is', null)
+          .range(from, from + PAGE - 1)
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+        if (!data || data.length === 0) break
+        for (const r of data as any[]) ladderIds.add(r.id)
+        if (data.length < PAGE) break
+      }
+    }
+
     const rows: Row[] = []
     const PAGE = 1000
     for (let from = 0; ; from += PAGE) {
       const { data, error } = await supabaseAdmin
         .from('market_resolutions')
-        .select('category, final_probability, resolved_outcome')
+        .select('id, category, final_probability, resolved_outcome')
         .in('resolved_outcome', ['YES', 'NO'])
         .not('final_probability', 'is', null)
         .range(from, from + PAGE - 1)
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
       if (!data || data.length === 0) break
       for (const r of data as any[]) {
+        if (ladderIds.has(r.id)) continue                 // skip price-ladder rungs
         const p = Number(r.final_probability)
         if (!isFinite(p)) continue
         rows.push({
@@ -112,9 +133,10 @@ export async function GET() {
       categories,
       overall,
       totalCalibratable: rows.length,
+      excludedLadders: ladderIds.size,
       minSample: MIN_SAMPLE,
       method:
-        'final_probability (last pre-resolution price) vs resolved_outcome; binary markets only (SCALAR/UNCLEAR excluded); calibration error = mean gap between priced probability and observed frequency across deciles',
+        'final_probability (last pre-resolution price) vs resolved_outcome; binary markets only (SCALAR/UNCLEAR excluded); automated price-ladder rungs excluded; calibration error = mean gap between priced probability and observed frequency across deciles',
       generatedAt: new Date().toISOString(),
     })
   } catch (error: any) {
