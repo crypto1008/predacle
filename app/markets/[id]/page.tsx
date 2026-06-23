@@ -50,19 +50,40 @@ export async function generateMetadata(
   const pct = market.probability != null ? Math.round(market.probability * 100) : null
   const platform = PLATFORM_LABELS[market.platform] || market.platform
 
-  const title = pct !== null
-    ? `${market.question} — ${pct}% chance | Predacle`
-    : `${market.question} | Predacle`
+  // Resolved / closed handling — these pages must not read as live odds.
+  const res = market.resolution
+  const outcome = res && res.resolved_outcome && res.resolved_outcome !== 'UNCLEAR'
+    ? res.resolved_outcome : null
+  const resolvedDate = res && res.resolved_at ? new Date(res.resolved_at).toISOString().slice(0, 10) : null
+  const finalPct = res && res.final_probability != null ? Math.round(res.final_probability * 100) : pct
+  const isClosed = market.status === 'closed' || market.status === 'resolved'
 
-  const parts: string[] = []
-  parts.push(pct !== null
-    ? `Prediction markets give this a ${pct}% probability`
-    : 'Live prediction market odds')
-  parts.push(`tracked on ${platform}`)
-  if (market.volume_label) parts.push(`${market.volume_label} volume`)
-  if (market.end_date_label) parts.push(`closes ${market.end_date_label}`)
-  const description = parts.join(', ') +
-    '. Compare odds across Polymarket, Kalshi, Manifold and more on Predacle.'
+  let title: string
+  let description: string
+
+  if (outcome) {
+    title = `Resolved: ${market.question} — ${outcome} | Predacle`
+    description = `This prediction market resolved ${outcome}${resolvedDate ? ` on ${resolvedDate}` : ''}.`
+      + (finalPct !== null ? ` It was trading at about ${finalPct}% beforehand.` : '')
+      + ` See the final result and how ${platform} priced it on Predacle.`
+  } else if (isClosed) {
+    title = `Closed: ${market.question} | Predacle`
+    description = `This prediction market has closed and is no longer trading${resolvedDate ? ` (as of ${resolvedDate})` : ''}.`
+      + ` View its history and final odds on ${platform} via Predacle.`
+  } else {
+    title = pct !== null
+      ? `${market.question} — ${pct}% chance | Predacle`
+      : `${market.question} | Predacle`
+    const parts: string[] = []
+    parts.push(pct !== null
+      ? `Prediction markets give this a ${pct}% probability`
+      : 'Live prediction market odds')
+    parts.push(`tracked on ${platform}`)
+    if (market.volume_label) parts.push(`${market.volume_label} volume`)
+    if (market.end_date_label) parts.push(`closes ${market.end_date_label}`)
+    description = parts.join(', ') +
+      '. Compare odds across Polymarket, Kalshi, Manifold and more on Predacle.'
+  }
 
   // Keep thin, auto-generated ladder rungs out of the search index.
   const ladder = isLadderRung(market.question)
@@ -83,6 +104,35 @@ function buildJsonLd(market: Market, id: string) {
   const pct = market.probability != null ? Math.round(market.probability * 100) : null
   const platform = PLATFORM_LABELS[market.platform] || market.platform
 
+  const res = market.resolution
+  const outcome = res && res.resolved_outcome && res.resolved_outcome !== 'UNCLEAR'
+    ? res.resolved_outcome : null
+  const resolvedDate = res && res.resolved_at ? new Date(res.resolved_at).toISOString().slice(0, 10) : null
+  const finalPct = res && res.final_probability != null ? Math.round(res.final_probability * 100) : null
+
+  // Resolved markets get a definitive acceptedAnswer; live ones a suggestedAnswer (estimate).
+  const answer = outcome
+    ? {
+        acceptedAnswer: {
+          '@type': 'Answer',
+          url,
+          text: `This market resolved ${outcome}${resolvedDate ? ` on ${resolvedDate}` : ''}.`
+            + (finalPct !== null ? ` It was trading at about ${finalPct}% before resolution.` : '')
+            + ` Source: ${platform}.`,
+        },
+      }
+    : pct !== null
+      ? {
+          suggestedAnswer: {
+            '@type': 'Answer',
+            url,
+            text: `As of ${new Date().toISOString().slice(0, 10)}, prediction markets `
+              + `estimate a ${pct}% probability. Based on ${platform}`
+              + `${market.volume_label ? ` with ${market.volume_label} in volume` : ''}.`,
+          },
+        }
+      : {}
+
   return {
     '@context': 'https://schema.org',
     '@graph': [
@@ -100,15 +150,7 @@ function buildJsonLd(market: Market, id: string) {
           '@type': 'Question',
           name: market.question,
           text: market.question,
-          ...(pct !== null && {
-            suggestedAnswer: {
-              '@type': 'Answer',
-              url,
-              text: `As of ${new Date().toISOString().slice(0, 10)}, prediction markets `
-                + `estimate a ${pct}% probability. Based on ${platform}`
-                + `${market.volume_label ? ` with ${market.volume_label} in volume` : ''}.`,
-            },
-          }),
+          ...answer,
         },
       },
     ],

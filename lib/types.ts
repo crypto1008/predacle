@@ -9,6 +9,14 @@ export type Platform =
   | 'metaculus'
   | 'predictit'
 
+export interface MarketResolution {
+  resolved_outcome: string | null
+  final_probability: number | null
+  final_probability_at: string | null
+  resolved_at: string | null
+  resolution_source: string | null
+}
+
 export interface Market {
   id: string
   platform: string
@@ -26,6 +34,7 @@ export interface Market {
   created_at?: string
   probability_change?: number | null
   image_url?: string | null
+  resolution?: MarketResolution | null
 }
 
 export interface FetchResult {

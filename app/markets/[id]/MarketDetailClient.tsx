@@ -19,6 +19,13 @@ export interface Market {
   category: string | null; url: string; status: string
   fingerprint: string | null; created_at?: string
   probability_change?: number | null; image_url?: string | null
+  resolution?: {
+    resolved_outcome: string | null
+    final_probability: number | null
+    final_probability_at: string | null
+    resolved_at: string | null
+    resolution_source: string | null
+  } | null
 }
 
 interface RelatedMarket {
@@ -293,6 +300,21 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
     offline: { label: '🔴 Offline', color: '#cf202f', bg: dark ? '#1c0202' : '#fdecec' },
   }[platformHealth] : null
 
+  // Resolved-state treatment: a closed market with a verified outcome must read
+  // as a historical record, not live odds.
+  const resv = market.resolution
+  const resolvedOutcome = resv && resv.resolved_outcome && resv.resolved_outcome !== 'UNCLEAR'
+    ? resv.resolved_outcome : null
+  const resolvedDate = resv && resv.resolved_at
+    ? new Date(resv.resolved_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    : null
+  const isClosed = market.status === 'closed' || market.status === 'resolved'
+  const finalPctResolved = resv && resv.final_probability != null ? Math.round(resv.final_probability * 100) : null
+  const outcomeColor = resolvedOutcome === 'YES' ? '#04794e' : resolvedOutcome === 'NO' ? '#cf202f' : '#5b616e'
+  const outcomeBg = resolvedOutcome === 'YES' ? (dark ? '#04291b' : '#e7f8f0')
+    : resolvedOutcome === 'NO' ? (dark ? '#1c0202' : '#fdecec')
+    : (dark ? '#26282d' : '#f5f6f8')
+
   return (
     <main id="main" style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px 64px', background: bg, minHeight: '80vh' }}>
 
@@ -309,6 +331,24 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
       {/* Main card */}
       <article style={{ background: cardBg, border: `1px solid ${border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 16, position: 'relative' }}>
 
+        {/* Resolved / closed banner — keeps the page from reading as live odds */}
+        {isClosed && (
+          <div style={{ background: outcomeBg, borderBottom: `1px solid ${border}`, padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: outcomeColor, letterSpacing: '0.2px' }}>
+              {resolvedOutcome ? `✓ RESOLVED · ${resolvedOutcome}` : '● CLOSED'}
+            </span>
+            {resolvedDate && (
+              <span style={{ fontSize: 12, color: txt2 }}>
+                {resolvedOutcome ? 'Resolved' : 'Closed'} {resolvedDate}
+              </span>
+            )}
+            {finalPctResolved !== null && (
+              <span style={{ fontSize: 12, color: txt2 }}>· Priced at {finalPctResolved}% before resolution</span>
+            )}
+            <span style={{ fontSize: 12, color: txt2 }}>· No longer trading</span>
+          </div>
+        )}
+
         {isNew && (
           <div style={{ position: 'absolute', top: 14, right: -1, background: '#0052ff', color: '#fff', fontSize: 9, fontWeight: 700, padding: '2px 8px 2px 6px', borderRadius: '4px 0 0 4px', zIndex: 1 }}>
             🆕 NEW
@@ -324,8 +364,8 @@ function MarketDetail({ id, initialMarket }: { id: string; initialMarket: Market
               {pLabel}
             </span>
 
-            {/* Health badge */}
-            {healthBadge && (
+            {/* Health badge (hidden once resolved/closed) */}
+            {!isClosed && healthBadge && (
               <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 5, background: healthBadge.bg, color: healthBadge.color }}>
                 {healthBadge.label}
               </span>
