@@ -12,8 +12,8 @@ export async function fetchPolymarket(): Promise<Market[]> {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
       'Accept': 'application/json',
     }
-    const PV_PAGE = 200
-    const PV_MAX_PAGES = 6 // up to 1200 events per run
+    const PV_PAGE = 100 // Polymarket's gamma API caps `limit` at 100 per request
+    const PV_MAX_PAGES = 10 // 10 x 100 = up to 1000 events per run
     const pvSleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
     const list: any[] = []
     for (let page = 0; page < PV_MAX_PAGES; page++) {
