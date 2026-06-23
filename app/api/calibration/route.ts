@@ -88,7 +88,8 @@ function score(arr: Row[]) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const debug = new URL(request.url).searchParams.get('debug')
   try {
     // Price-ladder rungs (e.g. Kalshi/Limitless hourly "ETH $X or above") are
     // near-deterministic and dominate crypto, distorting calibration. They are
@@ -111,6 +112,7 @@ export async function GET() {
     }
 
     const rows: Row[] = []
+    const cryptoIncluded: { q: string; p: number; y: number }[] = []   // debug: crypto rows that pass the filter
     const PAGE = 1000
     for (let from = 0; ; from += PAGE) {
       const { data, error } = await supabaseAdmin
@@ -127,13 +129,33 @@ export async function GET() {
         if (cat === 'crypto' && isShortTermCryptoPrice(r.question || '')) continue  // skip automated short-term crypto
         const p = Number(r.final_probability)
         if (!isFinite(p)) continue
-        rows.push({
-          category: cat,
-          p,
-          y: r.resolved_outcome === 'YES' ? 1 : 0,
-        })
+        const y = r.resolved_outcome === 'YES' ? 1 : 0
+        rows.push({ category: cat, p, y })
+        if (cat === 'crypto') cryptoIncluded.push({ q: String(r.question || ''), p, y })
       }
       if (data.length < PAGE) break
+    }
+
+    // Debug: inspect exactly which crypto markets still pass the filter.
+    if (debug === 'crypto') {
+      const hist = Array.from({ length: 10 }, () => 0)
+      for (const c of cryptoIncluded) {
+        let bi = Math.floor(c.p * 10); if (bi > 9) bi = 9; if (bi < 0) bi = 0
+        hist[bi]++
+      }
+      // Sample the middle of the probability range (the markets that *should*
+      // exist if there's genuine uncertainty) plus a general sample.
+      const middle = cryptoIncluded.filter((c) => c.p >= 0.1 && c.p <= 0.9)
+      return NextResponse.json({
+        cryptoIncludedCount: cryptoIncluded.length,
+        probabilityHistogram: hist.map((n, i) => ({ bucket: `${i * 10}-${(i + 1) * 10}%`, n })),
+        middleBandCount: middle.length,
+        middleBandSamples: middle.slice(0, 60).map((c) => ({ q: c.q, p: +c.p.toFixed(3), y: c.y })),
+        extremeSamples: cryptoIncluded
+          .filter((c) => c.p < 0.1 || c.p > 0.9)
+          .slice(0, 40)
+          .map((c) => ({ q: c.q, p: +c.p.toFixed(3), y: c.y })),
+      })
     }
 
     const byCat = new Map<string, Row[]>()
