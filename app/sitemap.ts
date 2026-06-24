@@ -1,5 +1,28 @@
 import { MetadataRoute } from 'next'
 import { supabaseAdmin } from '@/lib/supabase'
+import { PLATFORM_KEYS, getPlatform } from '@/lib/platforms'
+
+// Build canonical compare-pair slugs. Only "anchored" pairs (at least one of the
+// well-documented platforms) go in the sitemap, to avoid thin two-stub pages.
+const RICH = new Set(['polymarket', 'kalshi'])
+function comparePairUrls(now: Date): MetadataRoute.Sitemap {
+  const b0 = process.env.NEXT_PUBLIC_APP_URL || 'https://predacle.com'
+  const out: MetadataRoute.Sitemap = []
+  for (let i = 0; i < PLATFORM_KEYS.length; i++) {
+    for (let j = i + 1; j < PLATFORM_KEYS.length; j++) {
+      const a = PLATFORM_KEYS[i], b = PLATFORM_KEYS[j]
+      if (!RICH.has(a) && !RICH.has(b)) continue          // skip thin pairs
+      if (!getPlatform(a) || !getPlatform(b)) continue
+      out.push({
+        url: `${b0}/compare/${a}-vs-${b}`,
+        lastModified: now,
+        changeFrequency: 'weekly',
+        priority: 0.7,
+      })
+    }
+  }
+  return out
+}
 
 export const revalidate = 3600
 
@@ -53,7 +76,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/resolved/politics`, lastModified: now, changeFrequency: 'daily', priority: 0.6 },
     { url: `${base}/resolved/economics`, lastModified: now, changeFrequency: 'daily', priority: 0.6 },
     { url: `${base}/resolved/tech`, lastModified: now, changeFrequency: 'daily', priority: 0.6 },
-    { url: `${base}/compare/polymarket-vs-kalshi`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
+    ...comparePairUrls(now),
     { url: `${base}/track-record`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
     { url: `${base}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${base}/how-it-works`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
