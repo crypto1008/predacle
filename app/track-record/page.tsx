@@ -8,7 +8,7 @@ export const revalidate = 1800
 
 const SITE = process.env.NEXT_PUBLIC_APP_URL || 'https://predacle.com'
 const DESC =
-  'Do prediction markets actually get it right? Predacle scores thousands of resolved markets by comparing each one\u2019s final price against what really happened \u2014 calibration curves and accuracy across crypto, sports, and politics.'
+  'Do prediction markets actually get it right? Predacle scores thousands of resolved markets by comparing each one\u2019s final price against what really happened \u2014 calibration curves and accuracy across sports and politics.'
 
 export const metadata: Metadata = {
   title: { absolute: 'Prediction Market Track Record \u2014 Calibration & Accuracy | Predacle' },
@@ -43,7 +43,7 @@ export default function TrackRecordPage() {
     '@type': 'Dataset',
     name: 'Prediction Market Calibration & Track Record',
     description:
-      'Calibration and accuracy of resolved prediction markets, computed by comparing each market\u2019s final pre-resolution price against its real outcome, grouped by category (crypto, sports, politics).',
+      'Calibration and accuracy of resolved prediction markets, computed by comparing each market\u2019s final pre-resolution price against its real outcome, grouped by category (sports, politics).',
     url: `${SITE}/track-record`,
     creator: { '@type': 'Organization', name: 'Predacle', url: SITE },
     isAccessibleForFree: true,

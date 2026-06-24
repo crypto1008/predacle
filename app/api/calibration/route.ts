@@ -19,12 +19,12 @@ export const dynamic = 'force-dynamic'
 // Scope: only categories with a confident, well-populated history are shown.
 // Thin categories (economics, tech) are omitted rather than reported noisily.
 
-const MIN_SAMPLE = 100                                  // floor before a category is shown
-const SCOPE = ['crypto', 'sports', 'politics'] as const // categories with enough resolved history
-// Within crypto we keep genuine event markets ("will BTC hit $100k in 2026")
-// but drop automated short-term price markets — intraday "ETH price at 9pm EDT?",
-// strike rungs ("≥ $X" / "$X or above"), and up/down direction bets — which
-// resolve near-deterministically and would measure price feeds, not forecasting.
+const MIN_SAMPLE = 100                                   // floor before a category is shown
+const SCOPE = ['sports', 'politics'] as const            // genuine event-forecasting categories
+// Crypto is omitted for now. On these platforms resolved crypto markets are
+// ~99% automated short-term price targets ("Will Bitcoin reach $X on June 12?")
+// that settle at 1% or 99%; under ~10 genuine forecasting markets have resolved,
+// far below the sample floor. Crypto rejoins automatically once enough accrue.
 const NB = 10                                           // calibration buckets (deciles)
 const EPS = 1e-6
 
@@ -40,7 +40,23 @@ function isShortTermCryptoPrice(question: string): boolean {
     /(>=|<=)\s?\$/.test(q)
   const hasDirection = /\b(up or down|higher or lower|above or below)\b/i.test(q)
   const isCryptoPrice = CRYPTO_ASSET.test(q) && /\bprice\b/i.test(q)
-  return (isCryptoPrice && (hasIntraday || hasStrike)) || (hasDirection && CRYPTO_ASSET.test(q))
+
+  // Short-term price targets, e.g. "Will Bitcoin reach $65,000 on June 13?" or
+  // "Will Bitcoin dip to $62,500 in June?". Caught only with a near-term horizon
+  // (a specific day, or a bare month); long-horizon markets ("by end of 2026",
+  // "in 2027") are NOT caught, so genuine forecasts survive.
+  const priceVerb = /\b(reach|reaches|dip to|dips to|hit|hits|fall to|falls to|rise to|rises to|drop to|drops to|climb to|climbs to)\b/i.test(q)
+  const hasDollar = /\$\s?[\d,]+/.test(q)
+  const nearTermDay = /\bon\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}\b/i.test(q)
+  const bareMonth = /\bin\s+(january|february|march|april|may|june|july|august|september|october|november|december)\b/i.test(q)
+  const longHorizon =
+    /\b(by end of|end of|by)\s+\d{4}\b/i.test(q) ||
+    /\bin\s+\d{4}\b/i.test(q) ||
+    /\bby\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}\b/i.test(q)
+  const shortTermPriceTarget =
+    CRYPTO_ASSET.test(q) && priceVerb && hasDollar && (nearTermDay || bareMonth) && !longHorizon
+
+  return (isCryptoPrice && (hasIntraday || hasStrike)) || (hasDirection && CRYPTO_ASSET.test(q)) || shortTermPriceTarget
 }
 
 interface Row { category: string; p: number; y: number }
@@ -88,8 +104,7 @@ function score(arr: Row[]) {
   }
 }
 
-export async function GET(request: Request) {
-  const debug = new URL(request.url).searchParams.get('debug')
+export async function GET() {
   try {
     // Price-ladder rungs (e.g. Kalshi/Limitless hourly "ETH $X or above") are
     // near-deterministic and dominate crypto, distorting calibration. They are
@@ -112,7 +127,6 @@ export async function GET(request: Request) {
     }
 
     const rows: Row[] = []
-    const cryptoIncluded: { q: string; p: number; y: number }[] = []   // debug: crypto rows that pass the filter
     const PAGE = 1000
     for (let from = 0; ; from += PAGE) {
       const { data, error } = await supabaseAdmin
@@ -129,33 +143,9 @@ export async function GET(request: Request) {
         if (cat === 'crypto' && isShortTermCryptoPrice(r.question || '')) continue  // skip automated short-term crypto
         const p = Number(r.final_probability)
         if (!isFinite(p)) continue
-        const y = r.resolved_outcome === 'YES' ? 1 : 0
-        rows.push({ category: cat, p, y })
-        if (cat === 'crypto') cryptoIncluded.push({ q: String(r.question || ''), p, y })
+        rows.push({ category: cat, p, y: r.resolved_outcome === 'YES' ? 1 : 0 })
       }
       if (data.length < PAGE) break
-    }
-
-    // Debug: inspect exactly which crypto markets still pass the filter.
-    if (debug === 'crypto') {
-      const hist = Array.from({ length: 10 }, () => 0)
-      for (const c of cryptoIncluded) {
-        let bi = Math.floor(c.p * 10); if (bi > 9) bi = 9; if (bi < 0) bi = 0
-        hist[bi]++
-      }
-      // Sample the middle of the probability range (the markets that *should*
-      // exist if there's genuine uncertainty) plus a general sample.
-      const middle = cryptoIncluded.filter((c) => c.p >= 0.1 && c.p <= 0.9)
-      return NextResponse.json({
-        cryptoIncludedCount: cryptoIncluded.length,
-        probabilityHistogram: hist.map((n, i) => ({ bucket: `${i * 10}-${(i + 1) * 10}%`, n })),
-        middleBandCount: middle.length,
-        middleBandSamples: middle.slice(0, 60).map((c) => ({ q: c.q, p: +c.p.toFixed(3), y: c.y })),
-        extremeSamples: cryptoIncluded
-          .filter((c) => c.p < 0.1 || c.p > 0.9)
-          .slice(0, 40)
-          .map((c) => ({ q: c.q, p: +c.p.toFixed(3), y: c.y })),
-      })
     }
 
     const byCat = new Map<string, Row[]>()
@@ -182,7 +172,7 @@ export async function GET(request: Request) {
       excludedLadders: ladderIds.size,
       minSample: MIN_SAMPLE,
       method:
-        'final_probability (last pre-resolution price) vs resolved_outcome; binary markets only (SCALAR/UNCLEAR excluded); automated short-term crypto price markets (intraday, strike-ladder, up/down) excluded; calibration error = mean gap between priced probability and observed frequency across deciles',
+        'final_probability (last pre-resolution price) vs resolved_outcome; binary markets only (SCALAR/UNCLEAR excluded); shown for categories with enough genuine forecasting history; calibration error = mean gap between priced probability and observed frequency across deciles',
       generatedAt: new Date().toISOString(),
     })
   } catch (error: any) {

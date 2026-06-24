@@ -213,7 +213,7 @@ export default function TrackRecordClient() {
                 <li><strong style={{ color: subClr }}>Calibration error</strong> is the average distance between the price and the real frequency across the buckets in each chart.</li>
                 <li><strong style={{ color: subClr }}>Brier score</strong> is the mean squared error between price and outcome &mdash; lower is sharper.</li>
                 <li>Only Yes/No markets with a recorded final price are scored; non-binary settlements are excluded.</li>
-                <li>For crypto we keep genuine event markets but exclude automated short-term price markets (intraday &ldquo;price at 9pm?&rdquo; bets, strike ladders, and up/down direction markets), which resolve near-deterministically and would measure price feeds rather than forecasting.</li>
+                <li>Crypto is not shown yet: on these platforms resolved crypto markets are almost entirely automated short-term price targets (&ldquo;Will Bitcoin reach $X on June 12?&rdquo;) that settle at near-0% or near-100%. Too few genuine forecasting markets have resolved to score it fairly; it will appear once enough do.</li>
                 <li>History here is recent, so these reflect the current mix of markets rather than a long-run average. Categories with too few resolutions are not shown.</li>
               </ul>
               {data.generatedAt && (
