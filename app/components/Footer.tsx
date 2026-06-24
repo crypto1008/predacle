@@ -175,6 +175,7 @@ export default function Footer() {
               <li><Link href="/category/economics" style={lnk}>Economics</Link></li>
               <li><Link href="/category/tech"      style={lnk}>Tech</Link></li>
               <li><Link href="/resolved" style={lnk}>Resolved Markets</Link></li>
+              <li><Link href="/track-record" style={lnk}>Track Record</Link></li>
               <li><Link href="/compare/polymarket-vs-kalshi" style={lnk}>Polymarket vs Kalshi</Link></li>
             </ul>
           </div>
