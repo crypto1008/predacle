@@ -137,8 +137,7 @@ export default function CompareClient({ aKey, bKey }: { aKey: PlatformKey; bKey:
           {pairs === null && <p style={{ color: txt2, fontSize: 14 }}>Loading live markets…</p>}
           {pairs !== null && pairs.length === 0 && (
             <p style={{ color: txt2, fontSize: 14, lineHeight: 1.6 }}>
-              No notable {A.label}–{B.label} divergences on still-uncertain markets at the moment — the two are
-              largely in agreement, or don&apos;t currently share enough matched markets.
+              {`No notable ${A.label}\u2013${B.label} divergences on still-uncertain markets at the moment \u2014 the two are largely in agreement, or don't currently share enough matched markets.`}
             </p>
           )}
           {pairs !== null && pairs.length > 0 && (
