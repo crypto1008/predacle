@@ -14,6 +14,63 @@ interface MarketRow {
   category: string | null
 }
 
+// Probability floor: below this, a candidate is a long-shot/novelty entry and is
+// summarised as a count rather than listed, to keep the page signal-rich.
+const THRESHOLD = 4
+
+type Bucket = 'party' | 'nomination' | 'election' | 'other'
+
+// Classify a market question into a section. Order matters: party first (it can
+// also contain "election"), then nomination, then election-winner. Anything that
+// is about running/announcing/meta is 'other' (excluded from the clean sections).
+function classify(qRaw: string): Bucket {
+  const q = qRaw.toLowerCase()
+
+  // Exclude non-"odds of winning" questions outright.
+  if (
+    q.includes('run for president') ||
+    q.includes('announce') ||
+    q.includes('happen normally') ||
+    q.includes('take over the presidency') ||
+    q.includes('more important') ||
+    q.includes(' or ') ||           // multi-name combo markets
+    q.includes(', rubio') || q.includes(', vance') || q.includes(', newsom')
+  ) {
+    return 'other'
+  }
+
+  // Party-level.
+  if (
+    /\bthe (democrats|republicans) win\b/.test(q) ||
+    /\ba (democrat|republican) win\b/.test(q)
+  ) {
+    return 'party'
+  }
+
+  // Nomination.
+  if (
+    q.includes('nomination') ||
+    q.includes('nominee') ||
+    q.includes('be nominated') ||
+    /\bbe the (democratic|republican)\b/.test(q)
+  ) {
+    return 'nomination'
+  }
+
+  // Election winner.
+  if (
+    q.includes('win the 2028 us presidential election') ||
+    q.includes('win the 2028 presidential election') ||
+    q.includes('be elected president') ||
+    q.includes('become president') ||
+    q.includes('elected president in 2028')
+  ) {
+    return 'election'
+  }
+
+  return 'other'
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ slug: string }> },
@@ -24,10 +81,7 @@ export async function GET(
   if (!topic) return NextResponse.json({ error: 'Unknown topic' }, { status: 404 })
 
   try {
-    // Build an OR of ilike patterns for the include terms.
-    const orFilter = topic.match.any
-      .map((t) => `question.ilike.%${t}%`)
-      .join(',')
+    const orFilter = topic.match.any.map((t) => `question.ilike.%${t}%`).join(',')
 
     let query = supabaseAdmin
       .from('markets')
@@ -45,42 +99,59 @@ export async function GET(
     const excludes = (topic.match.exclude || []).map((e) => e.toLowerCase())
     const rows: MarketRow[] = (data as MarketRow[] || []).filter((m) => {
       const q = (m.question || '').toLowerCase()
-      if (excludes.some((e) => q.includes(e))) return false   // drop false positives
-      return true
+      if (excludes.some((e) => q.includes(e))) return false
+      return m.probability != null
     })
 
-    // Debug: show exactly what got matched so a human can verify the rule.
+    type Item = { id: string; platform: string; question: string; probability: number; volumeLabel: string | null; bucket: Bucket }
+    const items: Item[] = rows.map((m) => ({
+      id: m.id,
+      platform: m.platform,
+      question: m.question,
+      probability: Math.round((m.probability as number) * 100),
+      volumeLabel: m.volume_label,
+      bucket: classify(m.question),
+    }))
+
     if (debug === '1') {
+      const byBucket: Record<string, number> = {}
+      for (const it of items) byBucket[it.bucket] = (byBucket[it.bucket] || 0) + 1
       return NextResponse.json({
         slug,
-        matchRule: topic.match,
-        matchedCount: rows.length,
-        markets: rows.map((m) => ({
-          q: m.question,
-          platform: m.platform,
-          prob: m.probability != null ? Math.round(m.probability * 100) : null,
-          vol: m.volume_label,
-        })),
+        matchedCount: items.length,
+        byBucket,
+        threshold: THRESHOLD,
+        sample: items
+          .sort((a, b) => b.probability - a.probability)
+          .map((i) => ({ q: i.question, bucket: i.bucket, prob: i.probability, platform: i.platform })),
       })
     }
 
-    // Group by platform for display; sort each platform's markets by probability desc.
-    const markets = rows
-      .filter((m) => m.probability != null)
-      .map((m) => ({
-        id: m.id,
-        platform: m.platform,
-        question: m.question,
-        probability: Math.round((m.probability as number) * 100),
-        volumeLabel: m.volume_label,
-      }))
-      .sort((a, b) => b.probability - a.probability)
+    // Build clean sections. Within each, show >= THRESHOLD sorted desc; count the rest.
+    function section(bucket: Bucket) {
+      const all = items.filter((i) => i.bucket === bucket).sort((a, b) => b.probability - a.probability)
+      const shown = all.filter((i) => i.probability >= THRESHOLD)
+      return { shown, hiddenCount: all.length - shown.length }
+    }
+
+    const party = section('party')
+    const nomination = section('nomination')
+    const election = section('election')
 
     return NextResponse.json({
       slug,
       question: topic.question,
-      marketCount: markets.length,
-      markets: markets.slice(0, 40),
+      threshold: THRESHOLD,
+      sections: {
+        party: party.shown,
+        nomination: nomination.shown,
+        election: election.shown,
+      },
+      hidden: {
+        party: party.hiddenCount,
+        nomination: nomination.hiddenCount,
+        election: election.hiddenCount,
+      },
       generatedAt: new Date().toISOString(),
     })
   } catch (e: any) {
