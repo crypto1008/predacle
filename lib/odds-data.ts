@@ -115,13 +115,28 @@ function preferName(a: string, b: string): string {
   return a.length <= b.length ? a : b
 }
 
-function buildSection(rows: { id: string; platform: string; question: string; probability: number }[]): OddsSection {
+// For party-level markets, "Will a Democrat win" / "Will the Democrats win" are
+// the same outcome phrased differently across platforms. Collapse to one clean
+// label so they group together and read cleanly ("Democrats" / "Republicans").
+function partyName(qRaw: string): string | null {
+  const q = qRaw.toLowerCase()
+  if (q.includes('democrat')) return 'Democrats'
+  if (q.includes('republican')) return 'Republicans'
+  return null
+}
+
+function buildSection(
+  rows: { id: string; platform: string; question: string; probability: number }[],
+  partyMode = false,
+): OddsSection {
   // Group by normalised candidate name; ungroupable rows become their own group.
   const groups = new Map<string, CandidateRow>()
   let fallbackSeq = 0
 
   for (const r of rows) {
-    const extracted = extractName(r.question)
+    // In party mode, resolve to the canonical party label so the two phrasings
+    // ("a Democrat" / "the Democrats") merge into a single row.
+    const extracted = partyMode ? partyName(r.question) : extractName(r.question)
     const key = extracted ? nameKey(extracted) : `__fallback_${fallbackSeq++}`
     const display = extracted || r.question
 
@@ -185,24 +200,40 @@ export async function getTopicOdds(slug: string): Promise<TopicOdds | null> {
       bucket: classify(m.question),
     }))
 
-  const party = buildSection(rows.filter((r) => r.bucket === 'party'))
+  const party = buildSection(rows.filter((r) => r.bucket === 'party'), true)
   const nomination = buildSection(rows.filter((r) => r.bucket === 'nomination'))
   const election = buildSection(rows.filter((r) => r.bucket === 'election'))
 
   // Build a fresh, data-derived headline (no hardcoded numbers).
+  // For the "leading individual candidate" claim, prefer a real-money price:
+  // each candidate's headline figure is their best NON-Manifold price if they
+  // have one (Manifold is play-money). Candidates with only play-money prices
+  // are skipped for the lead claim so we never headline a play-money number.
+  function realMoneyTop(c: CandidateRow): number | null {
+    const real = c.prices.filter((p) => p.platform !== 'manifold')
+    if (!real.length) return null
+    return Math.max(...real.map((p) => p.probability))
+  }
+  let leadCandidate: { name: string; prob: number } | null = null
+  for (const c of election.rows) {
+    const rp = realMoneyTop(c)
+    if (rp == null) continue
+    if (!leadCandidate || rp > leadCandidate.prob) leadCandidate = { name: c.name, prob: rp }
+  }
+
   let headline: string | null = null
-  const topElection = election.rows[0]
   const dem = party.rows.find((r) => /democrat/i.test(r.name))
   const rep = party.rows.find((r) => /republican/i.test(r.name))
   if (dem && rep) {
-    const demP = dem.topProbability, repP = rep.topProbability
+    const demP = realMoneyTop(dem) ?? dem.topProbability
+    const repP = realMoneyTop(rep) ?? rep.topProbability
     const lead = demP >= repP ? 'Democrats' : 'Republicans'
     const leadP = Math.max(demP, repP)
     headline = `Prediction markets currently give the ${lead} about ${leadP}% to win the 2028 US Presidential Election`
-    if (topElection) headline += `, with ${topElection.name} the leading individual candidate at around ${topElection.topProbability}%.`
+    if (leadCandidate) headline += `, with ${leadCandidate.name} the leading individual candidate at around ${leadCandidate.prob}%.`
     else headline += '.'
-  } else if (topElection) {
-    headline = `Prediction markets currently make ${topElection.name} the favorite to win the 2028 US Presidential Election at around ${topElection.topProbability}%.`
+  } else if (leadCandidate) {
+    headline = `Prediction markets currently make ${leadCandidate.name} the favorite to win the 2028 US Presidential Election at around ${leadCandidate.prob}%.`
   }
 
   return {
