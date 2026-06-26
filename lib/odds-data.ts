@@ -267,25 +267,29 @@ export function extractContender(qRaw: string): string | null {
   let q = qRaw.trim()
   // Strip a leading "Will " and a trailing "?".
   q = q.replace(/^will\s+/i, '').replace(/\?+\s*$/, '')
-  // Subject is everything up to the first " win " / " to win ".
-  const m = q.match(/^(.*?)\s+(?:to\s+)?win(?:s)?\b/i)
-  if (!m) return null                       // no "... win ..." structure -> not a team-winner market
+  // Subject is everything up to the first qualifying verb phrase:
+  //   "... win ..."            (team-winner markets)
+  //   "... be the top ..."     (top goalscorer / golden boot markets)
+  // Bare "be" is deliberately NOT a delimiter — it would match prop markets
+  // ("... be eliminated", "... be a finalist") and mis-extract a contender.
+  const m = q.match(/^(.*?)\s+(?:to\s+)?(?:win(?:s)?|be the top)\b/i)
+  if (!m) return null
   let name = m[1].replace(/^the\s+/i, '').trim()
 
   if (!name || name.length < 2 || name.length > 32) return null
 
   // Reject anything that still contains question/category words — these signal a
   // category or negative market ("a South American country", "France will not",
-  // "the champion be a first time winner"), not a single team.
+  // "the champion be a first time winner"), not a single contender.
   const lower = name.toLowerCase()
   const banned = [
     ' will', 'will ', ' not', ' be ', ' a ', ' an ', 'country', 'champion',
     'first time', 'first-time', 'south american', 'european', 'next', 'team',
-    'nation', 'continent', 'host', 'group', 'either', ' or ', ' and ',
+    'nation', 'continent', 'host', 'group', 'either', ' or ', ' and ', 'player',
   ]
   if (banned.some((b) => lower.includes(b))) return null
 
-  // A team name should be Title Case words only (letters, spaces, a few accents/punct).
+  // A contender name should be Title Case words only (letters, spaces, accents, punct).
   if (!/^[A-Z][A-Za-zÀ-ÿ.'\- ]*$/.test(name)) return null
 
   return name
