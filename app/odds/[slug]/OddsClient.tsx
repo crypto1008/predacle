@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { platformLabel } from '@/lib/platforms'
-import type { TopicOdds, OddsSection, CandidateRow } from '@/lib/odds-data'
+import type { TopicOdds, SimpleTopicOdds, OddsSection, CandidateRow } from '@/lib/odds-data'
 
 function useDarkMode() {
   const [dark, setDark] = useState(false)
@@ -19,9 +19,11 @@ function useDarkMode() {
 export default function OddsClient({
   topic,
   data,
+  structure,
 }: {
   topic: { question: string; intro: string; slug: string }
-  data: TopicOdds | null
+  data: TopicOdds | SimpleTopicOdds | null
+  structure: 'election' | 'simple'
 }) {
   const dark = useDarkMode()
 
@@ -103,44 +105,65 @@ export default function OddsClient({
           <p style={{ color: txt2, fontSize: 14 }}>Live odds are momentarily unavailable — please refresh in a moment.</p>
         )}
 
-        {data && (
+        {data && structure === 'election' && (
           <>
             <Section
               title="Party odds"
               blurb="Which party wins the presidency — the broadest market."
-              section={data.sections.party}
+              section={(data as TopicOdds).sections.party}
             />
             <Section
               title="Nomination odds"
               blurb="Who becomes each party's nominee. (A candidate's nomination odds differ from their odds of winning the election.)"
-              section={data.sections.nomination}
+              section={(data as TopicOdds).sections.nomination}
             />
             <Section
               title="Election winner odds"
               blurb="Who wins the presidency outright, across all candidates."
-              section={data.sections.election}
+              section={(data as TopicOdds).sections.election}
             />
           </>
+        )}
+
+        {data && structure === 'simple' && (
+          <section style={{ marginBottom: 30 }}>
+            <div style={{ border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
+              {(data as SimpleTopicOdds).contenders.map((c, i) => <Row key={i} c={c} />)}
+            </div>
+            {(data as SimpleTopicOdds).hiddenCount > 0 && (
+              <p style={{ fontSize: 12.5, color: txt3, margin: '8px 2px 0' }}>
+                {`+${(data as SimpleTopicOdds).hiddenCount} more long-shot ${(data as SimpleTopicOdds).hiddenCount === 1 ? 'contender' : 'contenders'} priced below ${data?.threshold ?? 4}% (not shown).`}
+              </p>
+            )}
+          </section>
         )}
 
         {/* Interlinking */}
         <section style={{ background: soft, border: `1px solid ${border}`, borderRadius: 12, padding: '18px 20px', marginTop: 8 }}>
           <h2 style={{ ...h2, marginBottom: 8 }}>Go deeper</h2>
-          <p style={{ fontSize: 14, lineHeight: 1.7, color: txt2, margin: 0 }}>
-            See how accurate prediction markets have been on our{' '}
-            <Link href="/track-record" style={{ color: blue, textDecoration: 'none' }}>track record</Link>
-            {' '}page, compare platforms on{' '}
-            <Link href="/compare/polymarket-vs-kalshi" style={{ color: blue, textDecoration: 'none' }}>Polymarket vs Kalshi</Link>
-            , or browse all{' '}
-            <Link href="/category/politics" style={{ color: blue, textDecoration: 'none' }}>politics markets</Link>.
-          </p>
+          {structure === 'election' ? (
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: txt2, margin: 0 }}>
+              See how accurate prediction markets have been on our{' '}
+              <Link href="/track-record" style={{ color: blue, textDecoration: 'none' }}>track record</Link>
+              {' '}page, compare platforms on{' '}
+              <Link href="/compare/polymarket-vs-kalshi" style={{ color: blue, textDecoration: 'none' }}>Polymarket vs Kalshi</Link>
+              , or browse all{' '}
+              <Link href="/category/politics" style={{ color: blue, textDecoration: 'none' }}>politics markets</Link>.
+            </p>
+          ) : (
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: txt2, margin: 0 }}>
+              See how accurate prediction markets have been on our{' '}
+              <Link href="/track-record" style={{ color: blue, textDecoration: 'none' }}>track record</Link>
+              {' '}page, see more{' '}
+              <Link href="/odds" style={{ color: blue, textDecoration: 'none' }}>aggregated odds</Link>
+              , or browse all{' '}
+              <Link href="/category/sports" style={{ color: blue, textDecoration: 'none' }}>sports markets</Link>.
+            </p>
+          )}
         </section>
 
         <p style={{ fontSize: 12, color: txt3, marginTop: 22, lineHeight: 1.6 }}>
-          Odds are aggregated from live prediction markets and update continuously. A candidate&apos;s number is
-          the highest price across the platforms shown. Markets below {data?.threshold ?? 4}% are summarised as a
-          count to keep the page readable. Manifold prices use play-money and are shown for forecasting signal only.
-          Not financial advice.
+          {`Odds are aggregated from live prediction markets and update continuously. A ${structure === 'simple' ? 'contender' : 'candidate'}\u2019s number is the highest price across the platforms shown. Markets below ${data?.threshold ?? 4}% are summarised as a count to keep the page readable. Manifold prices use play-money and are shown for forecasting signal only. Not financial advice.`}
         </p>
       </main>
     </div>

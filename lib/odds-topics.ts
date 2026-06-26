@@ -66,23 +66,6 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     },
     keywords: ['2028 election odds', '2028 presidential election prediction', 'who will win 2028', '2028 election betting odds'],
   },
-
-  '2026-world-cup-winner': {
-    slug: '2026-world-cup-winner',
-    question: 'What are the odds to win the 2026 World Cup?',
-    structure: 'simple',
-    intro:
-      'The 2026 FIFA World Cup is underway across the US, Canada and Mexico. This page pulls together the live tournament-winner markets across platforms, so you can see which national team the money favours to lift the trophy — updated continuously.',
-    description:
-      'Live 2026 FIFA World Cup winner odds from prediction markets — every national team\u2019s probability to win the tournament, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
-    match: {
-      any: ['win the 2026 world cup', '2026 world cup winner', 'win the world cup', 'world cup champion'],
-      // Drop individual match markets ("X vs Y"), prop/stage markets, negative and
-      // category markets ("will not", "first time winner", "South American country").
-      exclude: [' vs ', ' vs. ', 'group ', 'advance', 'qualify', 'top scorer', 'golden boot', 'golden ball', 'host', 'group stage', 'round of', 'will not', 'first time', 'first-time', 'south american', 'european country', 'a first', 'be the next'],
-    },
-    keywords: ['2026 world cup odds', 'world cup winner odds', 'who will win the world cup 2026', 'world cup 2026 favourites'],
-  },
 }
 
 export function getOddsTopic(slug: string): OddsTopic | null {
