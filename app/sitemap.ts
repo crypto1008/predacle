@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next'
 import { supabaseAdmin } from '@/lib/supabase'
 import { PLATFORM_KEYS, getPlatform } from '@/lib/platforms'
+import { ODDS_TOPIC_SLUGS } from '@/lib/odds-topics'
 
 // Build canonical compare-pair slugs. Only "anchored" pairs (at least one of the
 // well-documented platforms) go in the sitemap, to avoid thin two-stub pages.
@@ -77,6 +78,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/resolved/economics`, lastModified: now, changeFrequency: 'daily', priority: 0.6 },
     { url: `${base}/resolved/tech`, lastModified: now, changeFrequency: 'daily', priority: 0.6 },
     ...comparePairUrls(now),
+    ...ODDS_TOPIC_SLUGS.map((slug) => ({
+      url: `${base}/odds/${slug}`,
+      lastModified: now,
+      changeFrequency: 'daily' as const,
+      priority: 0.7,
+    })),
     { url: `${base}/track-record`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
     { url: `${base}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${base}/how-it-works`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
