@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getTopicOdds } from '@/lib/odds-data'
+import { getTopicOdds, getSimpleTopicOdds } from '@/lib/odds-data'
 import { getOddsTopic } from '@/lib/odds-topics'
 
 export const dynamic = 'force-dynamic'
@@ -9,9 +9,13 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params
-  if (!getOddsTopic(slug)) return NextResponse.json({ error: 'Unknown topic' }, { status: 404 })
+  const topic = getOddsTopic(slug)
+  if (!topic) return NextResponse.json({ error: 'Unknown topic' }, { status: 404 })
   try {
-    const data = await getTopicOdds(slug)
+    const data =
+      topic.structure === 'simple'
+        ? await getSimpleTopicOdds(slug)
+        : await getTopicOdds(slug)
     return NextResponse.json(data)
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 })

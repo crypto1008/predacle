@@ -49,6 +49,18 @@ export interface TopicOdds {
   generatedAt: string
 }
 
+// Simple structure: one ranked list of contenders (teams, etc.), no sub-sections.
+export interface SimpleTopicOdds {
+  slug: string
+  question: string
+  structure: 'simple'
+  threshold: number
+  contenders: CandidateRow[]
+  hiddenCount: number
+  headline: string | null
+  generatedAt: string
+}
+
 // Classify a market question into a section (party first — it can also contain
 // "election"; then nomination; then election-winner). Running/announcing/meta
 // questions are 'other' and excluded from the clean sections.
@@ -241,6 +253,103 @@ export async function getTopicOdds(slug: string): Promise<TopicOdds | null> {
     question: topic.question,
     threshold: THRESHOLD,
     sections: { party, nomination, election },
+    headline,
+    generatedAt: new Date().toISOString(),
+  }
+}
+
+// Extract a contender name for 'simple' topics, e.g.
+// "Will Brazil win the 2026 World Cup?" -> "Brazil".
+// "Will the Kansas City Chiefs win the Super Bowl?" -> "Kansas City Chiefs".
+export function extractContender(qRaw: string): string | null {
+  let q = qRaw.trim()
+  // Strip a leading "Will " and a trailing "?".
+  q = q.replace(/^will\s+/i, '').replace(/\?+\s*$/, '')
+  // Take everything up to the first " win " / " to win " — that's the subject.
+  const m = q.match(/^(.*?)\s+(?:to\s+)?win(?:s)?\b/i)
+  let name = m ? m[1] : q
+  name = name.replace(/^the\s+/i, '').trim()
+  // Guard against junk.
+  if (!name || name.length < 2 || name.length > 40) return null
+  return name
+}
+
+// Build a single ranked list of contenders for 'simple' topics.
+export async function getSimpleTopicOdds(slug: string): Promise<SimpleTopicOdds | null> {
+  const topic = getOddsTopic(slug)
+  if (!topic) return null
+
+  const orFilter = topic.match.any.map((t) => `question.ilike.%${t}%`).join(',')
+  let query = supabaseAdmin
+    .from('markets')
+    .select('id, platform, question, probability, volume, volume_label, category')
+    .eq('status', 'active')
+    .or(orFilter)
+    .order('volume', { ascending: false, nullsFirst: false })
+    .limit(200)
+  if (topic.match.category) query = query.eq('category', topic.match.category)
+
+  const { data, error } = await query
+  if (error) throw new Error(error.message)
+
+  const excludes = (topic.match.exclude || []).map((e) => e.toLowerCase())
+  const rows = (data as MarketRow[] || [])
+    .filter((m) => m.probability != null)
+    .filter((m) => {
+      const q = (m.question || '').toLowerCase()
+      return !excludes.some((e) => q.includes(e))
+    })
+    .map((m) => ({
+      id: m.id,
+      platform: m.platform,
+      question: m.question,
+      probability: Math.round((m.probability as number) * 100),
+    }))
+
+  // Group by contender name, dedup across platforms (same engine shape as buildSection).
+  const groups = new Map<string, CandidateRow>()
+  let fallbackSeq = 0
+  for (const r of rows) {
+    const extracted = extractContender(r.question)
+    const key = extracted ? nameKey(extracted) : `__fallback_${fallbackSeq++}`
+    const display = extracted || r.question
+    let g = groups.get(key)
+    if (!g) {
+      g = { name: display, prices: [], topProbability: 0 }
+      groups.set(key, g)
+    }
+    g.prices.push({ id: r.id, platform: r.platform, probability: r.probability })
+    if (r.probability > g.topProbability) g.topProbability = r.probability
+  }
+
+  const all = [...groups.values()].sort((a, b) => b.topProbability - a.topProbability)
+  for (const g of all) g.prices.sort((a, b) => b.probability - a.probability)
+  const shown = all.filter((g) => g.topProbability >= THRESHOLD)
+  const hiddenCount = all.length - shown.length
+
+  // Real-money-preferring headline.
+  function realMoneyTop(c: CandidateRow): number | null {
+    const real = c.prices.filter((p) => p.platform !== 'manifold')
+    if (!real.length) return null
+    return Math.max(...real.map((p) => p.probability))
+  }
+  let lead: { name: string; prob: number } | null = null
+  for (const c of shown) {
+    const rp = realMoneyTop(c)
+    if (rp == null) continue
+    if (!lead || rp > lead.prob) lead = { name: c.name, prob: rp }
+  }
+  const headline = lead
+    ? `Prediction markets currently make ${lead.name} the favourite at around ${lead.prob}%.`
+    : null
+
+  return {
+    slug,
+    question: topic.question,
+    structure: 'simple',
+    threshold: THRESHOLD,
+    contenders: shown,
+    hiddenCount,
     headline,
     generatedAt: new Date().toISOString(),
   }

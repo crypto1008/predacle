@@ -22,6 +22,12 @@ export interface OddsTopic {
   intro: string
   /** SEO description. */
   description: string
+  /**
+   * Page structure. 'election' uses party/nomination/election sections (bespoke).
+   * 'simple' renders one ranked list of contenders (teams, candidates, etc.).
+   * Defaults to 'election' when omitted for backwards-compatibility.
+   */
+  structure?: 'election' | 'simple'
   match: {
     any: string[]            // include if question contains ANY of these
     exclude?: string[]       // drop if question contains ANY of these
@@ -34,6 +40,7 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
   '2028-us-presidential-election': {
     slug: '2028-us-presidential-election',
     question: 'What are the odds for the 2028 US Presidential Election?',
+    structure: 'election',
     intro:
       'Prediction markets are already pricing the 2028 race. This page pulls together the live markets — party, nominee and candidate questions — so you can see where the money currently sits across platforms, updated continuously.',
     description:
@@ -43,6 +50,22 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
       exclude: ['2024', '2026 ', 'senate', 'house seat', 'governor', 'mayor'],
     },
     keywords: ['2028 election odds', '2028 presidential election prediction', 'who will win 2028', '2028 election betting odds'],
+  },
+
+  '2026-world-cup-winner': {
+    slug: '2026-world-cup-winner',
+    question: 'What are the odds to win the 2026 World Cup?',
+    structure: 'simple',
+    intro:
+      'The 2026 FIFA World Cup is underway across the US, Canada and Mexico. This page pulls together the live tournament-winner markets across platforms, so you can see which national team the money favours to lift the trophy — updated continuously.',
+    description:
+      'Live 2026 FIFA World Cup winner odds from prediction markets — every national team\u2019s probability to win the tournament, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+    match: {
+      any: ['win the 2026 world cup', '2026 world cup winner', 'win the world cup', 'world cup champion'],
+      // Drop individual match markets ("X vs Y"), prop/stage markets, and golden-boot/scorer markets.
+      exclude: [' vs ', ' vs. ', 'group ', 'advance', 'qualify', 'top scorer', 'golden boot', 'golden ball', 'host', 'group stage', 'round of'],
+    },
+    keywords: ['2026 world cup odds', 'world cup winner odds', 'who will win the world cup 2026', 'world cup 2026 favourites'],
   },
 }
 
