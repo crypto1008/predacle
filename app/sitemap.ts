@@ -78,6 +78,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/resolved/economics`, lastModified: now, changeFrequency: 'daily', priority: 0.6 },
     { url: `${base}/resolved/tech`, lastModified: now, changeFrequency: 'daily', priority: 0.6 },
     ...comparePairUrls(now),
+    { url: `${base}/odds`, lastModified: now, changeFrequency: 'daily' as const, priority: 0.7 },
     ...ODDS_TOPIC_SLUGS.map((slug) => ({
       url: `${base}/odds/${slug}`,
       lastModified: now,

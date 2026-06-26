@@ -21,6 +21,7 @@ const TOOLS = [
   { href: '/lp',          icon: '💧', label: 'LP Rewards', desc: 'Liquidity reward scanner' },
   { href: '/signals',     icon: '⚡', label: 'Signals',    desc: 'Smart-money moves' },
   { href: '/leaderboard', icon: '🎯', label: 'Leaderboard', desc: 'Platform accuracy' },
+  { href: '/odds',        icon: '📊', label: 'Odds',       desc: 'Aggregated event odds' },
 ]
 
 export default function Header() {
@@ -34,7 +35,7 @@ export default function Header() {
   const toolsRef = useRef<HTMLDivElement>(null)
 
   const activeCategory = searchParams?.get('category') || ''
-  const onTool = TOOLS.some(t => t.href === pathname)
+  const onTool = TOOLS.some(t => pathname === t.href || pathname?.startsWith(t.href + '/'))
 
   useEffect(() => {
     setDark(document.documentElement.classList.contains('dark'))
