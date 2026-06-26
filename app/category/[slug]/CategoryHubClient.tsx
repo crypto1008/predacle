@@ -186,6 +186,26 @@ export default function CategoryHubClient({
             Compare platforms →
           </Link>
         </div>
+
+        {/* Explore row: cross-links to the rest of the site (interlinking) */}
+        <p style={{ fontSize: 14, lineHeight: 1.7, color: txt2, marginTop: 18 }}>
+          See how accurate markets have been on our{' '}
+          <Link href="/track-record" style={{ color: '#0052ff', textDecoration: 'none' }}>track record</Link>
+          {' '}page
+          {['crypto', 'sports', 'politics', 'economics', 'tech'].includes(slug) && (
+            <>
+              {', browse '}
+              <Link href={`/resolved/${slug}`} style={{ color: '#0052ff', textDecoration: 'none' }}>resolved {name} markets</Link>
+            </>
+          )}
+          {slug === 'politics' && (
+            <>
+              {', or see live '}
+              <Link href="/odds/2028-us-presidential-election" style={{ color: '#0052ff', textDecoration: 'none' }}>2028 election odds</Link>
+            </>
+          )}
+          .
+        </p>
       </main>
       <Footer />
     </div>

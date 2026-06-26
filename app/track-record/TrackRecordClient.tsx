@@ -222,6 +222,20 @@ export default function TrackRecordClient() {
                 </p>
               )}
             </div>
+
+            {/* Go deeper: outbound interlinks to live hubs + resolved + odds */}
+            <div style={{ background: softBg, border: `1px solid ${panelBorder}`, borderRadius: 12, padding: '18px 20px' }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: headClr, margin: '0 0 8px' }}>Go deeper</h2>
+              <p style={{ fontSize: 14, lineHeight: 1.7, color: subClr, margin: 0 }}>
+                Browse live{' '}
+                <a href="/category/politics" style={{ color: '#0052ff', textDecoration: 'none' }}>politics</a>{' '}and{' '}
+                <a href="/category/sports" style={{ color: '#0052ff', textDecoration: 'none' }}>sports</a>{' '}markets,
+                see every{' '}
+                <a href="/resolved" style={{ color: '#0052ff', textDecoration: 'none' }}>resolved market</a>{' '}in the archive,
+                or check the live{' '}
+                <a href="/odds/2028-us-presidential-election" style={{ color: '#0052ff', textDecoration: 'none' }}>2028 election odds</a>.
+              </p>
+            </div>
           </>
         )}
       </main>
