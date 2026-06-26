@@ -57,6 +57,8 @@ export interface SimpleTopicOdds {
   threshold: number
   contenders: CandidateRow[]
   hiddenCount: number
+  realMoneyCount: number
+  playOnlyCount: number
   headline: string | null
   generatedAt: string
 }
@@ -265,12 +267,27 @@ export function extractContender(qRaw: string): string | null {
   let q = qRaw.trim()
   // Strip a leading "Will " and a trailing "?".
   q = q.replace(/^will\s+/i, '').replace(/\?+\s*$/, '')
-  // Take everything up to the first " win " / " to win " — that's the subject.
+  // Subject is everything up to the first " win " / " to win ".
   const m = q.match(/^(.*?)\s+(?:to\s+)?win(?:s)?\b/i)
-  let name = m ? m[1] : q
-  name = name.replace(/^the\s+/i, '').trim()
-  // Guard against junk.
-  if (!name || name.length < 2 || name.length > 40) return null
+  if (!m) return null                       // no "... win ..." structure -> not a team-winner market
+  let name = m[1].replace(/^the\s+/i, '').trim()
+
+  if (!name || name.length < 2 || name.length > 32) return null
+
+  // Reject anything that still contains question/category words — these signal a
+  // category or negative market ("a South American country", "France will not",
+  // "the champion be a first time winner"), not a single team.
+  const lower = name.toLowerCase()
+  const banned = [
+    ' will', 'will ', ' not', ' be ', ' a ', ' an ', 'country', 'champion',
+    'first time', 'first-time', 'south american', 'european', 'next', 'team',
+    'nation', 'continent', 'host', 'group', 'either', ' or ', ' and ',
+  ]
+  if (banned.some((b) => lower.includes(b))) return null
+
+  // A team name should be Title Case words only (letters, spaces, a few accents/punct).
+  if (!/^[A-Z][A-Za-zÀ-ÿ.'\- ]*$/.test(name)) return null
+
   return name
 }
 
@@ -307,15 +324,15 @@ export async function getSimpleTopicOdds(slug: string): Promise<SimpleTopicOdds 
     }))
 
   // Group by contender name, dedup across platforms (same engine shape as buildSection).
+  // Rows we can't parse into a clean team name are DROPPED (not shown as junk).
   const groups = new Map<string, CandidateRow>()
-  let fallbackSeq = 0
   for (const r of rows) {
     const extracted = extractContender(r.question)
-    const key = extracted ? nameKey(extracted) : `__fallback_${fallbackSeq++}`
-    const display = extracted || r.question
+    if (!extracted) continue                 // not a single-team winner market -> drop
+    const key = nameKey(extracted)
     let g = groups.get(key)
     if (!g) {
-      g = { name: display, prices: [], topProbability: 0 }
+      g = { name: extracted, prices: [], topProbability: 0 }
       groups.set(key, g)
     }
     g.prices.push({ id: r.id, platform: r.platform, probability: r.probability })
@@ -326,6 +343,11 @@ export async function getSimpleTopicOdds(slug: string): Promise<SimpleTopicOdds 
   for (const g of all) g.prices.sort((a, b) => b.probability - a.probability)
   const shown = all.filter((g) => g.topProbability >= THRESHOLD)
   const hiddenCount = all.length - shown.length
+
+  // Decision-critical: how much of this is real-money vs play-money-only?
+  const hasReal = (c: CandidateRow) => c.prices.some((p) => p.platform !== 'manifold')
+  const realMoneyCount = shown.filter(hasReal).length
+  const playOnlyCount = shown.length - realMoneyCount
 
   // Real-money-preferring headline.
   function realMoneyTop(c: CandidateRow): number | null {
@@ -350,6 +372,8 @@ export async function getSimpleTopicOdds(slug: string): Promise<SimpleTopicOdds 
     threshold: THRESHOLD,
     contenders: shown,
     hiddenCount,
+    realMoneyCount,
+    playOnlyCount,
     headline,
     generatedAt: new Date().toISOString(),
   }
