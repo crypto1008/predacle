@@ -39,7 +39,7 @@ export interface OddsTopic {
 export const ODDS_TOPICS: Record<string, OddsTopic> = {
   '2026-world-cup-top-goalscorer': {
     slug: '2026-world-cup-top-goalscorer',
-    question: 'Who are the odds to be the 2026 World Cup top goalscorer?',
+    question: 'What are the odds to be the 2026 World Cup top goalscorer?',
     structure: 'simple',
     intro:
       'The Golden Boot goes to the top scorer of the 2026 FIFA World Cup. This page pulls together the live player markets across platforms, so you can see which players the money favours to finish as the tournament\u2019s leading goalscorer — updated continuously.',
