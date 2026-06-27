@@ -22,6 +22,12 @@ export interface OddsTopic {
   intro: string
   /** SEO description. */
   description: string
+  /**
+   * Page structure. 'election' uses party/nomination/election sections (bespoke).
+   * 'simple' renders one ranked list of contenders (teams, candidates, etc.).
+   * Defaults to 'election' when omitted for backwards-compatibility.
+   */
+  structure?: 'election' | 'simple'
   match: {
     any: string[]            // include if question contains ANY of these
     exclude?: string[]       // drop if question contains ANY of these
@@ -31,9 +37,25 @@ export interface OddsTopic {
 }
 
 export const ODDS_TOPICS: Record<string, OddsTopic> = {
+  '2026-world-cup-top-goalscorer': {
+    slug: '2026-world-cup-top-goalscorer',
+    question: 'What are the odds to be the 2026 World Cup top goalscorer?',
+    structure: 'simple',
+    intro:
+      'The Golden Boot goes to the top scorer of the 2026 FIFA World Cup. This page pulls together the live player markets across platforms, so you can see which players the money favours to finish as the tournament\u2019s leading goalscorer — updated continuously.',
+    description:
+      'Live 2026 World Cup Golden Boot odds from prediction markets — every contender\u2019s probability to finish as top goalscorer, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+    match: {
+      any: ['top goalscorer', 'top scorer', 'golden boot'],
+      exclude: [' vs ', ' vs. ', 'group ', 'assist', 'clean sheet', 'golden glove'],
+    },
+    keywords: ['world cup golden boot odds', '2026 world cup top scorer odds', 'world cup top goalscorer 2026', 'golden boot favourite 2026'],
+  },
+
   '2028-us-presidential-election': {
     slug: '2028-us-presidential-election',
     question: 'What are the odds for the 2028 US Presidential Election?',
+    structure: 'election',
     intro:
       'Prediction markets are already pricing the 2028 race. This page pulls together the live markets — party, nominee and candidate questions — so you can see where the money currently sits across platforms, updated continuously.',
     description:

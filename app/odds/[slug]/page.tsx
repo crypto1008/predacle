@@ -5,7 +5,7 @@ import Header from '../../components/Header'
 import Footer from '../../components/Footer'
 import OddsClient from './OddsClient'
 import { getOddsTopic } from '@/lib/odds-topics'
-import { getTopicOdds } from '@/lib/odds-data'
+import { getTopicOdds, getSimpleTopicOdds } from '@/lib/odds-data'
 
 export const revalidate = 900
 
@@ -35,16 +35,17 @@ export default async function OddsTopicPage({ params }: { params: Promise<{ slug
   const topic = getOddsTopic(slug)
   if (!topic) notFound()
 
-  let data = null
+  const structure = topic.structure || 'election'
+  let data: any = null
   try {
-    data = await getTopicOdds(slug)
+    data = structure === 'simple' ? await getSimpleTopicOdds(slug) : await getTopicOdds(slug)
   } catch {
     data = null
   }
 
   const answer =
     data?.headline ||
-    'Prediction markets are actively pricing this race; see the live candidate odds below.'
+    'Prediction markets are actively pricing this; see the live odds below.'
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -74,7 +75,7 @@ export default async function OddsTopicPage({ params }: { params: Promise<{ slug
         <Header />
       </Suspense>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <OddsClient topic={{ question: topic.question, intro: topic.intro, slug }} data={data} />
+      <OddsClient topic={{ question: topic.question, intro: topic.intro, slug }} data={data} structure={structure} />
       <Footer />
     </>
   )

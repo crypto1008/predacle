@@ -49,6 +49,20 @@ export interface TopicOdds {
   generatedAt: string
 }
 
+// Simple structure: one ranked list of contenders (teams, etc.), no sub-sections.
+export interface SimpleTopicOdds {
+  slug: string
+  question: string
+  structure: 'simple'
+  threshold: number
+  contenders: CandidateRow[]
+  hiddenCount: number
+  realMoneyCount: number
+  playOnlyCount: number
+  headline: string | null
+  generatedAt: string
+}
+
 // Classify a market question into a section (party first — it can also contain
 // "election"; then nomination; then election-winner). Running/announcing/meta
 // questions are 'other' and excluded from the clean sections.
@@ -241,6 +255,129 @@ export async function getTopicOdds(slug: string): Promise<TopicOdds | null> {
     question: topic.question,
     threshold: THRESHOLD,
     sections: { party, nomination, election },
+    headline,
+    generatedAt: new Date().toISOString(),
+  }
+}
+
+// Extract a contender name for 'simple' topics, e.g.
+// "Will Brazil win the 2026 World Cup?" -> "Brazil".
+// "Will the Kansas City Chiefs win the Super Bowl?" -> "Kansas City Chiefs".
+export function extractContender(qRaw: string): string | null {
+  let q = qRaw.trim()
+  // Strip a leading "Will " and a trailing "?".
+  q = q.replace(/^will\s+/i, '').replace(/\?+\s*$/, '')
+  // Subject is everything up to the first qualifying verb phrase:
+  //   "... win ..."            (team-winner markets)
+  //   "... be the top ..."     (top goalscorer / golden boot markets)
+  // Bare "be" is deliberately NOT a delimiter — it would match prop markets
+  // ("... be eliminated", "... be a finalist") and mis-extract a contender.
+  const m = q.match(/^(.*?)\s+(?:to\s+)?(?:win(?:s)?|be the top)\b/i)
+  if (!m) return null
+  let name = m[1].replace(/^the\s+/i, '').trim()
+
+  if (!name || name.length < 2 || name.length > 32) return null
+
+  // Reject anything that still contains question/category words — these signal a
+  // category or negative market ("a South American country", "France will not",
+  // "the champion be a first time winner"), not a single contender.
+  const lower = name.toLowerCase()
+  const banned = [
+    ' will', 'will ', ' not', ' be ', ' a ', ' an ', 'country', 'champion',
+    'first time', 'first-time', 'south american', 'european', 'next', 'team',
+    'nation', 'continent', 'host', 'group', 'either', ' or ', ' and ', 'player',
+  ]
+  if (banned.some((b) => lower.includes(b))) return null
+
+  // A contender name should be Title Case words only (letters, spaces, accents, punct).
+  if (!/^[A-Z][A-Za-zÀ-ÿ.'\- ]*$/.test(name)) return null
+
+  return name
+}
+
+// Build a single ranked list of contenders for 'simple' topics.
+export async function getSimpleTopicOdds(slug: string): Promise<SimpleTopicOdds | null> {
+  const topic = getOddsTopic(slug)
+  if (!topic) return null
+
+  const orFilter = topic.match.any.map((t) => `question.ilike.%${t}%`).join(',')
+  let query = supabaseAdmin
+    .from('markets')
+    .select('id, platform, question, probability, volume, volume_label, category')
+    .eq('status', 'active')
+    .or(orFilter)
+    .order('volume', { ascending: false, nullsFirst: false })
+    .limit(200)
+  if (topic.match.category) query = query.eq('category', topic.match.category)
+
+  const { data, error } = await query
+  if (error) throw new Error(error.message)
+
+  const excludes = (topic.match.exclude || []).map((e) => e.toLowerCase())
+  const rows = (data as MarketRow[] || [])
+    .filter((m) => m.probability != null)
+    .filter((m) => {
+      const q = (m.question || '').toLowerCase()
+      return !excludes.some((e) => q.includes(e))
+    })
+    .map((m) => ({
+      id: m.id,
+      platform: m.platform,
+      question: m.question,
+      probability: Math.round((m.probability as number) * 100),
+    }))
+
+  // Group by contender name, dedup across platforms (same engine shape as buildSection).
+  // Rows we can't parse into a clean team name are DROPPED (not shown as junk).
+  const groups = new Map<string, CandidateRow>()
+  for (const r of rows) {
+    const extracted = extractContender(r.question)
+    if (!extracted) continue                 // not a single-team winner market -> drop
+    const key = nameKey(extracted)
+    let g = groups.get(key)
+    if (!g) {
+      g = { name: extracted, prices: [], topProbability: 0 }
+      groups.set(key, g)
+    }
+    g.prices.push({ id: r.id, platform: r.platform, probability: r.probability })
+    if (r.probability > g.topProbability) g.topProbability = r.probability
+  }
+
+  const all = [...groups.values()].sort((a, b) => b.topProbability - a.topProbability)
+  for (const g of all) g.prices.sort((a, b) => b.probability - a.probability)
+  const shown = all.filter((g) => g.topProbability >= THRESHOLD)
+  const hiddenCount = all.length - shown.length
+
+  // Decision-critical: how much of this is real-money vs play-money-only?
+  const hasReal = (c: CandidateRow) => c.prices.some((p) => p.platform !== 'manifold')
+  const realMoneyCount = shown.filter(hasReal).length
+  const playOnlyCount = shown.length - realMoneyCount
+
+  // Real-money-preferring headline.
+  function realMoneyTop(c: CandidateRow): number | null {
+    const real = c.prices.filter((p) => p.platform !== 'manifold')
+    if (!real.length) return null
+    return Math.max(...real.map((p) => p.probability))
+  }
+  let lead: { name: string; prob: number } | null = null
+  for (const c of shown) {
+    const rp = realMoneyTop(c)
+    if (rp == null) continue
+    if (!lead || rp > lead.prob) lead = { name: c.name, prob: rp }
+  }
+  const headline = lead
+    ? `Prediction markets currently make ${lead.name} the favourite at around ${lead.prob}%.`
+    : null
+
+  return {
+    slug,
+    question: topic.question,
+    structure: 'simple',
+    threshold: THRESHOLD,
+    contenders: shown,
+    hiddenCount,
+    realMoneyCount,
+    playOnlyCount,
     headline,
     generatedAt: new Date().toISOString(),
   }
