@@ -163,7 +163,7 @@ export default function OddsClient({
         </section>
 
         <p style={{ fontSize: 12, color: txt3, marginTop: 22, lineHeight: 1.6 }}>
-          {`Odds are aggregated from live prediction markets and update continuously. A ${structure === 'simple' ? 'contender' : 'candidate'}\u2019s number is the highest price across the platforms shown. Markets below ${data?.threshold ?? 4}% are summarised as a count to keep the page readable. Manifold prices use play-money and are shown for forecasting signal only. Not financial advice.`}
+          {`Odds are aggregated from live prediction markets and update continuously. A ${structure === 'simple' ? 'contender' : 'candidate'}\u2019s number is its best real-money price across the platforms shown; play-money (Manifold) is used only when no real-money market exists. Markets below ${data?.threshold ?? 4}% are summarised as a count to keep the page readable. Manifold prices use play-money and are shown for forecasting signal only. Not financial advice.`}
         </p>
       </main>
     </div>

@@ -32,7 +32,7 @@ export interface PlatformPrice {
 export interface CandidateRow {
   name: string
   prices: PlatformPrice[]
-  topProbability: number   // max across platforms, for sorting + threshold
+  topProbability: number   // real-money-preferred best price, for sorting + threshold + display
 }
 
 export interface OddsSection {
@@ -139,6 +139,17 @@ function partyName(qRaw: string): string | null {
   return null
 }
 
+// The number a candidate is headlined / sorted / thresholded on. Prefer a
+// REAL-MONEY price (any non-Manifold platform); fall back to the play-money
+// (Manifold) top only when the candidate has no real-money market at all.
+// Manifold is non-convertible play-money, so a play-money quote must never
+// outrank or float above a real-money one.
+function headlineProb(prices: PlatformPrice[]): number {
+  const real = prices.filter((p) => p.platform !== 'manifold')
+  const pool = real.length ? real : prices
+  return Math.max(...pool.map((p) => p.probability))
+}
+
 function buildSection(
   rows: { id: string; platform: string; question: string; probability: number }[],
   partyMode = false,
@@ -168,15 +179,20 @@ function buildSection(
     }
   }
 
-  const all = Array.from(groups.values()).sort((a, b) => b.topProbability - a.topProbability)
-  // Dedup prices within a candidate (same platform twice -> keep highest).
+  const all = Array.from(groups.values())
+  // Dedup prices within a candidate (same platform twice -> keep highest), then
+  // (re)set topProbability to a real-money-preferred figure. topProbability
+  // drives sort, threshold and the big displayed number, so doing this here is
+  // what stops a play-money quote outranking a real-money one.
   for (const c of all) {
     const byPlat = new Map<string, PlatformPrice>()
     for (const p of c.prices.sort((x, y) => y.probability - x.probability)) {
       if (!byPlat.has(p.platform)) byPlat.set(p.platform, p)
     }
     c.prices = Array.from(byPlat.values())
+    c.topProbability = headlineProb(c.prices)
   }
+  all.sort((a, b) => b.topProbability - a.topProbability)
 
   const shown = all.filter((c) => c.topProbability >= THRESHOLD)
   return { rows: shown, hiddenCount: all.length - shown.length }
@@ -343,8 +359,12 @@ export async function getSimpleTopicOdds(slug: string): Promise<SimpleTopicOdds 
     if (r.probability > g.topProbability) g.topProbability = r.probability
   }
 
-  const all = [...groups.values()].sort((a, b) => b.topProbability - a.topProbability)
-  for (const g of all) g.prices.sort((a, b) => b.probability - a.probability)
+  const all = [...groups.values()]
+  for (const g of all) {
+    g.prices.sort((a, b) => b.probability - a.probability)
+    g.topProbability = headlineProb(g.prices)
+  }
+  all.sort((a, b) => b.topProbability - a.topProbability)
   const shown = all.filter((g) => g.topProbability >= THRESHOLD)
   const hiddenCount = all.length - shown.length
 
