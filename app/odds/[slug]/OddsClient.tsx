@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { platformLabel } from '@/lib/platforms'
-import type { TopicOdds, SimpleTopicOdds, OddsSection, CandidateRow } from '@/lib/odds-data'
+import type { TopicOdds, SimpleTopicOdds, OddsSection, CandidateRow, NominationSplit } from '@/lib/odds-data'
 
 function useDarkMode() {
   const [dark, setDark] = useState(false)
@@ -79,6 +79,44 @@ export default function OddsClient({
     )
   }
 
+  // One party's nomination race: a labelled, bordered ranked list with its own
+  // long-shot count. Renders nothing if the party has no shown candidates.
+  function SubList({ label, section }: { label: string; section: OddsSection }) {
+    if (!section || section.rows.length === 0) return null
+    return (
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: txt2, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+        <div style={{ border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
+          {section.rows.map((c, i) => <Row key={i} c={c} />)}
+        </div>
+        {section.hiddenCount > 0 && (
+          <p style={{ fontSize: 12.5, color: txt3, margin: '8px 2px 0' }}>
+            {`+${section.hiddenCount} more long-shot ${section.hiddenCount === 1 ? 'candidate' : 'candidates'} priced below ${data?.threshold ?? 4}% (not shown).`}
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  // Nomination is two separate contests, so render the Democratic and
+  // Republican races as distinct ranked lists under one heading.
+  function NominationBlock({ split }: { split: NominationSplit | undefined }) {
+    if (!split) return null
+    const total = split.democratic.rows.length + split.republican.rows.length + split.other.rows.length
+    if (total === 0) return null
+    return (
+      <section style={{ marginBottom: 30 }}>
+        <h2 style={h2}>Nomination odds</h2>
+        <p style={{ fontSize: 13, color: txt2, margin: '0 0 14px' }}>
+          Who becomes each party&rsquo;s nominee — shown as two separate races. (A candidate&rsquo;s nomination odds differ from their odds of winning the election.)
+        </p>
+        <SubList label="Democratic nomination" section={split.democratic} />
+        <SubList label="Republican nomination" section={split.republican} />
+        {split.other.rows.length > 0 && <SubList label="Party unclear" section={split.other} />}
+      </section>
+    )
+  }
+
   return (
     <div style={{ background: bg, minHeight: '100vh' }}>
       <main style={{ maxWidth: 820, margin: '0 auto', padding: '24px 20px 64px' }}>
@@ -112,11 +150,7 @@ export default function OddsClient({
               blurb="Which party wins the presidency — the broadest market."
               section={(data as TopicOdds).sections.party}
             />
-            <Section
-              title="Nomination odds"
-              blurb="Who becomes each party's nominee. (A candidate's nomination odds differ from their odds of winning the election.)"
-              section={(data as TopicOdds).sections.nomination}
-            />
+            <NominationBlock split={(data as TopicOdds).sections.nomination} />
             <Section
               title="Election winner odds"
               blurb="Who wins the presidency outright, across all candidates."

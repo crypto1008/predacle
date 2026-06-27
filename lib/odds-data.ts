@@ -40,11 +40,21 @@ export interface OddsSection {
   hiddenCount: number      // candidates below THRESHOLD, summarised not listed
 }
 
+// Nomination is two separate contests (the D race and the R race), so it gets
+// split into per-party sub-lists. `other` catches the rare candidate whose
+// party can't be determined from the question text or the known-names map; it
+// is normally empty and only rendered if it has rows.
+export interface NominationSplit {
+  democratic: OddsSection
+  republican: OddsSection
+  other: OddsSection
+}
+
 export interface TopicOdds {
   slug: string
   question: string
   threshold: number
-  sections: { party: OddsSection; nomination: OddsSection; election: OddsSection }
+  sections: { party: OddsSection; nomination: NominationSplit; election: OddsSection }
   headline: string | null
   generatedAt: string
 }
@@ -150,11 +160,12 @@ function headlineProb(prices: PlatformPrice[]): number {
   return Math.max(...pool.map((p) => p.probability))
 }
 
-function buildSection(
+// Group rows into candidates by normalised name (no dedup/threshold/sort yet).
+// Ungroupable rows become their own singleton group so nothing is lost.
+function groupCandidates(
   rows: { id: string; platform: string; question: string; probability: number }[],
   partyMode = false,
-): OddsSection {
-  // Group by normalised candidate name; ungroupable rows become their own group.
+): CandidateRow[] {
   const groups = new Map<string, CandidateRow>()
   let fallbackSeq = 0
 
@@ -179,12 +190,15 @@ function buildSection(
     }
   }
 
-  const all = Array.from(groups.values())
-  // Dedup prices within a candidate (same platform twice -> keep highest), then
-  // (re)set topProbability to a real-money-preferred figure. topProbability
-  // drives sort, threshold and the big displayed number, so doing this here is
-  // what stops a play-money quote outranking a real-money one.
-  for (const c of all) {
+  return Array.from(groups.values())
+}
+
+// Finalise candidates into a display section: dedup prices per platform, set a
+// real-money-preferred topProbability (drives sort + threshold + the big shown
+// number, so a play-money quote can never outrank a real-money one), sort
+// descending, then split shown (>= THRESHOLD) from the hidden long-shot count.
+function finalizeSection(cands: CandidateRow[]): OddsSection {
+  for (const c of cands) {
     const byPlat = new Map<string, PlatformPrice>()
     for (const p of c.prices.sort((x, y) => y.probability - x.probability)) {
       if (!byPlat.has(p.platform)) byPlat.set(p.platform, p)
@@ -192,10 +206,81 @@ function buildSection(
     c.prices = Array.from(byPlat.values())
     c.topProbability = headlineProb(c.prices)
   }
-  all.sort((a, b) => b.topProbability - a.topProbability)
-
+  const all = [...cands].sort((a, b) => b.topProbability - a.topProbability)
   const shown = all.filter((c) => c.topProbability >= THRESHOLD)
   return { rows: shown, hiddenCount: all.length - shown.length }
+}
+
+function buildSection(
+  rows: { id: string; platform: string; question: string; probability: number }[],
+  partyMode = false,
+): OddsSection {
+  return finalizeSection(groupCandidates(rows, partyMode))
+}
+
+// Detect a nomination market's party from its question text. Returns null when
+// the text names both or neither party, so the caller can resolve via vote /
+// known-names fallback rather than guessing.
+function detectParty(qRaw: string): 'D' | 'R' | null {
+  const q = qRaw.toLowerCase()
+  const dem = /\bdemocrat(ic|s)?\b/.test(q)
+  const rep = /\brepublican(s)?\b/.test(q)
+  if (dem && !rep) return 'D'
+  if (rep && !dem) return 'R'
+  return null
+}
+
+// Fallback party for well-known 2028 figures, used only when a candidate's
+// markets never name a party in their text. Keyed by nameKey() output.
+const KNOWN_PARTY: Record<string, 'D' | 'R'> = {
+  'jd vance': 'R', 'marco rubio': 'R', 'tucker carlson': 'R', 'donald trump': 'R',
+  'donald trump jr': 'R', 'ron desantis': 'R', 'vivek ramaswamy': 'R', 'nikki haley': 'R',
+  'glenn youngkin': 'R', 'ted cruz': 'R', 'josh hawley': 'R', 'greg abbott': 'R',
+  'gavin newsom': 'D', 'alexandria ocasio-cortez': 'D', 'jon ossoff': 'D', 'kamala harris': 'D',
+  'pete buttigieg': 'D', 'josh shapiro': 'D', 'gretchen whitmer': 'D', 'wes moore': 'D',
+  'cory booker': 'D', 'andy beshear': 'D', 'raphael warnock': 'D', 'jb pritzker': 'D',
+  'amy klobuchar': 'D', 'bernie sanders': 'D', 'hakeem jeffries': 'D', 'mark kelly': 'D',
+  'michelle obama': 'D', 'ro khanna': 'D',
+}
+
+// Resolve a single nomination market's party: prefer the party named in the
+// question text; fall back to the known-names map keyed on the extracted name;
+// else null (genuinely unknown — lands in the 'other' catch-list).
+function rowParty(question: string): 'D' | 'R' | null {
+  const p = detectParty(question)
+  if (p) return p
+  const ex = extractName(question)
+  if (ex) {
+    const known = KNOWN_PARTY[nameKey(ex)]
+    if (known) return known
+  }
+  return null
+}
+
+// Split nomination markets into the Democratic race and the Republican race.
+// Nomination markets are party-scoped contests, so we partition the rows by
+// party FIRST and group within each race. A candidate who genuinely appears in
+// both races (e.g. a novelty market priced in each) correctly shows in both,
+// and no candidate is ever stranded by a cross-party merge. 'other' only
+// catches rows with no party signal and an unknown name.
+function buildNominationSplit(
+  rows: { id: string; platform: string; question: string; probability: number }[],
+): NominationSplit {
+  const demRows: typeof rows = []
+  const repRows: typeof rows = []
+  const othRows: typeof rows = []
+  for (const r of rows) {
+    const p = rowParty(r.question)
+    if (p === 'D') demRows.push(r)
+    else if (p === 'R') repRows.push(r)
+    else othRows.push(r)
+  }
+
+  return {
+    democratic: buildSection(demRows),
+    republican: buildSection(repRows),
+    other: buildSection(othRows),
+  }
 }
 
 export async function getTopicOdds(slug: string): Promise<TopicOdds | null> {
@@ -231,7 +316,7 @@ export async function getTopicOdds(slug: string): Promise<TopicOdds | null> {
     }))
 
   const party = buildSection(rows.filter((r) => r.bucket === 'party'), true)
-  const nomination = buildSection(rows.filter((r) => r.bucket === 'nomination'))
+  const nomination = buildNominationSplit(rows.filter((r) => r.bucket === 'nomination'))
   const election = buildSection(rows.filter((r) => r.bucket === 'election'))
 
   // Build a fresh, data-derived headline (no hardcoded numbers).
