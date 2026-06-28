@@ -370,10 +370,11 @@ export function extractContender(qRaw: string): string | null {
   q = q.replace(/^will\s+/i, '').replace(/\?+\s*$/, '')
   // Subject is everything up to the first qualifying verb phrase:
   //   "... win ..."            (team-winner markets)
+  //   "... reach ..."          (stage-progression markets: reach the final/semi/quarter)
   //   "... be the top ..."     (top goalscorer / golden boot markets)
   // Bare "be" is deliberately NOT a delimiter — it would match prop markets
   // ("... be eliminated", "... be a finalist") and mis-extract a contender.
-  const m = q.match(/^(.*?)\s+(?:to\s+)?(?:win(?:s)?|be the top)\b/i)
+  const m = q.match(/^(.*?)\s+(?:to\s+)?(?:win(?:s)?|reach(?:es)?|be the top)\b/i)
   if (!m) return null
   let name = m[1].replace(/^the\s+/i, '').trim()
 
@@ -382,11 +383,15 @@ export function extractContender(qRaw: string): string | null {
   // Reject anything that still contains question/category words — these signal a
   // category or negative market ("a South American country", "France will not",
   // "the champion be a first time winner"), not a single contender.
+  // NOTE: ' and ' is intentionally NOT banned so multi-word countries survive
+  // ("Bosnia and Herzegovina", "Trinidad and Tobago"). ' or ' stays banned (it
+  // reliably marks either/category markets). ' both' guards the one junk vector
+  // un-banning 'and' opens: multi-team conjunctions ("France and Spain both reach").
   const lower = name.toLowerCase()
   const banned = [
     ' will', 'will ', ' not', ' be ', ' a ', ' an ', 'country', 'champion',
     'first time', 'first-time', 'south american', 'european', 'next', 'team',
-    'nation', 'continent', 'host', 'group', 'either', ' or ', ' and ', 'player',
+    'nation', 'continent', 'host', 'group', 'either', ' or ', ' both', 'player',
   ]
   if (banned.some((b) => lower.includes(b))) return null
 
