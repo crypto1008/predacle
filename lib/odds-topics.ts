@@ -57,9 +57,9 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     question: 'What are the odds to reach the 2026 World Cup final?',
     structure: 'simple',
     intro:
-      'Two teams make it to the 2026 FIFA World Cup final. This page aggregates the live \u201Creach the final\u201D markets across platforms, so you can see which nations the money favours to play on the tournament\\u2019s last day \u2014 updated continuously.',
+      'Two teams make it to the 2026 FIFA World Cup final. This page aggregates the live \u201Creach the final\u201D markets across platforms, so you can see which nations the money favours to play on the tournament\u2019s last day \u2014 updated continuously.',
     description:
-      'Live odds to reach the 2026 World Cup final from prediction markets \u2014 every contender\\u2019s probability of making the final, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live odds to reach the 2026 World Cup final from prediction markets \u2014 every contender\u2019s probability of making the final, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
       any: ['2026 fifa world cup final', '2026 world cup final'],
       exclude: ['semifinal', 'semi-final', 'semi final', 'quarterfinal', 'quarter-final', 'quarter final', 'goals', 'scored', 'attend', 'boycott', 'outside of'],
@@ -74,10 +74,10 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     intro:
       'Four teams reach the 2026 FIFA World Cup semifinals. This page aggregates the live \u201Creach the semifinal\u201D markets across platforms, so you can see which nations the money favours to make the final four \u2014 updated continuously.',
     description:
-      'Live odds to reach the 2026 World Cup semifinal from prediction markets \u2014 every contender\\u2019s probability of making the final four, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live odds to reach the 2026 World Cup semifinal from prediction markets \u2014 every contender\u2019s probability of making the final four, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
-      any: ['2026 fifa world cup semifinal', '2026 world cup semifinal', '2026 fifa world cup semi-final', '2026 world cup semi-final', '2026 fifa world cup semi final', '2026 world cup semi final'],
-      exclude: ['quarterfinal', 'quarter-final', 'quarter final', 'goals', 'scored', 'attend', 'boycott', 'outside of'],
+      any: ['reach the semifinals at the 2026 fifa world cup'],
+      exclude: ['eliminated', 'goals', 'scored', 'attend', 'boycott', 'outside of', 'host'],
     },
     keywords: ['odds to reach 2026 world cup semifinal', '2026 world cup semifinalists odds', 'world cup 2026 final four odds', 'which teams reach world cup semifinal 2026'],
   },
@@ -89,10 +89,10 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     intro:
       'Eight teams reach the 2026 FIFA World Cup quarterfinals. This page aggregates the live \u201Creach the quarterfinal\u201D markets across platforms, so you can see which nations the money favours to make the last eight \u2014 updated continuously.',
     description:
-      'Live odds to reach the 2026 World Cup quarterfinal from prediction markets \u2014 every contender\\u2019s probability of making the last eight, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live odds to reach the 2026 World Cup quarterfinal from prediction markets \u2014 every contender\u2019s probability of making the last eight, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
-      any: ['2026 fifa world cup quarterfinal', '2026 world cup quarterfinal', '2026 fifa world cup quarter-final', '2026 world cup quarter-final', '2026 fifa world cup quarter final', '2026 world cup quarter final'],
-      exclude: ['semifinal', 'semi-final', 'semi final', 'goals', 'scored', 'attend', 'boycott', 'outside of'],
+      any: ['reach the quarterfinals at the 2026 fifa world cup'],
+      exclude: ['eliminated', 'goals', 'scored', 'attend', 'boycott', 'outside of', 'host'],
     },
     keywords: ['odds to reach 2026 world cup quarterfinal', '2026 world cup quarterfinalists odds', 'world cup 2026 last eight odds', 'which teams reach world cup quarterfinal 2026'],
   },
