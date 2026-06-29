@@ -193,6 +193,49 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     },
     keywords: ['2026 womens wimbledon odds', 'wimbledon womens singles odds 2026', 'wimbledon ladies champion odds 2026', 'who will win wimbledon 2026 women'],
   },
+
+  // ---------------------------------------------------------------------------
+  // Cluster B re-pull additions. Anchors built from REAL pulled titles and
+  // simulated through the live extractor (incl. the be-the-champion verb fix).
+  // ---------------------------------------------------------------------------
+  '2026-f1-drivers-championship': {
+    slug: '2026-f1-drivers-championship',
+    question: 'What are the odds to win the 2026 F1 Drivers\u2019 Championship?',
+    structure: 'simple',
+    intro:
+      'One driver takes the 2026 Formula 1 Drivers\u2019 Championship. This page aggregates the live title markets across platforms, so you can see which drivers the money favours \u2014 updated continuously.',
+    description:
+      'Live 2026 F1 Drivers\u2019 Championship odds from prediction markets \u2014 every driver\u2019s title probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+    match: {
+      // 'f1 drivers' catches both the Polymarket "be the 2026 F1 Drivers'
+      // Champion" markets and the Myriad "F1 Drivers Championship" market,
+      // without touching the F1 Constructors markets.
+      any: ['f1 drivers'],
+      exclude: ['constructor', 'who wins'],
+    },
+    keywords: ['2026 f1 drivers championship odds', 'f1 drivers title odds 2026', 'formula 1 drivers champion odds 2026', 'who will win f1 2026'],
+  },
+
+  '2026-brazil-presidential-election': {
+    slug: '2026-brazil-presidential-election',
+    question: 'What are the odds to win the 2026 Brazilian presidential election?',
+    structure: 'simple',
+    intro:
+      'Brazil elects its president in 2026. This page aggregates the live real-money candidate markets across platforms, so you can see who the money favours \u2014 updated continuously.',
+    description:
+      'Live 2026 Brazilian presidential election odds from prediction markets \u2014 every candidate\u2019s win probability, aggregated across Polymarket and more, updated continuously on Predacle.',
+    match: {
+      // The literal win-market phrasing is surgical: it excludes the heavy
+      // World Cup soccer noise and the "finish in second place in the first
+      // round" markets that q=brazil returns. 'lula win' drops the Manifold
+      // play-money "Lula" market, which otherwise shows as a duplicate row
+      // beside the real-money "Luiz Inacio Lula da Silva" (short vs full name
+      // do not group); the Polymarket "Lula da Silva win" is not caught by it.
+      any: ['win the 2026 brazilian presidential election'],
+      exclude: ['lula win', 'fifa', 'world cup'],
+    },
+    keywords: ['2026 brazil election odds', 'brazilian presidential election odds 2026', 'lula odds 2026', 'who will win brazil election 2026'],
+  },
 }
 
 export function getOddsTopic(slug: string): OddsTopic | null {
