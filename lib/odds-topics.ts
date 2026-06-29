@@ -111,6 +111,88 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     },
     keywords: ['2028 election odds', '2028 presidential election prediction', 'who will win 2028', '2028 election betting odds'],
   },
+
+  // ---------------------------------------------------------------------------
+  // Cluster B (2026 non-soccer simple lists). Anchors built from REAL pulled
+  // titles (STEP 0), simulated through the filter+extractor before shipping.
+  // ---------------------------------------------------------------------------
+  '2026-world-series': {
+    slug: '2026-world-series',
+    question: 'What are the odds to win the 2026 World Series?',
+    structure: 'simple',
+    intro:
+      'One team lifts the 2026 World Series. This page aggregates the live championship markets across platforms, so you can see which teams the money favours \u2014 updated continuously.',
+    description:
+      'Live 2026 World Series odds from prediction markets \u2014 every team\u2019s championship probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+    match: {
+      any: ['2026 world series'],
+      exclude: ['poker', ' vs ', ' vs. ', 'mvp', 'pennant', 'home run', 'manager', 'attendance'],
+    },
+    keywords: ['2026 world series odds', 'world series winner odds 2026', 'mlb championship odds 2026', 'who will win the world series 2026'],
+  },
+
+  '2026-mls-cup': {
+    slug: '2026-mls-cup',
+    question: 'What are the odds to win the 2026 MLS Cup?',
+    structure: 'simple',
+    intro:
+      'One club lifts the 2026 MLS Cup. This page aggregates the live championship markets across platforms, so you can see which clubs the money favours \u2014 updated continuously.',
+    description:
+      'Live 2026 MLS Cup odds from prediction markets \u2014 every club\u2019s championship probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+    match: {
+      any: ['2026 mls cup'],
+      exclude: [' vs ', 'mvp', 'supporters', 'golden boot', 'attendance'],
+    },
+    keywords: ['2026 mls cup odds', 'mls cup winner odds 2026', 'mls champion odds 2026', 'who will win mls cup 2026'],
+  },
+
+  '2026-ballon-dor': {
+    slug: '2026-ballon-dor',
+    question: 'What are the odds to win the 2026 Ballon d\u2019Or?',
+    structure: 'simple',
+    intro:
+      'The Ballon d\u2019Or goes to the year\u2019s best footballer. This page aggregates the live 2026 award markets across platforms, so you can see which players the money favours \u2014 updated continuously.',
+    description:
+      'Live 2026 Ballon d\u2019Or odds from prediction markets \u2014 every player\u2019s probability to win, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+    match: {
+      // 'who wins' drops the Myriad aggregator market that would mis-extract to "Who".
+      any: ['ballon d'],
+      exclude: ['who wins', 'who will win', ' vs ', 'women', 'kopa', 'yashin'],
+    },
+    keywords: ['2026 ballon dor odds', 'ballon d\u2019or favourite 2026', 'ballon dor winner odds 2026', 'who will win ballon dor 2026'],
+  },
+
+  '2026-mens-wimbledon': {
+    slug: '2026-mens-wimbledon',
+    question: 'What are the odds to win the 2026 Men\u2019s Wimbledon?',
+    structure: 'simple',
+    intro:
+      'One player wins the 2026 Wimbledon men\u2019s singles. This page aggregates the live title markets across platforms, so you can see which players the money favours \u2014 updated continuously.',
+    description:
+      'Live 2026 Men\u2019s Wimbledon odds from prediction markets \u2014 every player\u2019s title probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+    match: {
+      // Anchor includes "2026 " so it cannot be a substring of "women\u2019s" (which
+      // contains "men\u2019s"); the leading year+space breaks the overlap.
+      any: ['2026 men\u2019s wimbledon'],
+      exclude: ['doubles', 'mixed', 'wheelchair', 'junior'],
+    },
+    keywords: ['2026 mens wimbledon odds', 'wimbledon mens singles odds 2026', 'wimbledon champion odds 2026', 'who will win wimbledon 2026 men'],
+  },
+
+  '2026-womens-wimbledon': {
+    slug: '2026-womens-wimbledon',
+    question: 'What are the odds to win the 2026 Women\u2019s Wimbledon?',
+    structure: 'simple',
+    intro:
+      'One player wins the 2026 Wimbledon women\u2019s singles. This page aggregates the live title markets across platforms, so you can see which players the money favours \u2014 updated continuously.',
+    description:
+      'Live 2026 Women\u2019s Wimbledon odds from prediction markets \u2014 every player\u2019s title probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+    match: {
+      any: ['2026 women\u2019s wimbledon'],
+      exclude: ['doubles', 'mixed', 'wheelchair', 'junior'],
+    },
+    keywords: ['2026 womens wimbledon odds', 'wimbledon womens singles odds 2026', 'wimbledon ladies champion odds 2026', 'who will win wimbledon 2026 women'],
+  },
 }
 
 export function getOddsTopic(slug: string): OddsTopic | null {

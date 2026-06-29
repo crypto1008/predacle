@@ -374,7 +374,12 @@ export function extractContender(qRaw: string): string | null {
   //   "... be the top ..."     (top goalscorer / golden boot markets)
   // Bare "be" is deliberately NOT a delimiter — it would match prop markets
   // ("... be eliminated", "... be a finalist") and mis-extract a contender.
-  const m = q.match(/^(.*?)\s+(?:to\s+)?(?:win(?:s)?|reach(?:es)?|be the top)\b/i)
+  let m = q.match(/^(.*?)\s+(?:to\s+)?(?:win(?:s)?|reach(?:es)?|be the top)\b/i)
+  // Fallback for "[X] be the <year> <event> winner/champion" title markets
+  // (Wimbledon, F1 constructors/drivers). Fires only when no win/reach/be-the-top
+  // verb matched AND the question ends in winner/champion, so existing pages are
+  // untouched: their first match always wins, this never runs for them.
+  if (!m) m = q.match(/^(.*?)\s+be\s+the\b.*\b(?:winner|champion)\.?$/i)
   if (!m) return null
   let name = m[1].replace(/^the\s+/i, '').trim()
 
@@ -396,7 +401,10 @@ export function extractContender(qRaw: string): string | null {
   if (banned.some((b) => lower.includes(b))) return null
 
   // A contender name should be Title Case words only (letters, spaces, accents, punct).
-  if (!/^[A-Z][A-Za-zÀ-ÿ.'\- ]*$/.test(name)) return null
+  // Unicode-property classes so non-Latin-1 accents survive: \p{Lu} admits leading
+  // accented capitals (É, Í, Ø, Ś); \p{L} admits Eastern-European letters (ś, ą, ę, ł)
+  // that the old Latin-1 [À-ÿ] range silently dropped (Świątek, Vinícius Júnior, etc.).
+  if (!/^[\p{Lu}][\p{L}.'\- ]*$/u.test(name)) return null
 
   return name
 }
