@@ -236,6 +236,46 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     },
     keywords: ['2026 brazil election odds', 'brazilian presidential election odds 2026', 'lula odds 2026', 'who will win brazil election 2026'],
   },
+
+  // ---------------------------------------------------------------------------
+  // Cluster C (2027 single-winner fields). Identified via the 2027 pull;
+  // simulated through the live extractor (accent + verb fixes already shipped).
+  // ---------------------------------------------------------------------------
+  '2027-nba-finals': {
+    slug: '2027-nba-finals',
+    question: 'What are the odds to win the 2027 NBA Finals?',
+    structure: 'simple',
+    intro:
+      'One team lifts the 2027 NBA championship. This page aggregates the live title markets across platforms, so you can see which teams the money favours \u2014 updated continuously.',
+    description:
+      'Live 2027 NBA Finals odds from prediction markets \u2014 every team\u2019s championship probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+    match: {
+      // '2027 nba finals' isolates the title markets from the 2026-Finals prop
+      // noise (MVP, riot, halftime, single-game props). 'reach' guards against
+      // any make-the-finals markets that are a different question than winning.
+      any: ['2027 nba finals'],
+      exclude: ['mvp', 'riot', 'halftime', 'game ', 'reach', 'drafted'],
+    },
+    keywords: ['2027 nba finals odds', 'nba championship odds 2027', 'nba title odds 2027', 'who will win the nba finals 2027'],
+  },
+
+  '2027-french-presidential-election': {
+    slug: '2027-french-presidential-election',
+    question: 'What are the odds to win the 2027 French presidential election?',
+    structure: 'simple',
+    intro:
+      'France elects its president in 2027. This page aggregates the live real-money candidate markets across platforms, so you can see who the money favours \u2014 updated continuously.',
+    description:
+      'Live 2027 French presidential election odds from prediction markets \u2014 every candidate\u2019s win probability, aggregated across Polymarket and more, updated continuously on Predacle.',
+    match: {
+      // Win-market anchor only: the "be candidate to" markets (which would show
+      // Bardella at his ~77% candidacy price instead of his ~26% win price) and
+      // the "election called by <date>" markets do not contain this substring.
+      any: ['win the 2027 french presidential election'],
+      exclude: ['fifa', 'world cup', 'candidate'],
+    },
+    keywords: ['2027 french election odds', 'french presidential election odds 2027', 'france 2027 election odds', 'who will win the french election 2027'],
+  },
 }
 
 export function getOddsTopic(slug: string): OddsTopic | null {
