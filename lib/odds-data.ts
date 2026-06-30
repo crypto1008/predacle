@@ -404,7 +404,7 @@ export function extractContender(qRaw: string): string | null {
   // Unicode-property classes so non-Latin-1 accents survive: \p{Lu} admits leading
   // accented capitals (É, Í, Ø, Ś); \p{L} admits Eastern-European letters (ś, ą, ę, ł)
   // that the old Latin-1 [À-ÿ] range silently dropped (Świątek, Vinícius Júnior, etc.).
-  if (!/^[\p{Lu}][\p{L}.'\- ]*$/u.test(name)) return null
+  if (!/^[\p{Lu}][\p{L}\p{N}.'\- ]*$/u.test(name)) return null
 
   return name
 }

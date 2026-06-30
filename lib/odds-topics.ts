@@ -276,6 +276,65 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     },
     keywords: ['2027 french election odds', 'french presidential election odds 2027', 'france 2027 election odds', 'who will win the french election 2027'],
   },
+
+  // ---------------------------------------------------------------------------
+  // Cluster D (2027 NFL single-winner fields). Identified via the "win the 2027"
+  // pull; all 64 markets real-money (Polymarket). Ships WITH the \p{N} digit fix
+  // so digit team names (49ers) survive name validation. Simulated through the
+  // live extractor: AFC 10 / NFC 10 / Super Bowl 9 shown at the 4% threshold.
+  // ---------------------------------------------------------------------------
+  '2027-super-bowl': {
+    slug: '2027-super-bowl',
+    question: 'What are the odds to win the 2027 Super Bowl?',
+    structure: 'simple',
+    intro:
+      'One team lifts the Lombardi Trophy to end the 2026 NFL season. This page aggregates the live championship markets across platforms, so you can see which team the money favours \\u2014 updated continuously.',
+    description:
+      'Live 2027 Super Bowl odds from prediction markets \\u2014 every NFL team\\u2019s championship probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+    match: {
+      // Polymarket phrases the Super Bowl winner as "win the 2027 NFL league
+      // championship" (all 32 teams). The AFC/NFC conference fields use a
+      // different substring so they don't collide; 'who wins' guards an
+      // aggregator market mis-extracting to "Who".
+      any: ['2027 nfl league championship'],
+      exclude: ['who wins', 'who will win', 'mvp', 'reach'],
+    },
+    keywords: ['2027 super bowl odds', 'super bowl 2027 odds', 'nfl championship odds 2027', 'who will win the super bowl 2027'],
+  },
+
+  '2027-nfl-afc-championship': {
+    slug: '2027-nfl-afc-championship',
+    question: 'What are the odds to win the 2027 NFL AFC Championship?',
+    structure: 'simple',
+    intro:
+      'One AFC team wins the conference and reaches the Super Bowl. This page aggregates the live 2027 AFC Championship markets across platforms, so you can see which team the money favours \\u2014 updated continuously.',
+    description:
+      'Live 2027 NFL AFC Championship odds from prediction markets \\u2014 every AFC team\\u2019s probability of winning the conference, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+    match: {
+      // 'afc championship' substring isolates the 16 AFC-conference markets from
+      // the NFC and league-championship fields (separate pages).
+      any: ['2027 nfl afc championship'],
+      exclude: ['who wins', 'who will win', 'mvp', 'reach'],
+    },
+    keywords: ['2027 afc championship odds', 'nfl afc championship odds 2027', 'afc champion odds 2027', 'who will win the afc 2027'],
+  },
+
+  '2027-nfl-nfc-championship': {
+    slug: '2027-nfl-nfc-championship',
+    question: 'What are the odds to win the 2027 NFL NFC Championship?',
+    structure: 'simple',
+    intro:
+      'One NFC team wins the conference and reaches the Super Bowl. This page aggregates the live 2027 NFC Championship markets across platforms, so you can see which team the money favours \\u2014 updated continuously.',
+    description:
+      'Live 2027 NFL NFC Championship odds from prediction markets \\u2014 every NFC team\\u2019s probability of winning the conference, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+    match: {
+      // 'nfc championship' substring isolates the 16 NFC-conference markets.
+      // Depends on the \\p{N} digit fix so 'San Francisco 49ers' (8%) survives.
+      any: ['2027 nfl nfc championship'],
+      exclude: ['who wins', 'who will win', 'mvp', 'reach'],
+    },
+    keywords: ['2027 nfc championship odds', 'nfl nfc championship odds 2027', 'nfc champion odds 2027', 'who will win the nfc 2027'],
+  },
 }
 
 export function getOddsTopic(slug: string): OddsTopic | null {
