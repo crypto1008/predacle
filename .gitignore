@@ -42,3 +42,6 @@ next-env.d.ts
 
 *.bak
 app-backup-*.tgz
+*.orig
+*.out
+debug-*.mjs
