@@ -47,6 +47,7 @@ export default function TrackRecordPage() {
     url: `${SITE}/track-record`,
     creator: { '@type': 'Organization', name: 'Predacle', url: SITE },
     isAccessibleForFree: true,
+    license: `${SITE}/terms`,
     keywords: [
       'prediction market accuracy',
       'prediction market calibration',
