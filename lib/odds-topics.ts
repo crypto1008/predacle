@@ -42,9 +42,9 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     question: 'What are the odds to be the 2026 World Cup top goalscorer?',
     structure: 'simple',
     intro:
-      'The Golden Boot goes to the top scorer of the 2026 FIFA World Cup. This page pulls together the live player markets across platforms, so you can see which players the money favours to finish as the tournament\u2019s leading goalscorer — updated continuously.',
+      'The Golden Boot goes to the top scorer of the 2026 FIFA World Cup. This page pulls together the live player markets across platforms, so you can see which players the money favours to finish as the tournament’s leading goalscorer — updated continuously.',
     description:
-      'Live 2026 World Cup Golden Boot odds from prediction markets — every contender\u2019s probability to finish as top goalscorer, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live 2026 World Cup Golden Boot odds from prediction markets — every contender’s probability to finish as top goalscorer, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
       any: ['top goalscorer', 'top scorer', 'golden boot'],
       exclude: [' vs ', ' vs. ', 'group ', 'assist', 'clean sheet', 'golden glove'],
@@ -57,9 +57,9 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     question: 'What are the odds to reach the 2026 World Cup final?',
     structure: 'simple',
     intro:
-      'Two teams make it to the 2026 FIFA World Cup final. This page aggregates the live \u201Creach the final\u201D markets across platforms, so you can see which nations the money favours to play on the tournament\u2019s last day \u2014 updated continuously.',
+      'Two teams make it to the 2026 FIFA World Cup final. This page aggregates the live \u201Creach the final\u201D markets across platforms, so you can see which nations the money favours to play on the tournament’s last day — updated continuously.',
     description:
-      'Live odds to reach the 2026 World Cup final from prediction markets \u2014 every contender\u2019s probability of making the final, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live odds to reach the 2026 World Cup final from prediction markets — every contender’s probability of making the final, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
       any: ['2026 fifa world cup final', '2026 world cup final'],
       exclude: ['semifinal', 'semi-final', 'semi final', 'quarterfinal', 'quarter-final', 'quarter final', 'goals', 'scored', 'attend', 'boycott', 'outside of'],
@@ -72,9 +72,9 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     question: 'What are the odds to reach the 2026 World Cup semifinal?',
     structure: 'simple',
     intro:
-      'Four teams reach the 2026 FIFA World Cup semifinals. This page aggregates the live \u201Creach the semifinal\u201D markets across platforms, so you can see which nations the money favours to make the final four \u2014 updated continuously.',
+      'Four teams reach the 2026 FIFA World Cup semifinals. This page aggregates the live \u201Creach the semifinal\u201D markets across platforms, so you can see which nations the money favours to make the final four — updated continuously.',
     description:
-      'Live odds to reach the 2026 World Cup semifinal from prediction markets \u2014 every contender\u2019s probability of making the final four, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live odds to reach the 2026 World Cup semifinal from prediction markets — every contender’s probability of making the final four, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
       any: ['reach the semifinals at the 2026 fifa world cup'],
       exclude: ['eliminated', 'goals', 'scored', 'attend', 'boycott', 'outside of', 'host'],
@@ -87,9 +87,9 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     question: 'What are the odds to reach the 2026 World Cup quarterfinal?',
     structure: 'simple',
     intro:
-      'Eight teams reach the 2026 FIFA World Cup quarterfinals. This page aggregates the live \u201Creach the quarterfinal\u201D markets across platforms, so you can see which nations the money favours to make the last eight \u2014 updated continuously.',
+      'Eight teams reach the 2026 FIFA World Cup quarterfinals. This page aggregates the live \u201Creach the quarterfinal\u201D markets across platforms, so you can see which nations the money favours to make the last eight — updated continuously.',
     description:
-      'Live odds to reach the 2026 World Cup quarterfinal from prediction markets \u2014 every contender\u2019s probability of making the last eight, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live odds to reach the 2026 World Cup quarterfinal from prediction markets — every contender’s probability of making the last eight, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
       any: ['reach the quarterfinals at the 2026 fifa world cup'],
       exclude: ['eliminated', 'goals', 'scored', 'attend', 'boycott', 'outside of', 'host'],
@@ -121,9 +121,9 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     question: 'What are the odds to win the 2026 World Series?',
     structure: 'simple',
     intro:
-      'One team lifts the 2026 World Series. This page aggregates the live championship markets across platforms, so you can see which teams the money favours \u2014 updated continuously.',
+      'One team lifts the 2026 World Series. This page aggregates the live championship markets across platforms, so you can see which teams the money favours — updated continuously.',
     description:
-      'Live 2026 World Series odds from prediction markets \u2014 every team\u2019s championship probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live 2026 World Series odds from prediction markets — every team’s championship probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
       any: ['2026 world series'],
       exclude: ['poker', ' vs ', ' vs. ', 'mvp', 'pennant', 'home run', 'manager', 'attendance'],
@@ -136,9 +136,9 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     question: 'What are the odds to win the 2026 MLS Cup?',
     structure: 'simple',
     intro:
-      'One club lifts the 2026 MLS Cup. This page aggregates the live championship markets across platforms, so you can see which clubs the money favours \u2014 updated continuously.',
+      'One club lifts the 2026 MLS Cup. This page aggregates the live championship markets across platforms, so you can see which clubs the money favours — updated continuously.',
     description:
-      'Live 2026 MLS Cup odds from prediction markets \u2014 every club\u2019s championship probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live 2026 MLS Cup odds from prediction markets — every club’s championship probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
       any: ['2026 mls cup'],
       exclude: [' vs ', 'mvp', 'supporters', 'golden boot', 'attendance'],
@@ -148,32 +148,32 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
 
   '2026-ballon-dor': {
     slug: '2026-ballon-dor',
-    question: 'What are the odds to win the 2026 Ballon d\u2019Or?',
+    question: 'What are the odds to win the 2026 Ballon d’Or?',
     structure: 'simple',
     intro:
-      'The Ballon d\u2019Or goes to the year\u2019s best footballer. This page aggregates the live 2026 award markets across platforms, so you can see which players the money favours \u2014 updated continuously.',
+      'The Ballon d’Or goes to the year’s best footballer. This page aggregates the live 2026 award markets across platforms, so you can see which players the money favours — updated continuously.',
     description:
-      'Live 2026 Ballon d\u2019Or odds from prediction markets \u2014 every player\u2019s probability to win, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live 2026 Ballon d’Or odds from prediction markets — every player’s probability to win, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
       // 'who wins' drops the Myriad aggregator market that would mis-extract to "Who".
       any: ['ballon d'],
       exclude: ['who wins', 'who will win', ' vs ', 'women', 'kopa', 'yashin'],
     },
-    keywords: ['2026 ballon dor odds', 'ballon d\u2019or favourite 2026', 'ballon dor winner odds 2026', 'who will win ballon dor 2026'],
+    keywords: ['2026 ballon dor odds', 'ballon d’or favourite 2026', 'ballon dor winner odds 2026', 'who will win ballon dor 2026'],
   },
 
   '2026-mens-wimbledon': {
     slug: '2026-mens-wimbledon',
-    question: 'What are the odds to win the 2026 Men\u2019s Wimbledon?',
+    question: 'What are the odds to win the 2026 Men’s Wimbledon?',
     structure: 'simple',
     intro:
-      'One player wins the 2026 Wimbledon men\u2019s singles. This page aggregates the live title markets across platforms, so you can see which players the money favours \u2014 updated continuously.',
+      'One player wins the 2026 Wimbledon men’s singles. This page aggregates the live title markets across platforms, so you can see which players the money favours — updated continuously.',
     description:
-      'Live 2026 Men\u2019s Wimbledon odds from prediction markets \u2014 every player\u2019s title probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live 2026 Men’s Wimbledon odds from prediction markets — every player’s title probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
-      // Anchor includes "2026 " so it cannot be a substring of "women\u2019s" (which
-      // contains "men\u2019s"); the leading year+space breaks the overlap.
-      any: ['2026 men\u2019s wimbledon'],
+      // Anchor includes "2026 " so it cannot be a substring of "women’s" (which
+      // contains "men’s"); the leading year+space breaks the overlap.
+      any: ['2026 men’s wimbledon'],
       exclude: ['doubles', 'mixed', 'wheelchair', 'junior'],
     },
     keywords: ['2026 mens wimbledon odds', 'wimbledon mens singles odds 2026', 'wimbledon champion odds 2026', 'who will win wimbledon 2026 men'],
@@ -181,14 +181,14 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
 
   '2026-womens-wimbledon': {
     slug: '2026-womens-wimbledon',
-    question: 'What are the odds to win the 2026 Women\u2019s Wimbledon?',
+    question: 'What are the odds to win the 2026 Women’s Wimbledon?',
     structure: 'simple',
     intro:
-      'One player wins the 2026 Wimbledon women\u2019s singles. This page aggregates the live title markets across platforms, so you can see which players the money favours \u2014 updated continuously.',
+      'One player wins the 2026 Wimbledon women’s singles. This page aggregates the live title markets across platforms, so you can see which players the money favours — updated continuously.',
     description:
-      'Live 2026 Women\u2019s Wimbledon odds from prediction markets \u2014 every player\u2019s title probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live 2026 Women’s Wimbledon odds from prediction markets — every player’s title probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
-      any: ['2026 women\u2019s wimbledon'],
+      any: ['2026 women’s wimbledon'],
       exclude: ['doubles', 'mixed', 'wheelchair', 'junior'],
     },
     keywords: ['2026 womens wimbledon odds', 'wimbledon womens singles odds 2026', 'wimbledon ladies champion odds 2026', 'who will win wimbledon 2026 women'],
@@ -200,12 +200,12 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
   // ---------------------------------------------------------------------------
   '2026-f1-drivers-championship': {
     slug: '2026-f1-drivers-championship',
-    question: 'What are the odds to win the 2026 F1 Drivers\u2019 Championship?',
+    question: 'What are the odds to win the 2026 F1 Drivers’ Championship?',
     structure: 'simple',
     intro:
-      'One driver takes the 2026 Formula 1 Drivers\u2019 Championship. This page aggregates the live title markets across platforms, so you can see which drivers the money favours \u2014 updated continuously.',
+      'One driver takes the 2026 Formula 1 Drivers’ Championship. This page aggregates the live title markets across platforms, so you can see which drivers the money favours — updated continuously.',
     description:
-      'Live 2026 F1 Drivers\u2019 Championship odds from prediction markets \u2014 every driver\u2019s title probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live 2026 F1 Drivers’ Championship odds from prediction markets — every driver’s title probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
       // 'f1 drivers' catches both the Polymarket "be the 2026 F1 Drivers'
       // Champion" markets and the Myriad "F1 Drivers Championship" market,
@@ -221,9 +221,9 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     question: 'What are the odds to win the 2026 Brazilian presidential election?',
     structure: 'simple',
     intro:
-      'Brazil elects its president in 2026. This page aggregates the live real-money candidate markets across platforms, so you can see who the money favours \u2014 updated continuously.',
+      'Brazil elects its president in 2026. This page aggregates the live real-money candidate markets across platforms, so you can see who the money favours — updated continuously.',
     description:
-      'Live 2026 Brazilian presidential election odds from prediction markets \u2014 every candidate\u2019s win probability, aggregated across Polymarket and more, updated continuously on Predacle.',
+      'Live 2026 Brazilian presidential election odds from prediction markets — every candidate’s win probability, aggregated across Polymarket and more, updated continuously on Predacle.',
     match: {
       // The literal win-market phrasing is surgical: it excludes the heavy
       // World Cup soccer noise and the "finish in second place in the first
@@ -246,9 +246,9 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     question: 'What are the odds to win the 2027 NBA Finals?',
     structure: 'simple',
     intro:
-      'One team lifts the 2027 NBA championship. This page aggregates the live title markets across platforms, so you can see which teams the money favours \u2014 updated continuously.',
+      'One team lifts the 2027 NBA championship. This page aggregates the live title markets across platforms, so you can see which teams the money favours — updated continuously.',
     description:
-      'Live 2027 NBA Finals odds from prediction markets \u2014 every team\u2019s championship probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live 2027 NBA Finals odds from prediction markets — every team’s championship probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
       // '2027 nba finals' isolates the title markets from the 2026-Finals prop
       // noise (MVP, riot, halftime, single-game props). 'reach' guards against
@@ -264,9 +264,9 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     question: 'What are the odds to win the 2027 French presidential election?',
     structure: 'simple',
     intro:
-      'France elects its president in 2027. This page aggregates the live real-money candidate markets across platforms, so you can see who the money favours \u2014 updated continuously.',
+      'France elects its president in 2027. This page aggregates the live real-money candidate markets across platforms, so you can see who the money favours — updated continuously.',
     description:
-      'Live 2027 French presidential election odds from prediction markets \u2014 every candidate\u2019s win probability, aggregated across Polymarket and more, updated continuously on Predacle.',
+      'Live 2027 French presidential election odds from prediction markets — every candidate’s win probability, aggregated across Polymarket and more, updated continuously on Predacle.',
     match: {
       // Win-market anchor only: the "be candidate to" markets (which would show
       // Bardella at his ~77% candidacy price instead of his ~26% win price) and
@@ -288,9 +288,9 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     question: 'What are the odds to win the 2027 Super Bowl?',
     structure: 'simple',
     intro:
-      'One team lifts the Lombardi Trophy to end the 2026 NFL season. This page aggregates the live championship markets across platforms, so you can see which team the money favours \\u2014 updated continuously.',
+      'One team lifts the Lombardi Trophy to end the 2026 NFL season. This page aggregates the live championship markets across platforms, so you can see which team the money favours — updated continuously.',
     description:
-      'Live 2027 Super Bowl odds from prediction markets \\u2014 every NFL team\\u2019s championship probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live 2027 Super Bowl odds from prediction markets — every NFL team’s championship probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
       // Polymarket phrases the Super Bowl winner as "win the 2027 NFL league
       // championship" (all 32 teams). The AFC/NFC conference fields use a
@@ -307,9 +307,9 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     question: 'What are the odds to win the 2027 NFL AFC Championship?',
     structure: 'simple',
     intro:
-      'One AFC team wins the conference and reaches the Super Bowl. This page aggregates the live 2027 AFC Championship markets across platforms, so you can see which team the money favours \\u2014 updated continuously.',
+      'One AFC team wins the conference and reaches the Super Bowl. This page aggregates the live 2027 AFC Championship markets across platforms, so you can see which team the money favours — updated continuously.',
     description:
-      'Live 2027 NFL AFC Championship odds from prediction markets \\u2014 every AFC team\\u2019s probability of winning the conference, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live 2027 NFL AFC Championship odds from prediction markets — every AFC team’s probability of winning the conference, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
       // 'afc championship' substring isolates the 16 AFC-conference markets from
       // the NFC and league-championship fields (separate pages).
@@ -324,9 +324,9 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     question: 'What are the odds to win the 2027 NFL NFC Championship?',
     structure: 'simple',
     intro:
-      'One NFC team wins the conference and reaches the Super Bowl. This page aggregates the live 2027 NFC Championship markets across platforms, so you can see which team the money favours \\u2014 updated continuously.',
+      'One NFC team wins the conference and reaches the Super Bowl. This page aggregates the live 2027 NFC Championship markets across platforms, so you can see which team the money favours — updated continuously.',
     description:
-      'Live 2027 NFL NFC Championship odds from prediction markets \\u2014 every NFC team\\u2019s probability of winning the conference, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+      'Live 2027 NFL NFC Championship odds from prediction markets — every NFC team’s probability of winning the conference, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
     match: {
       // 'nfc championship' substring isolates the 16 NFC-conference markets.
       // Depends on the \\p{N} digit fix so 'San Francisco 49ers' (8%) survives.
@@ -334,6 +334,25 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
       exclude: ['who wins', 'who will win', 'mvp', 'reach'],
     },
     keywords: ['2027 nfc championship odds', 'nfl nfc championship odds 2027', 'nfc champion odds 2027', 'who will win the nfc 2027'],
+  },
+
+  '2026-world-cup-golden-ball': {
+    slug: '2026-world-cup-golden-ball',
+    question: 'What are the odds to win the 2026 World Cup Golden Ball?',
+    structure: 'simple',
+    intro:
+      'The Golden Ball goes to the best player of the 2026 FIFA World Cup. This page aggregates the live award markets across platforms, so you can see which players the money favours — updated continuously.',
+    description:
+      'Live 2026 World Cup Golden Ball odds from prediction markets — every contender’s probability of being named the tournament’s best player, aggregated across Polymarket and more, updated continuously on Predacle.',
+    match: {
+      // Full-phrase anchor isolates the best-player award from the Golden Boot
+      // (top scorer) and the main winner/reach pages. Phrased "win the Golden
+      // Ball at the 2026 FIFA World Cup"; the 'win the' verb captures the player
+      // name. Accent player names rely on the accent fix already shipped.
+      any: ['golden ball at the 2026 fifa world cup'],
+      exclude: ['who wins', 'who will win'],
+    },
+    keywords: ['2026 world cup golden ball odds', 'world cup golden ball odds', 'world cup best player odds 2026', 'who will win the golden ball 2026'],
   },
 }
 
