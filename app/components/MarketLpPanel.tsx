@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { affiliateUrl } from '@/lib/affiliate'
+import LpEstimator from './LpEstimator'
 
 interface LpFactors { reward: number; time: number; price: number; spread: number; volume: number }
 interface LpOpportunity {
@@ -159,6 +160,17 @@ export default function MarketLpPanel({ marketId, platform, dark }: { marketId: 
             ? 'Kalshi runs a liquidity-incentive program but doesn’t publish per-market pools — verify the live pool and your region’s eligibility on Kalshi. You earn whether or not your orders fill. Not financial advice.'
             : 'This is the market’s total daily pool, not your guaranteed share — your earnings depend on your share of resting liquidity near the midpoint, so a more contested pool means a thinner cut. Check the live order book first. Not financial advice.'}
         </p>
+
+        {/* Reward estimator */}
+        <LpEstimator
+          dailyReward={opp.daily_reward}
+          competition={opp.competition ?? null}
+          price={opp.price}
+          spread={opp.spread}
+          days={opp.days}
+          minSize={opp.min_size}
+          dark={dark}
+        />
 
         {/* CTA + link */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>

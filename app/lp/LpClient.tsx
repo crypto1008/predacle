@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { affiliateUrl } from '@/lib/affiliate'
+import LpEstimator from '@/app/components/LpEstimator'
 
 /* ---------- shape returned by /api/lp ---------- */
 interface LpFactors { reward: number; time: number; price: number; spread: number; volume: number }
@@ -337,6 +338,14 @@ function LpCard({ opp, dark }: { opp: LpOpportunity; dark: boolean }) {
             </span>
           ))}
         </div>
+
+        {/* Collapsible reward estimator (Polymarket only — needs a published pool) */}
+        {!isKalshi && (
+          <details style={{ marginTop: 12 }}>
+            <summary style={{ cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#0052ff', listStyle: 'none' }}>🧮 Estimate your rewards</summary>
+            <LpEstimator compact dailyReward={opp.daily_reward} competition={opp.competition ?? null} price={opp.price} spread={opp.spread} days={opp.days} minSize={opp.min_size} dark={dark} />
+          </details>
+        )}
       </div>
 
       {/* CTA */}
