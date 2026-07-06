@@ -417,6 +417,27 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     },
     keywords: ['2026 womens us open odds', 'us open womens singles odds 2026', 'us open women champion odds 2026', 'who will win the us open 2026 women'],
   },
+
+  '2026-mens-us-open': {
+    slug: '2026-mens-us-open',
+    question: 'What are the odds to win the 2026 Men’s US Open?',
+    structure: 'simple',
+    intro:
+      'One player wins the 2026 US Open men’s singles. This page aggregates the live title markets across platforms, so you can see which players the money favours — updated continuously.',
+    description:
+      'Live 2026 Men’s US Open odds from prediction markets — every player’s title probability, aggregated across Polymarket, Kalshi and more, updated continuously on Predacle.',
+    match: {
+      // Same men’s/women’s disambiguation as the Wimbledon + Women’s US Open
+      // pages: the anchor leads with "2026 " so it can never be a substring of
+      // the women’s field. "women’s us open" contains "men’s us open", BUT
+      // "2026 women’s us open" does NOT contain "2026 men’s us open" — the
+      // year+space breaks the overlap. Curly ’ (U+2019) matches the live
+      // Polymarket question strings (verified: 22 real-money markets, all PM).
+      any: ['2026 men’s us open'],
+      exclude: ['doubles', 'mixed', 'wheelchair', 'junior', 'who wins', 'who will win'],
+    },
+    keywords: ['2026 mens us open odds', 'us open mens singles odds 2026', 'us open men champion odds 2026', 'who will win the us open 2026 men'],
+  },
 }
 
 export function getOddsTopic(slug: string): OddsTopic | null {
