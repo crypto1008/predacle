@@ -374,7 +374,7 @@ export function extractContender(qRaw: string): string | null {
   //   "... be the top ..."     (top goalscorer / golden boot markets)
   // Bare "be" is deliberately NOT a delimiter — it would match prop markets
   // ("... be eliminated", "... be a finalist") and mis-extract a contender.
-  let m = q.match(/^(.*?)\s+(?:to\s+)?(?:win(?:s)?|reach(?:es)?|be the top)\b/i)
+  let m = q.match(/^(.*?)\s+(?:to\s+)?(?:win(?:s)?|reach(?:es)?|be the top|lead(?:s)? the)\b/i)
   // Fallback for "[X] be the <year> <event> winner/champion" title markets
   // (Wimbledon, F1 constructors/drivers). Fires only when no win/reach/be-the-top
   // verb matched AND the question ends in winner/champion, so existing pages are

@@ -259,6 +259,48 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     keywords: ['2027 nba finals odds', 'nba championship odds 2027', 'nba title odds 2027', 'who will win the nba finals 2027'],
   },
 
+  // ---------------------------------------------------------------------------
+  // MLB 2026 regular-season stat leaders. Discovered via /api/odds-discover.
+  // Only Doubles + ERA cleared the contest-shape gate (>=3 contenders above 4%,
+  // no runaway favorite). RBIs/Runs/Stolen-bases shelved as thin/lopsided.
+  // Uses the 'lead(s) the' extractor delimiter added in this same commit.
+  // Full-phrase anchors + cross-stat excludes keep the two pages from bleeding
+  // into each other (all share 'lead the mlb in'). One known extractor edge:
+  // 'Gavin Williams' (ERA) rejects, but it sits at 0% (below threshold) so the
+  // rendered field is unaffected.
+  // ---------------------------------------------------------------------------
+  '2026-mlb-doubles-leader': {
+    slug: '2026-mlb-doubles-leader',
+    question: 'What are the odds to lead the MLB in doubles in 2026?',
+    structure: 'simple',
+    intro:
+      'One hitter leads Major League Baseball in doubles across the 2026 regular season. This page aggregates the live leader markets across platforms, so you can see which players the money favours \u2014 updated continuously.',
+    description:
+      'Live 2026 MLB doubles leader odds from prediction markets \u2014 every contender\u2019s probability of leading the majors in doubles, aggregated across Polymarket and more, updated continuously on Predacle.',
+    match: {
+      // Full-phrase anchor isolates the doubles race; excludes name the other
+      // four stat categories so they can never cross-contaminate this field.
+      any: ['lead the mlb in doubles'],
+      exclude: ['rbis', 'era', 'runs', 'stolen bases', 'who wins', 'who will win'],
+    },
+    keywords: ['2026 mlb doubles leader odds', 'mlb doubles leader 2026', 'who will lead mlb in doubles 2026', 'mlb doubles odds 2026'],
+  },
+  '2026-mlb-era-leader': {
+    slug: '2026-mlb-era-leader',
+    question: 'What are the odds to lead the MLB in ERA in 2026?',
+    structure: 'simple',
+    intro:
+      'One pitcher leads Major League Baseball in ERA across the 2026 regular season. This page aggregates the live leader markets across platforms, so you can see which arms the money favours \u2014 updated continuously.',
+    description:
+      'Live 2026 MLB ERA leader odds from prediction markets \u2014 every contender\u2019s probability of posting the lowest ERA in the majors, aggregated across Polymarket and more, updated continuously on Predacle.',
+    match: {
+      // Full-phrase anchor isolates the ERA race; excludes the other four stats.
+      any: ['lead the mlb in era'],
+      exclude: ['rbis', 'doubles', 'runs', 'stolen bases', 'who wins', 'who will win'],
+    },
+    keywords: ['2026 mlb era leader odds', 'mlb era leader 2026', 'who will lead mlb in era 2026', 'lowest era mlb 2026'],
+  },
+
   '2027-french-presidential-election': {
     slug: '2027-french-presidential-election',
     question: 'What are the odds to win the 2027 French presidential election?',
