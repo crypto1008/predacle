@@ -433,7 +433,7 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
       // "2026 women’s us open" does NOT contain "2026 men’s us open" — the
       // year+space breaks the overlap. Curly ’ (U+2019) matches the live
       // Polymarket question strings (verified: 22 real-money markets, all PM).
-      any: ['2026 men’s us open'],
+      any: ['2026 men’s us open', '2026 men\'s us open'],
       exclude: ['doubles', 'mixed', 'wheelchair', 'junior', 'who wins', 'who will win'],
     },
     keywords: ['2026 mens us open odds', 'us open mens singles odds 2026', 'us open men champion odds 2026', 'who will win the us open 2026 men'],
