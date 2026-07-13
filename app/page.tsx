@@ -10,7 +10,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Predacle — Prediction Market Aggregator',
     description: 'Browse 16,000+ prediction markets across 6 platforms. Live probabilities, real trading volumes.',
+    url: '/',
+    siteName: 'Predacle',
+    locale: 'en_US',
+    type: 'website',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Predacle — Every prediction market, one place' }],
   },
+  alternates: { canonical: '/' },
 }
 
 export default function HomePage() {

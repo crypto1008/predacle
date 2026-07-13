@@ -47,7 +47,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title: `${a.label} vs ${b.label} (2026): Full Comparison + Live Price Gaps`,
       description: desc,
       url: `${SITE}/compare/${canonical}`,
+      siteName: 'Predacle',
+      locale: 'en_US',
       type: 'article',
+      images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Predacle — Every prediction market, one place' }],
     },
     twitter: { card: 'summary_large_image', title: `${a.label} vs ${b.label} — Predacle`, description: desc },
   }
