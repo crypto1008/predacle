@@ -180,6 +180,20 @@ export default function Footer() {
             </ul>
           </div>
 
+          {/* Tools & guides — these were previously orphan pages (no internal
+              links anywhere on the site), which starves them of crawl priority. */}
+          <div>
+            <p style={head}>Tools</p>
+            <ul style={{ listStyle: 'none', ...col }}>
+              <li><Link href="/lp" style={lnk}>LP Rewards Scanner</Link></li>
+              <li><Link href="/guides/lp-rewards" style={lnk}>LP Rewards Guide</Link></li>
+              <li><Link href="/arbitrage" style={lnk}>Price Divergence</Link></li>
+              <li><Link href="/odds" style={lnk}>Aggregated Odds</Link></li>
+              <li><Link href="/signals" style={lnk}>Signals</Link></li>
+              <li><Link href="/leaderboard" style={lnk}>Leaderboard</Link></li>
+            </ul>
+          </div>
+
           {/* Company */}
           <div>
             <p style={head}>Company</p>
