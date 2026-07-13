@@ -37,7 +37,12 @@ const pct = (n: number | null | undefined) => (n == null ? '—' : `${Math.round
 
 function platformsIn(rows: CandidateRow[]): string[] {
   const seen = new Set<string>()
-  for (const r of rows) for (const p of r.prices) seen.add(p.platform)
+  for (const r of rows) {
+    if (!r || !Array.isArray(r.prices)) continue
+    for (const p of r.prices) {
+      if (p && typeof p.platform === 'string' && p.platform) seen.add(p.platform)
+    }
+  }
   const all = [...seen].map(cap)
   const real = all.filter((p) => REAL_MONEY.includes(p)).sort()
   const play = all.filter((p) => !REAL_MONEY.includes(p)).sort()
@@ -55,7 +60,13 @@ function listNames(rows: CandidateRow[], n: number): string {
 function contendersOf(data: SimpleTopicOdds | TopicOdds | null): CandidateRow[] {
   if (!data) return []
   const s = data as SimpleTopicOdds
-  return Array.isArray(s.contenders) ? s.contenders : []
+  if (!Array.isArray(s.contenders)) return []
+  // Defensive: never trust the shape. A single malformed row must not 500 the
+  // whole page. (This module runs at request time; tsc and `next build` do not
+  // execute it, so a runtime shape surprise reaches users, not the build.)
+  return s.contenders.filter(
+    (r): r is CandidateRow => !!r && typeof r.name === 'string' && r.name.length > 0,
+  )
 }
 
 // -----------------------------------------------------------------------------
@@ -65,14 +76,19 @@ function contendersOf(data: SimpleTopicOdds | TopicOdds | null): CandidateRow[] 
 // "fEDERAl", "sevERAl", "opERAtions" and would misfile those pages.
 // -----------------------------------------------------------------------------
 export type Flavour =
-  | 'statleader' | 'tennis' | 'soccer' | 'baseball'
+  | 'statleader' | 'award' | 'tennis' | 'soccer' | 'baseball'
   | 'nfl' | 'nba' | 'f1' | 'politics' | 'generic'
 
 export function topicFlavour(slug: string, question: string): Flavour {
-  const s = `${slug} ${question}`.toLowerCase()
+  const s = `${slug || ''} ${question || ''}`.toLowerCase()
   if (/lead the|leader|\bera\b|doubles|rbis|stolen bases|home runs/.test(s)) return 'statleader'
+  // Individual awards MUST be checked before 'soccer'. A Ballon d'Or or Golden
+  // Boot market is a voted/counted individual prize, NOT a tournament: it has no
+  // group stage, no knockout bracket, and no team surviving games. Routing them
+  // to the soccer explainer put factually wrong prose on those pages.
+  if (/ballon|golden boot|golden ball|golden glove|top goalscorer|top scorer|best young|player of the/.test(s)) return 'award'
   if (/wimbledon|us open|australian open|french open|roland|tennis/.test(s)) return 'tennis'
-  if (/world cup|ballon|golden boot|golden ball|mls|premier league|champions league/.test(s)) return 'soccer'
+  if (/world cup|mls|premier league|champions league/.test(s)) return 'soccer'
   if (/world series|mlb/.test(s)) return 'baseball'
   if (/super bowl|nfl|afc|nfc/.test(s)) return 'nfl'
   if (/nba/.test(s)) return 'nba'
@@ -85,7 +101,8 @@ export function topicFlavour(slug: string, question: string): Flavour {
 function actor(f: Flavour): string {
   switch (f) {
     case 'tennis': return 'player'
-    case 'soccer': return 'player'
+    case 'soccer': return 'team'
+    case 'award': return 'player'
     case 'statleader': return 'player'
     case 'f1': return 'driver'
     case 'politics': return 'candidate'
@@ -165,7 +182,8 @@ export function buildOddsFaq(
 
   const faq: FaqItem[] = []
 
-  const src = lead.prices.find((p) => REAL_MONEY.includes(cap(p.platform)))
+  const leadPrices = Array.isArray(lead.prices) ? lead.prices : []
+  const src = leadPrices.find((p) => p && typeof p.platform === 'string' && REAL_MONEY.includes(cap(p.platform)))
   faq.push({
     q: favouriteQuestion(question),
     a: `${lead.name}, at ${pct(lead.topProbability)}${src ? ` on ${cap(src.platform)}` : ''}. That is the market's view right now, not a prediction. It moves whenever someone takes a position.`,
@@ -215,12 +233,25 @@ const FLAVOUR_SECTIONS: Record<Flavour, ExplainerSection[]> = {
   ],
   soccer: [
     {
-      h: 'Reading a tournament field',
-      p: 'Soccer outrights price a whole tournament, not a match. A team at 12% is not 12% likely to win any given game; it is 12% likely to survive every game it has left. Group stage results, the shape of the knockout bracket and a single red card can all reprice the board overnight, which is why these numbers move more than a league table would suggest.',
+      h: 'Reading a knockout field',
+      p: 'A soccer outright prices a whole competition, not a match. A team at 12% is not 12% likely to win any single game; it is 12% likely to survive every game it has left. That is a very different question, and it is why these numbers swing harder than a league table would suggest. The draw matters enormously. One red card in a quarter-final can reprice the entire board overnight.',
     },
     {
-      h: 'Player awards move differently to team markets',
-      p: 'Individual awards like the Golden Boot or Ballon d\'Or carry a voter or a counting rule behind them, so they respond to narrative as well as performance. A striker on a deep-running team gets more games to score in. That structural advantage shows up in the price long before it shows up on the pitch.',
+      h: 'Why the favourite is rarely above 25%',
+      p: 'Soccer is low-scoring, and low-scoring sports are upset-friendly. The better team wins a single knockout tie far less reliably than in basketball, and a tournament asks a side to win several of them back to back. Even the best team in the world usually sits in the teens or low twenties here, and that is the market being sensible rather than indecisive.',
+    },
+  ],
+
+  // Individual awards: voted or counted, not won on a bracket. Kept SEPARATE from
+  // 'soccer' because the tournament framing above is simply false for these.
+  award: [
+    {
+      h: 'An award is not a tournament',
+      p: 'Nobody wins the Ballon d\'Or by surviving a bracket. These markets price a vote or a count at the end of a season, so they move with performance, narrative and minutes on the pitch rather than with a draw. That makes them slower and stickier than a knockout market. A single bad game rarely moves the number much; a six-week scoring run does.',
+    },
+    {
+      h: 'Why the favourite often plays for the best team',
+      p: 'Individual prizes carry a structural bias toward players on winning sides. A striker in a team that goes deep simply gets more games, more chances and more attention from whoever is voting. That advantage is priced in long before the season ends, which is why a slightly worse player on a much better team frequently trades above a better player on a mediocre one.',
     },
   ],
   statleader: [
@@ -309,8 +340,11 @@ const SHARED_SECTIONS: ExplainerSection[] = [
 ]
 
 export function buildOddsExplainer(slug: string, question: string): ExplainerSection[] {
-  const f = topicFlavour(slug, question)
-  return [...FLAVOUR_SECTIONS[f], ...SHARED_SECTIONS]
+  const f = topicFlavour(slug || '', question || '')
+  // Fall back to 'generic' rather than spreading undefined if a flavour key is
+  // ever missing from the record.
+  const flavoured = FLAVOUR_SECTIONS[f] ?? FLAVOUR_SECTIONS.generic
+  return [...flavoured, ...SHARED_SECTIONS]
 }
 
 /** Back-compat: the previous export. Kept so nothing breaks if it is imported
