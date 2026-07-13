@@ -6,7 +6,7 @@ import Footer from '../../components/Footer'
 import OddsClient from './OddsClient'
 import { getOddsTopic } from '@/lib/odds-topics'
 import { getTopicOdds, getSimpleTopicOdds } from '@/lib/odds-data'
-import { buildOddsFaq, ODDS_EXPLAINER } from '@/lib/odds-content'
+import { buildOddsFaq, buildOddsExplainer, buildOddsSummary } from '@/lib/odds-content'
 
 export const revalidate = 900
 
@@ -51,8 +51,10 @@ export default async function OddsTopicPage({ params }: { params: Promise<{ slug
     data?.headline ||
     'Prediction markets are actively pricing this; see the live odds below.'
 
-  // Generated from live data — no invented numbers. [] for election structure.
+  // All generated from live data — no invented numbers. Empty/[] for election structure.
   const faq = buildOddsFaq(topic.question, data)
+  const summary = buildOddsSummary(topic.question, data)
+  const explainer = buildOddsExplainer(slug, topic.question)
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -103,6 +105,14 @@ export default async function OddsTopicPage({ params }: { params: Promise<{ slug
       {/* Server-rendered SEO content. Lives here, NOT in OddsClient, so it lands
           in the SSR HTML rather than being client-painted. */}
       <section className="odds-seo" style={{ maxWidth: 760, margin: '0 auto', padding: '8px 20px 48px' }}>
+        {/* Answer-first summary. Written to be liftable as a featured snippet:
+            direct, factual, numbers in prose rather than only in table cells. */}
+        {summary && (
+          <p style={{ fontSize: 16, lineHeight: 1.7, marginTop: 24, marginBottom: 8, fontWeight: 500 }}>
+            {summary}
+          </p>
+        )}
+
         {faq.length > 0 && (
           <>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginTop: 32, marginBottom: 16 }}>
@@ -120,7 +130,7 @@ export default async function OddsTopicPage({ params }: { params: Promise<{ slug
         <h2 style={{ fontSize: 20, fontWeight: 700, marginTop: 32, marginBottom: 16 }}>
           Understanding these odds
         </h2>
-        {ODDS_EXPLAINER.map((s, i) => (
+        {explainer.map((s, i) => (
           <div key={i} style={{ marginBottom: 20 }}>
             <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>{s.h}</h3>
             <p style={{ fontSize: 15, lineHeight: 1.6, opacity: 0.85 }}>{s.p}</p>

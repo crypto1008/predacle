@@ -1,21 +1,22 @@
 // lib/odds-content.ts
 // -----------------------------------------------------------------------------
-// Server-side SEO content for /odds/[slug] pages.
+// Server-side SEO content for /odds/[slug].
 //
-// WHY: the odds pages render ~60 words of prose around a live table. Google has
-// almost nothing to rank. This module supplies (a) an evergreen explainer that is
-// genuinely the same on every page (a glossary, not padding), and (b) a per-topic
-// FAQ generated from that topic's REAL field data, so each page carries unique,
-// accurate, self-updating content no competitor can copy.
+// Three things ship from here:
+//   1. buildOddsSummary()   — a short, extractable answer paragraph. Written to
+//                             be liftable as a featured snippet (Google pulls
+//                             those from page text, not from schema).
+//   2. buildOddsFaq()       — 5 Q&As generated from the topic's LIVE field.
+//   3. buildOddsExplainer() — evergreen sections that VARY BY TOPIC TYPE, so a
+//                             tennis page does not carry byte-identical prose to
+//                             an MLB stat-leader page. Duplicate blocks across
+//                             ~20 pages is a real thin-content risk; this is the
+//                             fix for it.
 //
-// Everything here is pure data/strings — rendered as SERVER JSX in page.tsx,
-// below <OddsClient>, so it lands in the SSR HTML. OddsClient is 'use client'
-// and is deliberately NOT touched.
-//
-// Correctness rules honoured (same as odds-data.ts):
-//   * headline figures are best REAL-MONEY prices; Manifold is signal only
-//   * never claim a favourite from a play-money price
-//   * never invent a number — every figure below is read from the live data
+// HARD RULE: every number here is read from live data. Nothing is invented and
+// nothing is LLM-rewritten at runtime. Prediction-market odds are financial
+// content, and a hallucinated figure would be worse than no page at all.
+// Manifold is play-money and never drives a favourite claim.
 // -----------------------------------------------------------------------------
 import type { SimpleTopicOdds, TopicOdds, CandidateRow } from './odds-data'
 
@@ -24,22 +25,23 @@ export interface FaqItem {
   a: string
 }
 
+export interface ExplainerSection {
+  h: string
+  p: string
+}
+
 const REAL_MONEY = ['Polymarket', 'Kalshi', 'Myriad', 'Limitless', 'Bookmaker']
 
-/** Distinct platform labels present in a contender list, real-money first. */
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+const pct = (n: number | null | undefined) => (n == null ? '—' : `${Math.round(n)}%`)
+
 function platformsIn(rows: CandidateRow[]): string[] {
   const seen = new Set<string>()
   for (const r of rows) for (const p of r.prices) seen.add(p.platform)
-  const label = (p: string) => p.charAt(0).toUpperCase() + p.slice(1)
-  const all = [...seen].map(label)
-  const real = all.filter((p) => REAL_MONEY.includes(p))
-  const play = all.filter((p) => !REAL_MONEY.includes(p))
-  return [...real.sort(), ...play.sort()]
-}
-
-function pct(n: number | null | undefined): string {
-  if (n == null) return '—'
-  return `${Math.round(n)}%`
+  const all = [...seen].map(cap)
+  const real = all.filter((p) => REAL_MONEY.includes(p)).sort()
+  const play = all.filter((p) => !REAL_MONEY.includes(p)).sort()
+  return [...real, ...play]
 }
 
 function listNames(rows: CandidateRow[], n: number): string {
@@ -49,109 +51,271 @@ function listNames(rows: CandidateRow[], n: number): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
 }
 
-/**
- * Turn the topic question into a "who is the favourite ..." question.
- * Registry questions come in two shapes:
- *   "What are the odds to win the 2026 Men's US Open?"      -> "... to win ..."
- *   "What are the odds for the 2028 US Presidential Election?" -> "... for ..."
- * Strip the leading stem, keep whatever preposition follows, and fall back to a
- * generic phrasing if the question does not match the expected shape (never
- * emit a mangled sentence onto a live page).
- */
+/** Rows for 'simple' topics. 'election' topics use `sections` and yield []. */
+function contendersOf(data: SimpleTopicOdds | TopicOdds | null): CandidateRow[] {
+  if (!data) return []
+  const s = data as SimpleTopicOdds
+  return Array.isArray(s.contenders) ? s.contenders : []
+}
+
+// -----------------------------------------------------------------------------
+// Topic flavour. Drives which explainer a page gets, so the ~20 odds pages do
+// not all carry the same block of prose.
+// NOTE: \bera\b is word-bounded on purpose. A bare 'era' substring matches
+// "fEDERAl", "sevERAl", "opERAtions" and would misfile those pages.
+// -----------------------------------------------------------------------------
+export type Flavour =
+  | 'statleader' | 'tennis' | 'soccer' | 'baseball'
+  | 'nfl' | 'nba' | 'f1' | 'politics' | 'generic'
+
+export function topicFlavour(slug: string, question: string): Flavour {
+  const s = `${slug} ${question}`.toLowerCase()
+  if (/lead the|leader|\bera\b|doubles|rbis|stolen bases|home runs/.test(s)) return 'statleader'
+  if (/wimbledon|us open|australian open|french open|roland|tennis/.test(s)) return 'tennis'
+  if (/world cup|ballon|golden boot|golden ball|mls|premier league|champions league/.test(s)) return 'soccer'
+  if (/world series|mlb/.test(s)) return 'baseball'
+  if (/super bowl|nfl|afc|nfc/.test(s)) return 'nfl'
+  if (/nba/.test(s)) return 'nba'
+  if (/f1|formula|drivers/.test(s)) return 'f1'
+  if (/election|president|nominee|nomination/.test(s)) return 'politics'
+  return 'generic'
+}
+
+/** The noun a flavour uses for its competitors. */
+function actor(f: Flavour): string {
+  switch (f) {
+    case 'tennis': return 'player'
+    case 'soccer': return 'player'
+    case 'statleader': return 'player'
+    case 'f1': return 'driver'
+    case 'politics': return 'candidate'
+    case 'baseball':
+    case 'nfl':
+    case 'nba': return 'team'
+    default: return 'contender'
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 1. Extractable summary. Short, factual, front-loaded. This is the paragraph a
+//    featured snippet would lift, so it answers the question in the first
+//    sentence and puts the numbers in plain text rather than in table cells.
+// -----------------------------------------------------------------------------
+export function buildOddsSummary(
+  question: string,
+  data: SimpleTopicOdds | TopicOdds | null,
+): string | null {
+  const rows = contendersOf(data)
+  if (rows.length === 0 || !data) return null
+
+  const lead = rows[0]
+  const second = rows[1]
+  const f = topicFlavour('', question)
+  const noun = actor(f)
+  const threshold = data.threshold ?? 4
+  const above = rows.length
+  const hidden = (data as SimpleTopicOdds).hiddenCount ?? 0
+  const platforms = platformsIn(rows)
+
+  // Construction note: the subject is always "the market", never the contender.
+  // Team names are plural ("Kansas City Chiefs lead" vs "Jannik Sinner leads"),
+  // and there is no clean way to agree the verb across both. Keeping the verb
+  // attached to "the market" sidesteps it entirely.
+  const parts: string[] = []
+  parts.push(
+    second
+      ? `The market makes ${lead.name} the favourite at ${pct(lead.topProbability)}, ahead of ${second.name} at ${pct(second.topProbability)}.`
+      : `The market makes ${lead.name} the favourite at ${pct(lead.topProbability)}.`,
+  )
+  const venue =
+    platforms.length === 1
+      ? `${platforms[0]} prices`
+      : `${platforms.join(' and ')} price`
+  parts.push(
+    `${venue} ${above + hidden} ${noun}s in total, with ${above} above ${threshold}%.`,
+  )
+  parts.push('These are live prices and they move as money does.')
+  return parts.join(' ')
+}
+
+// -----------------------------------------------------------------------------
+// 2. FAQ, generated per topic from live data.
+// -----------------------------------------------------------------------------
 function favouriteQuestion(question: string): string {
   const m = question.match(/^What are the odds\s+(.*?)\??$/i)
   if (!m || !m[1]) return 'Who is the favourite?'
   return `Who is the favourite ${m[1].trim()}?`.replace(/\s+/g, ' ')
 }
 
-/**
- * Build a per-topic FAQ from live data. Returns [] when data is missing, so the
- * page degrades to no-FAQ rather than emitting empty or invented answers.
- */
 export function buildOddsFaq(
   question: string,
   data: SimpleTopicOdds | TopicOdds | null,
 ): FaqItem[] {
-  if (!data) return []
-  // 'election' structure (TopicOdds) has `sections`, not `contenders`, so rows
-  // comes back empty and we return [] — that page gets the explainer but no FAQ.
-  // Deliberate: safe degradation over bolting on a second code path. ~20 of ~21
-  // topics are 'simple'. Election pages can get bespoke treatment later.
-  const simple = data as SimpleTopicOdds
-  const rows: CandidateRow[] = Array.isArray(simple.contenders) ? simple.contenders : []
-  if (rows.length === 0) return []
+  const rows = contendersOf(data)
+  if (rows.length === 0 || !data) return []
 
   const lead = rows[0]
   const threshold = data.threshold ?? 4
   const platforms = platformsIn(rows)
+  const simple = data as SimpleTopicOdds
   const realCount = simple.realMoneyCount ?? 0
   const playCount = simple.playOnlyCount ?? 0
   const hidden = simple.hiddenCount ?? 0
+  const noun = actor(topicFlavour('', question))
 
   const faq: FaqItem[] = []
 
-  // NOTE: we deliberately do NOT re-ask the page's own H1 question here. The
-  // headline above the table already answers it, and duplicative Q&As are a
-  // known FAQPage rich-result problem. The FAQ adds, it does not echo.
+  const src = lead.prices.find((p) => REAL_MONEY.includes(cap(p.platform)))
+  faq.push({
+    q: favouriteQuestion(question),
+    a: `${lead.name}, at ${pct(lead.topProbability)}${src ? ` on ${cap(src.platform)}` : ''}. That is the market's view right now, not a prediction. It moves whenever someone takes a position.`,
+  })
 
-  // 2. Who is favourite (only from a real-money price).
-  if (lead) {
-    const src = lead.prices.find((p) => REAL_MONEY.includes(p.platform.charAt(0).toUpperCase() + p.platform.slice(1)))
-    const where = src ? ` on ${src.platform.charAt(0).toUpperCase() + src.platform.slice(1)}` : ''
-    faq.push({
-      q: favouriteQuestion(question),
-      a: `${lead.name} is the current favourite at around ${pct(lead.topProbability)}${where}. Prices move continuously as traders take positions, so this can change.`,
-    })
-  }
-
-  // 3. Who else is in contention.
   if (rows.length >= 3) {
     faq.push({
       q: 'Who else is in contention?',
-      a: `Besides ${lead.name}, the market is pricing ${listNames(rows.slice(1), 3)} as the next most likely${rows.length > 4 ? `, with ${rows.length} contenders priced above ${threshold}% in total` : ''}. ${hidden > 0 ? `A further ${hidden} long-shot${hidden === 1 ? '' : 's'} price below ${threshold}% and are summarised as a count rather than listed.` : ''}`.trim(),
+      a: `${listNames(rows.slice(1), 3)} are the next names on the board. ${hidden > 0 ? `Another ${hidden} ${noun}${hidden === 1 ? '' : 's'} sit below ${threshold}%, so they are counted rather than listed.` : `That is the full field above ${threshold}%.`}`,
     })
   }
 
-  // 4. Which platforms — the cross-platform value prop.
-  if (platforms.length > 0) {
-    faq.push({
-      q: 'Which prediction markets have odds on this?',
-      a: `These odds are aggregated from ${platforms.join(', ')}. ${realCount > 0 ? `${realCount} contender${realCount === 1 ? '' : 's'} ${realCount === 1 ? 'is' : 'are'} priced on real-money markets.` : ''} ${playCount > 0 ? `${playCount} appear${playCount === 1 ? 's' : ''} only on play-money markets and ${playCount === 1 ? 'is' : 'are'} shown as forecasting signal, not as a price you can trade.` : ''}`.trim(),
-    })
-  }
-
-  // 5. How to read the number.
   faq.push({
-    q: 'What does the percentage actually mean?',
-    a: `Each number is the market's implied probability of that outcome. A contract trading at ${pct(lead?.topProbability ?? 24)} means traders collectively price roughly a ${pct(lead?.topProbability ?? 24)} chance of it happening. It is a live price set by people risking money, not a forecast from Predacle.`,
+    q: 'Which prediction markets have odds on this?',
+    a: `${platforms.join(', ')}.${realCount > 0 ? ` ${realCount} ${noun}${realCount === 1 ? '' : 's'} ${realCount === 1 ? 'is' : 'are'} priced with real money.` : ''}${playCount > 0 ? ` ${playCount} appear${playCount === 1 ? 's' : ''} only on play-money markets, so ${playCount === 1 ? 'it is' : 'they are'} shown as signal, not as a tradeable price.` : ''}`,
   })
 
-  // 6. Freshness.
+  faq.push({
+    q: 'What does the percentage actually mean?',
+    a: `It is a price, and the price is the probability. A contract at ${pct(lead.topProbability)} means traders are collectively paying ${pct(lead.topProbability)} of a dollar for a payout that comes only if it happens. Nobody at Predacle sets that number. The market does.`,
+  })
+
   faq.push({
     q: 'How often do these odds update?',
-    a: 'Market data refreshes roughly every 30 minutes, so the probabilities on this page track the live markets closely. Always open the source market before trading — order books move faster than any aggregator.',
+    a: 'Every 30 minutes or so. That is close enough to track the market, but not close enough to trade on blind. Open the source market and check the order book first.',
   })
 
   return faq
 }
 
-/** Evergreen explainer sections. Identical on every odds page by design: this is
- *  a glossary, not filler. Written once, server-rendered everywhere. */
-export const ODDS_EXPLAINER: { h: string; p: string }[] = [
-  {
-    h: 'How to read prediction market odds',
-    p: 'A prediction market contract pays out $1 if an outcome happens and nothing if it does not. So its price is its probability: a contract trading at 24 cents means the market prices roughly a 24% chance. Unlike a bookmaker\u2019s line, nobody sets these numbers \u2014 they are discovered by traders buying and selling, and they move the moment the crowd changes its mind.',
-  },
+// -----------------------------------------------------------------------------
+// 3. Explainer, varied by flavour. Two sections are written per topic type; two
+//    are shared (they are factual disclosures, and repeating a disclosure is
+//    correct). This keeps each page's prose distinct without pretending a
+//    definition changes between sports.
+// -----------------------------------------------------------------------------
+const FLAVOUR_SECTIONS: Record<Flavour, ExplainerSection[]> = {
+  tennis: [
+    {
+      h: 'How a tennis outright market prices a draw',
+      p: 'A Grand Slam field is top-heavy by nature. Two or three players take most of the probability, and the rest of the draw splits what is left. That is not the market being lazy. Seeded players meet nobody dangerous until the second week, so their path is genuinely easier, and the price reflects it. Watch what happens when the bracket comes out: prices move on who landed in whose half, before a ball is struck.',
+    },
+    {
+      h: 'Why a big name can sit at 2%',
+      p: 'A former champion priced in the low single digits has not been written off. It means the market thinks they win this specific event roughly one time in fifty. Seven matches is a long way to go. Injury risk, surface, form and the draw all compound, and the maths punishes even great players who have to beat three of the top five to lift the trophy.',
+    },
+  ],
+  soccer: [
+    {
+      h: 'Reading a tournament field',
+      p: 'Soccer outrights price a whole tournament, not a match. A team at 12% is not 12% likely to win any given game; it is 12% likely to survive every game it has left. Group stage results, the shape of the knockout bracket and a single red card can all reprice the board overnight, which is why these numbers move more than a league table would suggest.',
+    },
+    {
+      h: 'Player awards move differently to team markets',
+      p: 'Individual awards like the Golden Boot or Ballon d\'Or carry a voter or a counting rule behind them, so they respond to narrative as well as performance. A striker on a deep-running team gets more games to score in. That structural advantage shows up in the price long before it shows up on the pitch.',
+    },
+  ],
+  statleader: [
+    {
+      h: 'Season-long stat races are noisy',
+      p: 'Leading a league in a single statistic over a full season is a low-probability event even for the best player at it. The favourite here is rarely above 15%. That is not indecision. It reflects how much of a stat title comes down to health, playing time and luck across six months, none of which anyone can price precisely in advance.',
+    },
+    {
+      h: 'Why the favourite looks weak',
+      p: 'A wide, flat field with no runaway leader usually means the market genuinely does not know. Compare that to a championship market, where one team can sit at 40%. If you see a stat leader priced above 20%, it is worth asking what the market knows that the rest of the field does not.',
+    },
+  ],
+  baseball: [
+    {
+      h: 'Why baseball championship odds stay flat',
+      p: 'Baseball is the least predictable of the major sports at the top end. The best team in a 162-game season still loses roughly a third of its games, and a short playoff series is close to a coin flip between good teams. That is why even a dominant favourite rarely clears 20% here, where an NBA favourite might sit at 40%.',
+    },
+    {
+      h: 'What moves the number',
+      p: 'Trade deadlines, rotation health and September form do most of the repricing. A single injury to a front-line starter can move a contender several points, because the playoff maths leans so heavily on the top of a rotation.',
+    },
+  ],
+  nfl: [
+    {
+      h: 'Why NFL futures move so hard',
+      p: 'A 17-game season means every result carries weight, and a single-elimination playoff means one bad afternoon ends a year. The board reprices violently in-season. A team can double its championship price on a two-game win streak, then give it all back on a quarterback injury.',
+    },
+    {
+      h: 'Conference markets versus the championship',
+      p: 'A conference title market prices reaching the final, not winning it. The two are related but not identical, and the gap between a team\'s conference price and its championship price tells you what the market thinks of its chances in the last game.',
+    },
+  ],
+  nba: [
+    {
+      h: 'Why basketball favourites price so high',
+      p: 'Basketball is the most favourite-friendly of the major sports. Best-of-seven series suppress upsets, and star players affect a far larger share of possessions than in football or baseball. A true contender sitting at 30% or 40% is normal here and would be extraordinary in the MLB market.',
+    },
+    {
+      h: 'What actually moves it',
+      p: 'Injuries to a single star, more than anything else. A championship price can halve on one MRI result. Trade deadline moves matter too, and they matter more than form, because the market is pricing a playoff run that starts months later.',
+    },
+  ],
+  f1: [
+    {
+      h: 'Why one driver can dominate the board',
+      p: 'Formula 1 titles are decided as much by the car as the driver, and car performance is stable across a season in a way that form in a team sport is not. That is why an F1 championship market can look lopsided in a way that would be strange in soccer or baseball. If a car is quickest, it is quickest at most circuits.',
+    },
+    {
+      h: 'What reprices a season',
+      p: 'Regulation changes, upgrade packages and reliability. A single engine failure costs points that cannot be recovered, so DNFs move the title price far more than a bad qualifying session does.',
+    },
+  ],
+  politics: [
+    {
+      h: 'What an election market is actually pricing',
+      p: 'These prices are not polls. A poll measures stated intent today. A market prices the outcome on election day, with everything between now and then already discounted: turnout, campaign money, scandals, and the chance a candidate is not on the ballot at all. That is why a market price and a polling average can disagree for months, and why the market is often the earlier signal.',
+    },
+    {
+      h: 'Nomination markets and election markets are different questions',
+      p: 'Winning a party\'s nomination and winning the general election are separate contracts with separate prices. A candidate can be a heavy favourite for one and a long shot in the other. Reading a nomination price as a presidency price is the most common mistake people make with this data.',
+    },
+  ],
+  generic: [
+    {
+      h: 'How to read these odds',
+      p: 'A prediction market contract pays a dollar if the outcome happens and nothing if it does not. So the price is the probability. A contract at 24 cents means the market is pricing roughly a 24% chance. Nobody sets that number the way a bookmaker sets a line; it is discovered by people buying and selling, and it moves the moment the crowd changes its mind.',
+    },
+    {
+      h: 'Why the field looks the way it does',
+      p: 'A market with one dominant favourite and a flat tail is telling you something different to a market with five names bunched together. The shape of the field is information. A tight field means genuine uncertainty. A lopsided one means the market has largely made up its mind.',
+    },
+  ],
+}
+
+/** Shared factual disclosures. Repeating a disclosure across pages is correct;
+ *  these explain how Predacle sources and filters, and that does not change. */
+const SHARED_SECTIONS: ExplainerSection[] = [
   {
     h: 'Why platforms disagree on the same event',
-    p: 'The same question can trade at different prices on Polymarket, Kalshi, Myriad and Limitless. Each venue has its own traders, its own liquidity and its own fees, so prices drift apart \u2014 particularly on thin markets where a single large order moves the price. Predacle shows the best real-money price across platforms, and a gap between venues is sometimes a genuine signal and sometimes just thin liquidity on one side.',
+    p: 'The same question can trade at different prices on Polymarket, Kalshi, Myriad and Limitless. Each venue has its own traders, its own liquidity and its own fees, so prices drift apart. On thin markets a single large order is enough to open a gap. Predacle shows the best real-money price across venues, and a gap between two of them is sometimes a genuine signal and sometimes just one side being thin.',
   },
   {
-    h: 'Why some contenders are hidden',
-    p: 'Fields like this often carry dozens of long-shots priced under a few percent. Listing every one buries the contest, so contenders below the threshold are summarised as a count instead. Nothing is excluded from the underlying data \u2014 only from the visible table.',
+    h: 'Real money and play money are not the same thing',
+    p: 'Polymarket, Kalshi, Myriad, Limitless and Bookmaker are real-money venues. Their prices reflect capital at risk. Manifold runs on play money, which has not been convertible to anything since March 2025, so its prices appear here as forecasting signal only. A Manifold price never sets a headline number and never ranks a field. If someone shows up priced only on Manifold, the page says so.',
   },
-  {
-    h: 'Real money versus play money',
-    p: 'Polymarket, Kalshi, Myriad, Limitless and Bookmaker are real-money venues: their prices reflect capital at risk. Manifold uses play-money (Mana, which has not been convertible since March 2025), so its prices are shown as forecasting signal only and are never used as a headline probability or to rank a field. When a contender appears only on Manifold, that is stated explicitly.',
-  },
+]
+
+export function buildOddsExplainer(slug: string, question: string): ExplainerSection[] {
+  const f = topicFlavour(slug, question)
+  return [...FLAVOUR_SECTIONS[f], ...SHARED_SECTIONS]
+}
+
+/** Back-compat: the previous export. Kept so nothing breaks if it is imported
+ *  elsewhere. Prefer buildOddsExplainer(slug, question). */
+export const ODDS_EXPLAINER: ExplainerSection[] = [
+  ...FLAVOUR_SECTIONS.generic,
+  ...SHARED_SECTIONS,
 ]
