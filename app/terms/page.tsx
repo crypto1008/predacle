@@ -1,9 +1,18 @@
 import type { Metadata } from 'next'
 import ContentPage from '../components/ContentPage'
 
+const SITE = process.env.NEXT_PUBLIC_APP_URL || 'https://predacle.com'
+const DESC = 'The terms that govern your use of Predacle.'
+
 export const metadata: Metadata = {
   title: 'Terms of Use',
-  description: 'The terms that govern your use of Predacle.',
+  description: DESC,
+  alternates: { canonical: `${SITE}/terms` },
+  openGraph: {
+    title: 'Terms of Use — Predacle', description: DESC, url: `${SITE}/terms`,
+    siteName: 'Predacle', locale: 'en_US', type: 'website',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Predacle — Every prediction market, one place' }],
+  },
 }
 
 const sections: [string, string][] = [

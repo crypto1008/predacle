@@ -71,8 +71,17 @@ export default async function OddsTopicPage({ params }: { params: Promise<{ slug
       // original single-question QAPage otherwise (election structure), so no
       // page ever loses its structured data. Never BOTH — Google treats QAPage
       // and FAQPage as distinct types and mixing them on one page is invalid.
-      faq.length > 0
-        ? {
+      // FAQPage for the ~20 'simple' topics. Election-structure pages generate no
+      // FAQ and now emit NO Q&A schema at all.
+      //
+      // The QAPage fallback was REMOVED: Search Console flagged it on 2026-07-14
+      // for missing `text` (in mainEntity) and `url` (in acceptedAnswer). Rather
+      // than patch those in, drop it — QAPage describes COMMUNITY Q&A pages
+      // (Stack Overflow style, where users post competing answers). It never
+      // described an odds page. Those pages keep BreadcrumbList plus the
+      // sitewide Organization/WebSite graph, which is honest and warning-free.
+      ...(faq.length > 0
+        ? [{
             '@type': 'FAQPage',
             mainEntity: [
               { '@type': 'Question', name: topic.question, acceptedAnswer: { '@type': 'Answer', text: answer } },
@@ -82,15 +91,8 @@ export default async function OddsTopicPage({ params }: { params: Promise<{ slug
                 acceptedAnswer: { '@type': 'Answer', text: f.a },
               })),
             ],
-          }
-        : {
-            '@type': 'QAPage',
-            mainEntity: {
-              '@type': 'Question',
-              name: topic.question,
-              acceptedAnswer: { '@type': 'Answer', text: answer },
-            },
-          },
+          }]
+        : []),
     ],
   }
 

@@ -1,9 +1,26 @@
 import type { Metadata } from 'next'
 import ContentPage from '../components/ContentPage'
 
+const SITE = process.env.NEXT_PUBLIC_APP_URL || 'https://predacle.com'
+const DESC = 'Frequently asked questions about prediction markets and how Predacle aggregates odds across Polymarket, Kalshi, Manifold and more.'
+
 export const metadata: Metadata = {
   title: 'FAQ',
-  description: 'Frequently asked questions about prediction markets and how Predacle aggregates odds across Polymarket, Kalshi, Manifold and more.',
+  description: DESC,
+  alternates: { canonical: `${SITE}/faq` },
+  // Next.js merges metadata SHALLOWLY: without an openGraph block this page
+  // inherits the root layout's, whose url points at the HOMEPAGE. Every field
+  // must be restated, `images` included.
+  openGraph: {
+    title: 'Prediction Market FAQ — Predacle',
+    description: DESC,
+    url: `${SITE}/faq`,
+    siteName: 'Predacle',
+    locale: 'en_US',
+    type: 'website',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Predacle — Every prediction market, one place' }],
+  },
+  twitter: { card: 'summary_large_image', site: '@PredacleHQ', title: 'Prediction Market FAQ — Predacle', description: DESC, images: ['/opengraph-image'] },
 }
 
 const faqs: [string, string][] = [

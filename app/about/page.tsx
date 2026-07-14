@@ -1,9 +1,19 @@
 import type { Metadata } from 'next'
 import ContentPage from '../components/ContentPage'
 
+const SITE = process.env.NEXT_PUBLIC_APP_URL || 'https://predacle.com'
+const DESC = 'Predacle is a prediction market aggregator bringing together live odds from Polymarket, Kalshi, Myriad, Manifold, Limitless and Azuro into one place.'
+
 export const metadata: Metadata = {
   title: 'About',
-  description: 'Predacle is a prediction market aggregator bringing together live odds from Polymarket, Kalshi, Myriad, Manifold, Limitless and Azuro into one place.',
+  description: DESC,
+  alternates: { canonical: `${SITE}/about` },
+  openGraph: {
+    title: 'About Predacle', description: DESC, url: `${SITE}/about`,
+    siteName: 'Predacle', locale: 'en_US', type: 'website',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Predacle — Every prediction market, one place' }],
+  },
+  twitter: { card: 'summary_large_image', site: '@PredacleHQ', title: 'About Predacle', description: DESC, images: ['/opengraph-image'] },
 }
 
 const paragraphs = [
