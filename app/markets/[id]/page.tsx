@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import MarketDetailClient, { type Market } from './MarketDetailClient'
+import { shouldIndexMarket, canonicalOddsSlug } from '@/lib/index-gate'
 
 const PLATFORM_LABELS: Record<string, string> = {
   polymarket: 'Polymarket', kalshi: 'Kalshi', myriad: 'Myriad',
@@ -85,16 +86,33 @@ export async function generateMetadata(
       '. Compare odds across Polymarket, Kalshi, Manifold and more on Predacle.'
   }
 
-  // Keep thin, auto-generated ladder rungs out of the search index.
-  const ladder = isLadderRung(market.question)
+  // The index gate. `follow` ALWAYS stays: the page remains live for users and
+  // link equity still flows through to the odds pages. It simply stops asking to
+  // rank. The sitemap alone cannot achieve this for resolved markets — Google
+  // finds those by crawling /resolved, not the sitemap, which is why archived
+  // props like "Resolved: Malik Tillman: 2+ shots on target" sit in the index.
+  const gate = shouldIndexMarket({
+    id,
+    question: market.question,
+    status: market.status,
+    volume: market.volume,
+    end_date: market.end_date,
+  })
+
+  // Near-duplicate rungs of a set that now has a better home on a curated /odds
+  // page consolidate their signal there rather than throwing it away.
+  const consolidateTo = canonicalOddsSlug(market.question)
+  const canonicalUrl = consolidateTo
+    ? `${getBaseUrl()}/odds/${consolidateTo}`
+    : url
 
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical: url },
+    alternates: { canonical: canonicalUrl },
     openGraph: { title, description, url, siteName: 'Predacle', type: 'website' },
     twitter: { card: 'summary_large_image', title, description },
-    ...(ladder ? { robots: { index: false, follow: true } } : {}),
+    ...(gate.index ? {} : { robots: { index: false, follow: true } }),
   }
 }
 

@@ -2,6 +2,7 @@ import { MetadataRoute } from 'next'
 import { supabaseAdmin } from '@/lib/supabase'
 import { PLATFORM_KEYS, getPlatform } from '@/lib/platforms'
 import { ODDS_TOPIC_SLUGS } from '@/lib/odds-topics'
+import { shouldIndexMarket, canonicalOddsSlug } from '@/lib/index-gate'
 
 // Build canonical compare-pair slugs. Only "anchored" pairs (at least one of the
 // well-documented platforms) go in the sitemap, to avoid thin two-stub pages.
@@ -35,6 +36,17 @@ function isLadderRung(question?: string | null): boolean {
   return /[—–-]\s*\$\s*[\d,]+(?:\.\d+)?\s*(?:or|and)\s+(?:above|below|higher|lower|more|less)\b/i.test(question)
 }
 
+// Only markets that pass the index gate go in the sitemap.
+//
+// WAS: every active non-ladder market -> ~7,000 URLs. Search Console reported
+// 42 indexed and 6,929 "Discovered - currently not indexed": Google sampled the
+// set, found ephemeral near-duplicates, and deferred the crawl on the rest —
+// with the curated /odds pages queued behind them.
+//
+// NOW: volume >= $50k AND >= 7 days to resolution AND active AND not a ladder
+// rung AND not a Kalshi outcome set. Measured at ~15% of a live sample, so
+// roughly 1,050 URLs. Markets canonicalised to an /odds page are also dropped —
+// the odds page is already listed and is the URL we want ranked.
 async function getAllMarkets(): Promise<{ id: string; lastmod: string | null }[]> {
   const pageSize = 1000
   let from = 0
@@ -42,14 +54,23 @@ async function getAllMarkets(): Promise<{ id: string; lastmod: string | null }[]
   while (true) {
     const { data, error } = await supabaseAdmin
       .from('markets')
-      .select('id, fetched_at, created_at, question')
+      .select('id, fetched_at, created_at, question, status, volume, end_date')
       .eq('status', 'active')
       .is('ladder_key', null) // exclude tagged ladder rungs
       .order('created_at', { ascending: false })
       .range(from, from + pageSize - 1)
     if (error || !data || data.length === 0) break
     for (const m of data) {
-      if (isLadderRung(m.question)) continue // belt-and-suspenders for any untagged stragglers
+      const gate = shouldIndexMarket({
+        id: m.id,
+        question: m.question,
+        status: m.status,
+        volume: m.volume,
+        end_date: m.end_date,
+      })
+      if (!gate.index) continue
+      // Consolidated onto a curated odds page — that page is the ranking target.
+      if (canonicalOddsSlug(m.question)) continue
       all.push({ id: m.id, lastmod: m.fetched_at || m.created_at || null })
     }
     if (data.length < pageSize) break
