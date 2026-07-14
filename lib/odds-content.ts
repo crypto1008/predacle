@@ -399,11 +399,25 @@ const SHARED_SECTIONS: ExplainerSection[] = [
   },
 ]
 
+// Ladder topics set realMoneyOnly, so Manifold is excluded at the query level.
+// The standard play-money section says Manifold prices "appear here" — which is
+// FALSE on those pages. Swap in an accurate version rather than describing data
+// the reader cannot see. (Financial content: the page must not misdescribe its
+// own inputs.)
+const LADDER_MONEY_SECTION: ExplainerSection = {
+  h: 'Every price here is real money',
+  p: 'Polymarket, Kalshi, Myriad, Limitless and Bookmaker are real-money venues: their prices reflect capital at risk. Manifold runs on play money, which has not been convertible to anything since March 2025, and it is excluded from this page entirely. A price ladder only means something if every rung is a real, tradeable price at the same threshold, so play-money markets are filtered out before the curve is built rather than shown as signal.',
+}
+
 export function buildOddsExplainer(slug: string, question: string): ExplainerSection[] {
   const f = topicFlavour(slug || '', question || '')
   // Fall back to 'generic' rather than spreading undefined if a flavour key is
   // ever missing from the record.
   const flavoured = FLAVOUR_SECTIONS[f] ?? FLAVOUR_SECTIONS.generic
+  if (f === 'ladder') {
+    const shared = SHARED_SECTIONS.filter((s) => !s.h.toLowerCase().includes('play money'))
+    return [...flavoured, ...shared, LADDER_MONEY_SECTION]
+  }
   return [...flavoured, ...SHARED_SECTIONS]
 }
 

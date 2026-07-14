@@ -197,7 +197,20 @@ export default function OddsClient({
         </section>
 
         <p style={{ fontSize: 12, color: txt3, marginTop: 22, lineHeight: 1.6 }}>
-          {`Odds are aggregated from live prediction markets and update continuously. A ${structure === 'simple' ? 'contender' : 'candidate'}\u2019s number is its best real-money price across the platforms shown; play-money (Manifold) is used only when no real-money market exists. Markets below ${data?.threshold ?? 4}% are summarised as a count to keep the page readable. Manifold prices use play-money and are shown for forecasting signal only. Not financial advice.`}
+          {/* The play-money sentences describe data this page may not contain. When
+              playOnlyCount is 0 no Manifold price is displayed at all (always true
+              for realMoneyOnly topics such as the price ladders), so stating that
+              Manifold "is used only when no real-money market exists" is describing
+              something the reader cannot see. Derive it from the data instead. */}
+          {(() => {
+            const noun = structure === 'simple' ? 'contender' : 'candidate'
+            const playOnly = (data as SimpleTopicOdds | null)?.playOnlyCount ?? 0
+            const base = `Odds are aggregated from live prediction markets and update continuously. A ${noun}\u2019s number is its best real-money price across the platforms shown. Markets below ${data?.threshold ?? 4}% are summarised as a count to keep the page readable.`
+            const money = playOnly > 0
+              ? ` Play-money (Manifold) is used only when no real-money market exists, and those prices are shown for forecasting signal only.`
+              : ` Every price on this page is a real-money price; play-money (Manifold) markets are excluded.`
+            return `${base}${money} Not financial advice.`
+          })()}
         </p>
       </main>
     </div>
