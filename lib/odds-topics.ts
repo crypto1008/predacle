@@ -33,6 +33,20 @@ export interface OddsTopic {
     exclude?: string[]       // drop if question contains ANY of these
     category?: string        // optional category filter
   }
+  /**
+   * Drop play-money (Manifold) markets entirely for this topic.
+   *
+   * Default false: most topics keep Manifold as secondary forecasting signal,
+   * which is correct — a Manifold price never sets a headline or ranks a field
+   * (see headlineProb), but it can still show alongside real-money prices.
+   *
+   * Set TRUE for price-ladder topics. A ladder is a quantitative artifact: every
+   * rung must be a real, tradeable price at the same threshold granularity.
+   * Manifold novelty markets ("Open AI IPO before Bitcoin", "If Bitcoin") match
+   * the anchor, are not rungs, and would sit in the middle of the curve. No
+   * substring exclude can keep up with them; this rule can.
+   */
+  realMoneyOnly?: boolean
   keywords: string[]
 }
 
@@ -463,6 +477,7 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
       // rungs ("hit $1m before GTA VI", "reach $1k before it reaches $1m").
       exclude: [' in july', 'on july', 'gta', 'before it reaches'],
     },
+    realMoneyOnly: true,
     keywords: ['bitcoin price prediction 2026', 'will bitcoin hit 100k', 'bitcoin odds 2026', 'will bitcoin reach 150k', 'bitcoin price target odds'],
   },
 
@@ -481,6 +496,7 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
       any: ['bitcoin dip to'],
       exclude: [' in july', 'on july'],
     },
+    realMoneyOnly: true,
     keywords: ['will bitcoin crash 2026', 'bitcoin crash prediction', 'bitcoin price drop odds', 'will bitcoin fall below 50k', 'bitcoin bear market odds 2026'],
   },
 }

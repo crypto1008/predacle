@@ -457,6 +457,15 @@ export async function getSimpleTopicOdds(slug: string): Promise<SimpleTopicOdds 
     .order('volume', { ascending: false, nullsFirst: false })
     .limit(200)
   if (topic.match.category) query = query.eq('category', topic.match.category)
+  // Price ladders exclude play money at the QUERY level. Manifold novelty markets
+  // match ladder anchors ("Open AI IPO before Bitcoin" was landing at 82%, second
+  // row on the curve), are not price rungs, and cannot be kept out by substring
+  // excludes — Manifold generates new ones endlessly. A ladder is a quantitative
+  // artifact: every rung must be a real, tradeable price.
+  //
+  // NOTE: this is deliberately ONLY on the simple path. getTopicOdds (election)
+  // has an identical query block and keeps Manifold as secondary signal.
+  if (topic.realMoneyOnly) query = query.neq('platform', 'manifold')
 
   const { data, error } = await query
   if (error) throw new Error(error.message)
