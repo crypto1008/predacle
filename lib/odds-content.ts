@@ -76,11 +76,18 @@ function contendersOf(data: SimpleTopicOdds | TopicOdds | null): CandidateRow[] 
 // "fEDERAl", "sevERAl", "opERAtions" and would misfile those pages.
 // -----------------------------------------------------------------------------
 export type Flavour =
-  | 'statleader' | 'award' | 'tennis' | 'soccer' | 'baseball'
+  | 'ladder' | 'statleader' | 'award' | 'tennis' | 'soccer' | 'baseball'
   | 'nfl' | 'nba' | 'f1' | 'politics' | 'generic'
 
 export function topicFlavour(slug: string, question: string): Flavour {
   const s = `${slug || ''} ${question || ''}`.toLowerCase()
+  // Price ladders FIRST. These are nested, not mutually exclusive, and every
+  // other flavour's prose would describe them wrongly.
+  // Matches on the SLUG (bitcoin-price-2026) and on the QUESTION text, because
+  // buildOddsSummary/buildOddsFaq call topicFlavour('', question) with an empty
+  // slug — a slug-only regex would silently miss and produce "the favourite
+  // $90,000", which is meaningless on a nested ladder.
+  if (/bitcoin-price|bitcoin-crash|-price-\d{4}|-crash-\d{4}|reaches \$|crashes below/.test(s)) return 'ladder'
   if (/lead the|leader|\bera\b|doubles|rbis|stolen bases|home runs/.test(s)) return 'statleader'
   // Individual awards MUST be checked before 'soccer'. A Ballon d'Or or Golden
   // Boot market is a voted/counted individual prize, NOT a tournament: it has no
@@ -100,6 +107,7 @@ export function topicFlavour(slug: string, question: string): Flavour {
 /** The noun a flavour uses for its competitors. */
 function actor(f: Flavour): string {
   switch (f) {
+    case 'ladder': return 'price level'
     case 'tennis': return 'player'
     case 'soccer': return 'team'
     case 'award': return 'player'
@@ -133,6 +141,22 @@ export function buildOddsSummary(
   const above = rows.length
   const hidden = (data as SimpleTopicOdds).hiddenCount ?? 0
   const platforms = platformsIn(rows)
+
+  // Ladders are NESTED, not competing. Saying "$90,000 is the favourite" would
+  // be nonsense, and a reader summing the rungs would reach a false conclusion.
+  // Describe the curve and state the nesting explicitly.
+  if (f === 'ladder') {
+    const low = rows[0]                       // highest probability = nearest level
+    const high = rows[rows.length - 1]        // lowest probability = furthest level
+    const venue =
+      platforms.length === 1 ? `${platforms[0]} prices` : `${platforms.join(' and ')} price`
+    const bits = [
+      `Prediction markets give ${low.name} a ${pct(low.topProbability)} chance, falling to ${pct(high.topProbability)} at ${high.name}.`,
+      `${venue} ${above + hidden} levels in total.`,
+      'These are nested rather than competing: clearing a higher level means clearing the ones below it, so the percentages do not sum to 100%.',
+    ]
+    return bits.join(' ')
+  }
 
   // Construction note: the subject is always "the market", never the contender.
   // Team names are plural ("Kansas City Chiefs lead" vs "Jannik Sinner leads"),
@@ -182,6 +206,31 @@ export function buildOddsFaq(
 
   const faq: FaqItem[] = []
 
+  // Ladders: no "favourite" concept. The rungs are nested, so the FAQ has to
+  // answer different questions entirely — and must say plainly that the numbers
+  // do not sum to 100%.
+  if (noun === 'price level') {
+    const low = rows[0]
+    const high = rows[rows.length - 1]
+    faq.push({
+      q: 'Do these percentages add up to 100%?',
+      a: `No, and they are not meant to. Each level is a separate contract and they are nested: clearing ${high.name} means also clearing ${low.name} on the way. A lower level is always at least as likely as a higher one. Read the ladder as a curve, not as competing options.`,
+    })
+    faq.push({
+      q: `What are the odds of ${low.name}?`,
+      a: `${pct(low.topProbability)}, which is the most likely level on this board. ${high.name} sits at ${pct(high.topProbability)}. Everything between the two falls on the curve you can see above.`,
+    })
+    faq.push({
+      q: 'Which prediction markets have odds on this?',
+      a: `${platforms.join(', ')}. Each level trades as its own contract, so the prices come from real traders taking positions on that specific threshold, not from an analyst's forecast.`,
+    })
+    faq.push({
+      q: 'How often do these odds update?',
+      a: 'Every 30 minutes or so. Crypto moves faster than that, so open the source market and check the live order book before trading on anything you see here.',
+    })
+    return faq
+  }
+
   const leadPrices = Array.isArray(lead.prices) ? lead.prices : []
   const src = leadPrices.find((p) => p && typeof p.platform === 'string' && REAL_MONEY.includes(cap(p.platform)))
   faq.push({
@@ -221,6 +270,17 @@ export function buildOddsFaq(
 //    definition changes between sports.
 // -----------------------------------------------------------------------------
 const FLAVOUR_SECTIONS: Record<Flavour, ExplainerSection[]> = {
+  ladder: [
+    {
+      h: 'These probabilities do not add up to 100%',
+      p: 'This is the most important thing to understand on this page. A price ladder is not a contest with one winner. Each level is a separate contract, and they are nested: if Bitcoin reaches $150,000 then it has also, on the way, reached $90,000. So a lower level is always at least as likely as a higher one, and adding the percentages together tells you nothing. Read the ladder as a curve, not as a set of competing options.',
+    },
+    {
+      h: 'What the shape of the curve tells you',
+      p: 'A curve that falls away gently means the market thinks a big move is plausible. One that collapses fast means it does not. Watch the gap between adjacent rungs: a sharp drop between two nearby levels is the market naming a price it does not expect to be crossed. And compare the upside ladder to the downside one. When the downside carries more money and higher probabilities, the market is telling you where it thinks the risk actually sits, regardless of what anyone is posting online.',
+    },
+  ],
+
   tennis: [
     {
       h: 'How a tennis outright market prices a draw',

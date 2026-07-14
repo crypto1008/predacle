@@ -364,7 +364,41 @@ export async function getTopicOdds(slug: string): Promise<TopicOdds | null> {
 // Extract a contender name for 'simple' topics, e.g.
 // "Will Brazil win the 2026 World Cup?" -> "Brazil".
 // "Will the Kansas City Chiefs win the Super Bowl?" -> "Kansas City Chiefs".
+// Price-ladder markets have no NAME contender — the contender IS the price.
+// "Will Bitcoin reach $90,000 by December 31, 2026?" -> "$90,000".
+// Normalises shorthand ("$150k" -> "$150,000") so rungs sort and read together.
+//
+// The trailing "by <date>" is REQUIRED: it is what separates a dated rung from a
+// standalone question. "Will bitcoin hit $1m before GTA VI?" has no "by", returns
+// null, and correctly remains its own indexable market page.
+//
+// Verified purely additive against every existing topic's markets (US Open x2,
+// World Cup, NFL, MLB, Golden Boot, reach-semifinals): all 7 extract identically
+// with and without this branch.
+function extractThreshold(qRaw: string): string | null {
+  const q = qRaw.trim()
+  const m = q.match(/^Will\s+\w+\s+(?:reach|hit|dip\s+to)\s+(\$[\d,]+(?:\.\d+)?\s*[kmb]?)\s+by\b/i)
+  if (!m || !m[1]) return null
+  let t = m[1].trim()
+  const short = t.match(/^\$([\d,]+)\s*([kmb])$/i)
+  if (short) {
+    const n = parseFloat(short[1].replace(/,/g, ''))
+    const mult: Record<string, number> = { k: 1e3, m: 1e6, b: 1e9 }
+    const factor = mult[short[2].toLowerCase()]
+    if (factor) t = '$' + (n * factor).toLocaleString('en-US')
+  }
+  return t
+}
+
 export function extractContender(qRaw: string): string | null {
+  // Threshold ladders FIRST, with an early return. This deliberately bypasses the
+  // banned-list and the Title-Case validator below: "$90,000" is not Title Case
+  // and would be rejected by /^[\p{Lu}].../ — which is exactly why the crash page
+  // rendered EMPTY before this fix. And without it, "reach" is a verb delimiter,
+  // so every rung extracted as "Bitcoin" and collapsed into one row.
+  const threshold = extractThreshold(qRaw)
+  if (threshold) return threshold
+
   let q = qRaw.trim()
   // Strip a leading "Will " and a trailing "?".
   q = q.replace(/^will\s+/i, '').replace(/\?+\s*$/, '')

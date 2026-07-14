@@ -438,6 +438,51 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     },
     keywords: ['2026 mens us open odds', 'us open mens singles odds 2026', 'us open men champion odds 2026', 'who will win the us open 2026 men'],
   },
+  'bitcoin-price-2026': {
+    slug: 'bitcoin-price-2026',
+    question: 'What are the odds Bitcoin reaches $100,000 by the end of 2026?',
+    structure: 'simple',
+    intro:
+      'Prediction markets price every Bitcoin price target for the end of 2026 as a separate contract. This page pulls them together into one ladder, so you can see what the money actually gives each level \u2014 updated continuously.',
+    description:
+      'Live Bitcoin price prediction odds for 2026 from real-money prediction markets \u2014 the probability of Bitcoin reaching $90,000, $100,000, $150,000, $500,000 or $1,000,000 by December 31, aggregated on Predacle.',
+    match: {
+      // NO '$' IN ANCHORS. The anchor is interpolated into a PostgREST .or()
+      // filter (`question.ilike.%<term>%`, lib/odds-data.ts ~line 290) and a '$'
+      // does not survive that path. An anchor of 'reach $' silently degrades to
+      // matching 'reach' — which pulled in Solana ladders and "Elon Musk's
+      // wealth"; 'hit $' degraded to 'hit' and pulled "Ohtani hit the most
+      // triples". Scoping to 'bitcoin' is unambiguous WITHOUT needing '$'.
+      //
+      // 'bitcoin hit' is required as well as 'bitcoin reach': the $150k market
+      // is phrased "hit $150k" (shorthand), and an anchor on 'reach' alone would
+      // silently drop a $2.6M market.
+      any: ['bitcoin reach', 'bitcoin hit'],
+      // ' in july' / 'on july' -> short-dated cohorts that resolve before Google
+      // can index them. 'gta' and 'before it reaches' -> novelty markets, not
+      // rungs ("hit $1m before GTA VI", "reach $1k before it reaches $1m").
+      exclude: [' in july', 'on july', 'gta', 'before it reaches'],
+    },
+    keywords: ['bitcoin price prediction 2026', 'will bitcoin hit 100k', 'bitcoin odds 2026', 'will bitcoin reach 150k', 'bitcoin price target odds'],
+  },
+
+  'bitcoin-crash-2026': {
+    slug: 'bitcoin-crash-2026',
+    question: 'What are the odds Bitcoin crashes below $50,000 by the end of 2026?',
+    structure: 'simple',
+    intro:
+      'Prediction markets price the downside too. Each level Bitcoin could fall to by the end of 2026 trades as its own contract, and the money is currently pricing the downside more heavily than the upside. This page ranks every level \u2014 updated continuously.',
+    description:
+      'Live odds that Bitcoin crashes in 2026 from real-money prediction markets \u2014 the probability of Bitcoin dipping to $55,000, $50,000, $35,000 or lower by December 31, aggregated on Predacle.',
+    match: {
+      // See the note on bitcoin-price-2026: no '$' in anchors. 'dip to $'
+      // returned ZERO rows because the '$' does not survive the PostgREST
+      // ilike path.
+      any: ['bitcoin dip to'],
+      exclude: [' in july', 'on july'],
+    },
+    keywords: ['will bitcoin crash 2026', 'bitcoin crash prediction', 'bitcoin price drop odds', 'will bitcoin fall below 50k', 'bitcoin bear market odds 2026'],
+  },
 }
 
 export function getOddsTopic(slug: string): OddsTopic | null {
