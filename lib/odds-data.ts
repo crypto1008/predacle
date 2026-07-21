@@ -390,7 +390,32 @@ function extractThreshold(qRaw: string): string | null {
   return t
 }
 
+// Release-date ladders (GPT-6 etc.): the contender is a DATE, not a name or price.
+// "Will GPT-6 be released by August 7, 2026?" -> "Aug 7, 2026".
+// Requires "released by <Month>", so it returns null for PRICE ladders (which say
+// "$90,000 by December 31") and for every name/team market. Verified 0 leaks.
+function extractReleaseDate(qRaw: string): string | null {
+  const q = qRaw.trim()
+  const m = q.match(/\breleased?\s+by\s+((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(?:\d{1,2},\s+)?\d{4})/i)
+  if (!m || !m[1]) return null
+  const MON: Record<string, string> = {
+    january: 'Jan', february: 'Feb', march: 'Mar', april: 'Apr', may: 'May',
+    june: 'Jun', july: 'Jul', august: 'Aug', september: 'Sep', october: 'Oct',
+    november: 'Nov', december: 'Dec',
+  }
+  let t = m[1].replace(/\s+/g, ' ').trim()
+  const parts = t.match(/^([a-z]+)\.?\s+(?:(\d{1,2}),\s+)?(\d{4})$/i)
+  if (parts) {
+    const mon = MON[parts[1].toLowerCase()] || (parts[1][0].toUpperCase() + parts[1].slice(1, 3).toLowerCase())
+    t = parts[2] ? `${mon} ${parts[2]}, ${parts[3]}` : `${mon} ${parts[3]}`
+  }
+  return t
+}
+
 export function extractContender(qRaw: string): string | null {
+  // Release-date ladders first: contender is a date, not a name or price.
+  const releaseDate = extractReleaseDate(qRaw)
+  if (releaseDate) return releaseDate
   // Threshold ladders FIRST, with an early return. This deliberately bypasses the
   // banned-list and the Title-Case validator below: "$90,000" is not Title Case
   // and would be rejected by /^[\p{Lu}].../ — which is exactly why the crash page
@@ -505,7 +530,20 @@ export async function getSimpleTopicOdds(slug: string): Promise<SimpleTopicOdds 
     g.prices.sort((a, b) => b.probability - a.probability)
     g.topProbability = headlineProb(g.prices)
   }
-  all.sort((a, b) => b.topProbability - a.topProbability)
+  // Release-date ladders (sortBy: 'chrono') order by the DATE in each contender
+  // label, ascending — so "Jul 31 (1%) -> Dec 31 (87%)" reads as the timeline it
+  // is. Everything else sorts by probability, descending (contests + price
+  // ladders). parseLadderDate returns +Infinity for unparseable labels so any
+  // stray row sinks to the end rather than corrupting the order.
+  if (topic.sortBy === 'chrono') {
+    const parseLadderDate = (name: string): number => {
+      const t = Date.parse(name)
+      return Number.isNaN(t) ? Number.POSITIVE_INFINITY : t
+    }
+    all.sort((a, b) => parseLadderDate(a.name) - parseLadderDate(b.name))
+  } else {
+    all.sort((a, b) => b.topProbability - a.topProbability)
+  }
   const shown = all.filter((g) => g.topProbability >= THRESHOLD)
   const hiddenCount = all.length - shown.length
 

@@ -47,6 +47,14 @@ export interface OddsTopic {
    * substring exclude can keep up with them; this rule can.
    */
   realMoneyOnly?: boolean
+  /**
+   * Row ordering. Default (undefined) = by probability, descending — correct for
+   * contests and price ladders. 'chrono' = by the date parsed from each row's
+   * contender label, ascending — for RELEASE-DATE ladders, where "Jul 31 (1%) ->
+   * Dec 31 (87%)" reads as the timeline it is; probability order would scramble
+   * the dates into nonsense.
+   */
+  sortBy?: 'chrono'
   keywords: string[]
 }
 
@@ -479,6 +487,26 @@ export const ODDS_TOPICS: Record<string, OddsTopic> = {
     },
     realMoneyOnly: true,
     keywords: ['bitcoin price prediction 2026', 'will bitcoin hit 100k', 'bitcoin odds 2026', 'will bitcoin reach 150k', 'bitcoin price target odds'],
+  },
+
+  'gpt-6-release-date': {
+    slug: 'gpt-6-release-date',
+    question: 'When will GPT-6 be released? (prediction market odds)',
+    structure: 'simple',
+    intro:
+      'GPT-5.6 has shipped; the live question is GPT-6. Prediction markets price each possible release deadline as its own contract, so this page reads as a timeline: how likely OpenAI ships GPT-6 by each date, by the end of 2026. (Separately, one Polymarket market gives GPT-6 a coin-flip chance of arriving before Grand Theft Auto VI.) Updated continuously.',
+    description:
+      'Live prediction market odds on when GPT-6 will be released \u2014 the probability OpenAI ships GPT-6 by July, August, or the end of 2026, from real-money markets aggregated on Predacle.',
+    match: {
+      // No '$' in anchors (does not survive the PostgREST ilike path). Scoped to
+      // the exact dated phrasing. 'gta'/'before' drop the "released before GTA VI"
+      // novelty market — a coin-flip, not a date rung; mentioned in the intro only.
+      any: ['gpt-6 be released by'],
+      exclude: ['gta', 'before'],
+    },
+    realMoneyOnly: true,
+    sortBy: 'chrono',
+    keywords: ['gpt-6 release date', 'when will gpt-6 release', 'gpt 6 polymarket', 'gpt-6 odds', 'gpt 5.6 polymarket', 'openai next model odds'],
   },
 
   'bitcoin-crash-2026': {

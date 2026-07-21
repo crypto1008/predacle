@@ -87,7 +87,7 @@ export function topicFlavour(slug: string, question: string): Flavour {
   // buildOddsSummary/buildOddsFaq call topicFlavour('', question) with an empty
   // slug — a slug-only regex would silently miss and produce "the favourite
   // $90,000", which is meaningless on a nested ladder.
-  if (/bitcoin-price|bitcoin-crash|-price-\d{4}|-crash-\d{4}|reaches \$|crashes below/.test(s)) return 'ladder'
+  if (/bitcoin-price|bitcoin-crash|-price-\d{4}|-crash-\d{4}|reaches \$|crashes below|-release-date|when will .* be released/.test(s)) return 'ladder'
   if (/lead the|leader|\bera\b|doubles|rbis|stolen bases|home runs/.test(s)) return 'statleader'
   // Individual awards MUST be checked before 'soccer'. A Ballon d'Or or Golden
   // Boot market is a voted/counted individual prize, NOT a tournament: it has no
